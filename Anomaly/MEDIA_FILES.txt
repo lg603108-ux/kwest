@@ -1,0 +1,23 @@
+МЕДИА ДЛЯ ЗАДАНИЯ 1
+
+Скопируйте перечисленные исходные файлы непосредственно в папку assets рядом с fonts. Не меняйте имена, включая пробел в имени обычной сферы.
+
+prologue_volt_city.mp4
+v01_intro.mp4
+defense_street.mp4
+mon_spider_move_green.webm
+boss_sphere_closed_green 1.webm
+mon_octopus_move_green.webm
+mon_eye_idle_green.webm
+boss_sphere_closed_green.webm
+v01_hits_rules.mp3
+sfx_impulse.mp3
+sfx_spider_death.mp3
+sfx_sphere_death.mp3
+sfx_octopus_death.mp3
+sfx_eye_death.mp3
+sfx_mother_stun.mp3
+
+PNG-анимации, sprites.json и defense_poster.jpg не нужны. Видео пролога и Вольта используются со встроенным звуком.
+
+Необязательно: music_defense_loop.mp3 — музыка обороны.
