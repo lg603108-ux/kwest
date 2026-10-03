@@ -129,7 +129,40 @@
 <!-- ИНТЕГРАЦИЯ: модуль задания 2 -->
 <script src="task02.js"></script>
 <script src="app.js"></script>
-<!-- ИНТЕГРАЦИЯ: мост результат 1 → задание 2 -->
-<script src="bridge.js"></script>
+<script>
+// ВШИТЫЙ МОСТ v3: кнопка «Продолжить квест» у капитана и монтаж задания 2.
+// Не зависит от отдельных файлов: опрос каждые 0.5 с, дубли исключены по id.
+(function(){
+var mounted=false;
+function ready(){return !!(window.NET&&window.NET.inRoom);}
+function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
+function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
+function tryMount(){
+if(!ready())return;
+var r=NET.room;if(!r||!r.state)return;
+if(r.state.phase==='task02'&&!mounted){
+if(!window.Task02){toastMsg('Модуль задания 2 не загружен (task02.js)');return;}
+mounted=true;Task02.mount(document.body);
+}
+if(r.state.phase!=='task02'&&mounted){mounted=false;if(window.Task02)Task02.unmount();}
+}
+function addContinueButton(){
+if(!ready())return;
+if(document.body.dataset.screen!=='result')return;
+if(!cap())return;
+if(document.getElementById('bridge-continue'))return;
+var again=document.getElementById('again');if(!again||!again.parentNode)return;
+var b=document.createElement('button');b.id='bridge-continue';b.className='primary';b.type='button';b.textContent='Продолжить квест →';
+again.parentNode.insertBefore(b,again.nextSibling);
+b.onclick=function(){
+b.disabled=true;toastMsg('Переводим команду в задание 2…');
+NET.setPhase('task02',Date.now()+1500).then(function(){
+setTimeout(tryMount,800);setTimeout(tryMount,2500);setTimeout(tryMount,5000);
+}).catch(function(e){b.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
+};
+}
+setInterval(function(){addContinueButton();tryMount();},500);
+})();
+</script>
 </body>
 </html>
