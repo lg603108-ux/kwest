@@ -3,22 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>АНОМАЛИЯ · Задание 2 (v6)</title>
+<title>АНОМАЛИЯ · Задание 2 (v7)</title>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden}
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
+.t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
+@media(orientation:portrait){.t2-rotate{display:flex}}
 .t2-start{position:absolute;inset:0;z-index:40;background:radial-gradient(1200px 600px at 70% 20%,#1b3a3f,#0d161a 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
 .t2-start[hidden]{display:none}
 .t2-start h1{font-size:26px;margin:0}
 .t2-start p{font-size:15px;color:#9fd8d8;margin:0;max-width:560px;line-height:1.4}
 .t2-start button{min-height:52px;padding:12px 26px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000;cursor:pointer}
-.t2-panel{position:absolute;top:0;bottom:0;width:112px;background:#000;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:10}
+.t2-panel{position:absolute;top:0;bottom:0;width:118px;background:#000;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:10}
 .t2-panel.left{left:0}.t2-panel.right{right:0}
 .t2-panel[hidden]{display:none}
 .t2-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:10px 8px;min-height:44px;border:1px solid #333;border-radius:8px;cursor:pointer;user-select:none;background:#000}
 .t2-row:active{border-color:#30e5dc}
-.t2-row .shape{font-size:24px;color:#fff;line-height:1}
+.t2-row .shape{width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center}
+.t2-row .shape svg{width:100%;height:100%;display:block}
 .t2-row .digit{font-size:24px;color:#30e5dc;font-weight:700}
 .t2-bottom{position:absolute;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(0,0,0,.82);border:1px solid rgba(190,245,245,.35);border-radius:14px;padding:10px 14px;max-width:min(94vw,640px)}
 .t2-bottom[hidden]{display:none}
@@ -43,23 +46,40 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 .t2-nextwrap{position:absolute;inset:0;z-index:35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45)}
 .t2-nextwrap[hidden]{display:none}
 .t2-nextnote{font-size:14px;color:#9fd8d8;margin:0;text-align:center;max-width:80vw}
-@media(max-width:740px){.t2-panel{width:84px;padding:6px;gap:6px}.t2-row{padding:8px 6px}.t2-row .shape,.t2-row .digit{font-size:19px}.t2-cell{width:40px;height:40px;font-size:20px}.t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}.t2-bottom{padding:8px 10px}.t2-hint{font-size:13px}}
+@media(max-width:740px){.t2-panel{width:92px;padding:6px;gap:6px}.t2-row{padding:8px 6px}.t2-row .shape{width:26px;height:26px;flex:0 0 26px}.t2-row .digit{font-size:20px}.t2-cell{width:40px;height:40px;font-size:20px}.t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}.t2-bottom{padding:8px 10px}.t2-hint{font-size:13px}}
 </style>
 </head>
 <body>
 <div id="t2"></div>
 <script>
-// Задание 2 «Кристальный шифр», task02b v6.
-console.log('task02b v6');
+// Задание 2 «Кристальный шифр», task02b v7. Фигуры — SVG (не зависят от шрифтов телефона).
+console.log('task02b v7');
 (function(){
-const CB='?v=5';
+const CB='?v=6';
 const MEDIA={
 intro:['assets/v02_intro.mp4','v02_intro.mp4'],
 sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],
 reveal:['assets/door_open_lum.mp4','door_open_lum.mp4']
 };
-const LEFT=[{shape:'◆',digit:8},{shape:'■',digit:5},{shape:'✚',digit:9},{shape:'▲',digit:4},{shape:'︓',digit:0}];
-const RIGHT=[{shape:'⬭',digit:1},{shape:'∞',digit:3},{shape:'⌒',digit:2},{shape:'≈',digit:6},{shape:';',digit:7}];
+const W='#ffffff';
+const SHAPES={
+diamond:'<svg viewBox="0 0 24 24"><path d="M12 2 L22 12 L12 22 L2 12 Z" fill="'+W+'"/></svg>',
+square:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="'+W+'"/></svg>',
+cross:'<svg viewBox="0 0 24 24"><path d="M9 2 h6 v7 h7 v6 h-7 v7 h-6 v-7 H2 v-6 h7 Z" fill="'+W+'"/></svg>',
+triangle:'<svg viewBox="0 0 24 24"><path d="M12 3 L22 21 L2 21 Z" fill="'+W+'"/></svg>',
+colon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3" fill="'+W+'"/><circle cx="12" cy="17" r="3" fill="'+W+'"/></svg>',
+oval:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="6" fill="'+W+'"/></svg>',
+infinity:'<svg viewBox="0 0 24 24"><path d="M12 12c-2-2.7-3.6-4-6-4a4 4 0 0 0 0 8c2.4 0 4-1.3 6-4zm0 0c2 2.7 3.6 4 6 4a4 4 0 0 0 0-8c-2.4 0-4 1.3-6 4z" fill="'+W+'"/></svg>',
+arc:'<svg viewBox="0 0 24 24"><path d="M4 17 A 10 10 0 0 1 20 17" fill="none" stroke="'+W+'" stroke-width="2.6" stroke-linecap="round"/></svg>',
+waves:'<svg viewBox="0 0 24 24"><path d="M3 9.5 q3 -3 6 0 t6 0 t6 0 M3 15 q3 -3 6 0 t6 0 t6 0" fill="none" stroke="'+W+'" stroke-width="2.2" stroke-linecap="round"/></svg>',
+semicolon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="6.5" r="2.6" fill="'+W+'"/><path d="M12 12.2c2.6 0 4.2 1.7 4.2 4 0 2.9-2.3 4.8-4.8 6.2 1.3-1.9 1.9-3.1 1.9-4.8 0-1.7-1.3-2.7-1.3-5.4z" fill="'+W+'"/></svg>'
+};
+const LEFT=[
+{id:'diamond',digit:8},{id:'square',digit:5},{id:'cross',digit:9},{id:'triangle',digit:4},{id:'colon',digit:0}
+];
+const RIGHT=[
+{id:'oval',digit:1},{id:'infinity',digit:3},{id:'arc',digit:2},{id:'waves',digit:6},{id:'semicolon',digit:7}
+];
 const CODE=[1,2,3,5,8,9];
 const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
 let S=null,video=null,els={};
@@ -82,6 +102,7 @@ rootEl.innerHTML=
 '<button class="t2-btn primary" id="t2-check" type="button" disabled>Открыть дверь</button>'+
 '</div></div>'+
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-nextnote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
+'<div class="t2-rotate">Поверните телефон горизонтально</div>'+
 '<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Нажмите кнопку — включится видео-инструкция со звуком и во весь экран. Во время видео фигур капитан нажимает строки таблицы слева и справа.</p><button id="t2-start-btn" type="button">▶ Начать со звуком</button></div>';
 video=rootEl.querySelector('.t2-video');
 els={left:rootEl.querySelector('#t2-left'),right:rootEl.querySelector('#t2-right'),status:rootEl.querySelector('#t2-status'),sound:rootEl.querySelector('#t2-sound'),bottom:rootEl.querySelector('#t2-bottom'),hint:rootEl.querySelector('#t2-hint'),cells:rootEl.querySelector('#t2-cells'),buttons:rootEl.querySelector('#t2-buttons'),remove:rootEl.querySelector('#t2-remove'),repeat:rootEl.querySelector('#t2-repeat'),check:rootEl.querySelector('#t2-check'),nextwrap:rootEl.querySelector('#t2-nextwrap'),continueBtn:rootEl.querySelector('#t2-continue'),nextnote:rootEl.querySelector('#t2-nextnote'),start:rootEl.querySelector('#t2-start'),startBtn:rootEl.querySelector('#t2-start-btn')};
@@ -95,7 +116,7 @@ els.sound.addEventListener('click',toggleSound);
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.nextnote.hidden=false;});
 els.startBtn.addEventListener('click',function(){S.soundOn=true;video.muted=false;els.start.hidden=true;goFullscreen();startStage('intro');});
 renderCells();
-function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+it.shape+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
+function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+SHAPES[it.id]+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
 function status(t){els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(S.stage==='intro'||S.stage==='sequence'||S.stage==='reveal'))video.play().catch(function(){});}
