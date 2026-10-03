@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>АНОМАЛИЯ · Задание 2 (v7)</title>
+<title>АНОМАЛИЯ · Задание 2 (сборка 7)</title>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden}
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
@@ -15,6 +15,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 .t2-start h1{font-size:26px;margin:0}
 .t2-start p{font-size:15px;color:#9fd8d8;margin:0;max-width:560px;line-height:1.4}
 .t2-start button{min-height:52px;padding:12px 26px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000;cursor:pointer}
+.t2-build{font-size:12px;color:#5f8a8a;margin:0}
 .t2-panel{position:absolute;top:0;bottom:0;width:118px;background:#000;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:10}
 .t2-panel.left{left:0}.t2-panel.right{right:0}
 .t2-panel[hidden]{display:none}
@@ -52,10 +53,10 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 <body>
 <div id="t2"></div>
 <script>
-// Задание 2 «Кристальный шифр», task02b v7. Фигуры — SVG (не зависят от шрифтов телефона).
+// Задание 2 «Кристальный шифр», task02b сборка 7. Фигуры — SVG.
 console.log('task02b v7');
 (function(){
-const CB='?v=6';
+const CB='?v=7';
 const MEDIA={
 intro:['assets/v02_intro.mp4','v02_intro.mp4'],
 sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],
@@ -103,7 +104,7 @@ rootEl.innerHTML=
 '</div></div>'+
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-nextnote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
-'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Нажмите кнопку — включится видео-инструкция со звуком и во весь экран. Во время видео фигур капитан нажимает строки таблицы слева и справа.</p><button id="t2-start-btn" type="button">▶ Начать со звуком</button></div>';
+'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Нажмите кнопку — включится видео-инструкция со звуком и во весь экран. Во время видео фигур капитан нажимает строки таблицы слева и справа.</p><button id="t2-start-btn" type="button">▶ Начать со звуком</button><p class="t2-build">сборка 7</p></div>';
 video=rootEl.querySelector('.t2-video');
 els={left:rootEl.querySelector('#t2-left'),right:rootEl.querySelector('#t2-right'),status:rootEl.querySelector('#t2-status'),sound:rootEl.querySelector('#t2-sound'),bottom:rootEl.querySelector('#t2-bottom'),hint:rootEl.querySelector('#t2-hint'),cells:rootEl.querySelector('#t2-cells'),buttons:rootEl.querySelector('#t2-buttons'),remove:rootEl.querySelector('#t2-remove'),repeat:rootEl.querySelector('#t2-repeat'),check:rootEl.querySelector('#t2-check'),nextwrap:rootEl.querySelector('#t2-nextwrap'),continueBtn:rootEl.querySelector('#t2-continue'),nextnote:rootEl.querySelector('#t2-nextnote'),start:rootEl.querySelector('#t2-start'),startBtn:rootEl.querySelector('#t2-start-btn')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
