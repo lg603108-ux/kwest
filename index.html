@@ -5,55 +5,57 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>АНОМАЛИЯ</title>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="styles-mobile08.css"><link rel="stylesheet" href="task02.css">
+<link rel="stylesheet" href="styles-mobile08.css">
+<!-- ИНТЕГРАЦИЯ: стили модуля задания 2 -->
+<link rel="stylesheet" href="task02.css">
+<style>
+.hidden{display:none!important}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
+#rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
+@media(orientation:portrait){#rotate{display:flex}}
+</style>
 </head>
-<body data-screen="home">
-<main id="app">
-<div class="ambient"></div>
-<header id="topbar">
-<a class="brand" href="#"><span class="brand-mark">◇</span>АНОМАЛИЯ</a>
-<div class="top-actions">
-<button class="icon" id="sound" aria-label="Выключить звук">♪</button>
-<button class="icon" id="fullscreen" aria-label="Полноэкранный режим">⛶</button>
+<body>
+<div id="app">
+
+<header style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;position:relative;z-index:20">
+<a class="brand" href="#" style="color:#fff;text-decoration:none;font-weight:800;font-size:20px">◇ АНОМАЛИЯ</a>
+<div style="display:flex;gap:8px">
+<button id="sound" class="icon" type="button" aria-label="Выключить звук" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer">♪</button>
+<button id="fullscreen" class="icon" type="button" aria-label="Полноэкранный режим" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer">⛶</button>
 </div>
 </header>
 
-<section class="screen active" id="home">
-<div class="hero">
-<p class="eyebrow">АНОМАЛИЯ</p>
-<h1 class="quest-title">КОМАНДНЫЙ КВЕСТ</h1>
-<p class="tagline">Город в опасности. Действуйте вместе.</p>
-<p>Войдите в мир аномалии. Ваш телефон — часть команды.</p>
+<section class="screen" id="home">
+<div class="glass brief-card">
+<p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
+<h1>АНОМАЛИЯ</h1>
+<p class="note">Город в опасности. Действуйте вместе. Войдите в мир аномалии. Ваш телефон — часть команды.</p>
 <p class="note">3–10 игроков в полной версии · Горизонтальный экран</p>
-</div>
-<form class="entry glass" id="entry">
-<div class="card-title"><span class="line-icon">⌁</span><h2>Подключение</h2></div>
+<p class="eyebrow">⌁ Подключение</p>
+<form id="entry">
 <label for="name">Как вас зовут?</label>
-<input id="name" name="name" placeholder="Ваше имя" autocomplete="off" maxlength="24">
+<input id="name" autocomplete="name" enterkeyhint="go">
 <button class="primary" type="submit">Продолжить →</button>
 <p class="note">Имя видно только вашей команде.</p>
 </form>
+</div>
 </section>
 
 <section class="screen" id="lobby">
 <div class="glass lobby-card">
 <h2>Команда на связи</h2>
 <p class="note">Ожидание игроков…</p>
-<div id="players"><div class="player"><span class="avatar">◇</span><span>Капитан<small>Готов</small></span><span class="ready">✓</span></div></div>
-<div class="lobby-buttons">
-<button class="primary" id="start" type="button">Начать квест →</button>
-<button class="secondary" id="back" type="button">Назад</button>
-</div>
 </div>
 </section>
 
 <section class="screen" id="cinema">
-<video id="movie" playsinline></video>
-<div class="cinema-controls">
-<span class="badge" id="movie-title"></span>
-<button class="secondary" id="movie-pause" type="button">Пауза</button>
-<button class="secondary hidden" id="movie-retry" type="button">Запустить видео</button>
-<button class="primary hidden" id="movie-next" type="button">Продолжить →</button>
+<video id="movie" playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000"></video>
+<h2 id="movie-title" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;color:#fff;font-size:18px;margin:0;text-align:center;max-width:90vw"></h2>
+<div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:6;flex-wrap:wrap;justify-content:center">
+<button id="movie-pause" class="secondary" type="button">Пауза</button>
+<button id="movie-retry" class="secondary hidden" type="button">Запустить видео</button>
+<button id="movie-next" class="primary hidden" type="button">Продолжить →</button>
 </div>
 </section>
 
@@ -61,70 +63,73 @@
 <div class="glass brief-card">
 <p class="eyebrow">ЗАДАНИЕ 01 · ОБОРОНА</p>
 <h2>Ваш телефон — импульсный стабилизатор</h2>
-<p>Коротко касайтесь тварей. Повторяйте попадания, пока цель не исчезнет.</p>
-<div class="hit-guide"><span><b>1</b>Сфера и глаз</span><span><b>2</b>Осьминог</span><span><b>3</b>Паук</span></div>
+<p class="note">Коротко касайтесь тварей. Повторяйте попадания, пока цель не исчезнет.</p>
+<p class="note">1 Сфера и глаз · 2 Осьминог · 3 Паук</p>
 <p class="note">На пятой минуте появится Материнская сфера. Поражайте её во время раскрытия: +100 очков и оглушение на 5 секунд.</p>
-<div class="row">
-<button class="secondary" id="rules-audio" type="button">♪ Повторить инструкцию</button>
-<button class="secondary" id="repeat-intro" type="button">Повторить видео</button>
+<div class="lobby-buttons">
+<button id="rules-audio" class="secondary" type="button">♪ Повторить инструкцию</button>
+<button id="repeat-intro" class="secondary" type="button">Повторить видео</button>
+<button id="battle-start" class="primary" type="button">Начать оборону →</button>
 </div>
-<button class="primary" id="battle-start" type="button">Начать оборону →</button>
 <p class="note" id="loading-note"></p>
 </div>
 </section>
 
 <section class="screen" id="battle">
-<video id="street" src="assets/defense_street.mp4" muted loop playsinline></video>
-<canvas id="field"></canvas>
-<div id="monsters"></div>
-<div class="defense-line"></div>
-<div class="battle-hud">
-<div class="hud-panel"><small>Общий счёт</small><strong id="team-score">0</strong></div>
-<div class="hud-panel"><small>Счёт игрока</small><strong id="score">0</strong></div>
-<div class="hud-panel"><small>Таймер</small><strong id="clock">05:00</strong></div>
-<button class="icon" id="battle-pause" type="button" aria-label="Пауза">Ⅱ</button>
+<video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
+<canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
+<div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
+<div style="position:absolute;top:8px;left:12px;right:12px;display:flex;gap:14px;align-items:center;z-index:5;color:#fff;font-size:14px;flex-wrap:wrap">
+<span>Общий счёт <b id="team-score">0</b></span>
+<span>Счёт игрока <b id="score">0</b></span>
+<span>Таймер <b id="clock">05:00</b></span>
+<button id="battle-pause" class="icon" type="button" style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer">Ⅱ</button>
 </div>
-<div class="boss-tip" id="boss-tip">Материнская сфера раскрывается — бейте!</div>
+<div id="boss-tip" class="hidden" style="position:absolute;top:52px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бей!</div>
 </section>
 
 <section class="screen" id="result">
 <div class="glass result-card">
-<p class="eyebrow">ОБОРОНА ЗАВЕРШЕНА</p>
-<h2>Вы сдержали прорыв</h2>
-<div class="result-number" id="result-score">0</div>
-<p>очков</p>
+<h2>ОБОРОНА ЗАВЕРШЕНА</h2>
+<p class="note">Вы сдержали прорыв</p>
+<p style="font-size:34px;font-weight:800;margin:6px 0"><span id="result-score">0</span> очков</p>
+<p class="note" id="result-name">Игрок</p>
 <div class="result-stats">
-<div><small>Игрок</small><strong id="result-name">Игрок</strong></div>
-<div><small>Уничтожено</small><strong id="result-kills">0</strong></div>
-<div><small>Оглушения сферы</small><strong id="result-stuns">0</strong></div>
+<p class="note">Уничтожено: <b id="result-kills">0</b></p>
+<p class="note">Оглушения сферы: <b id="result-stuns">0</b></p>
 </div>
 <p class="note" id="result-team"></p>
-<div class="row">
-<button class="primary" id="again" type="button">Повторить задание</button>
-<button class="secondary" id="home-button" type="button">На главный экран</button>
+<div class="lobby-buttons">
+<button id="again" class="primary" type="button">Повторить задание</button>
+<button id="home-button" class="secondary" type="button">На главный экран</button>
 </div>
 </div>
 </section>
 
-<div class="modal hidden" id="pause-modal">
-<div class="glass">
+<div id="pause-modal" class="hidden" style="position:fixed;inset:0;z-index:60;background:rgba(4,10,12,.72);display:flex;align-items:center;justify-content:center;padding:20px">
+<div class="glass" style="max-width:420px;padding:20px;text-align:center">
 <h2>Оборона на паузе</h2>
-<p>Таймер остановлен. Продолжите, когда будете готовы.</p>
-<button class="primary" id="resume" type="button">Продолжить →</button>
-<button class="secondary" id="quit" type="button">Завершить оборону</button>
+<p class="note">Таймер остановлен. Продолжите, когда будете готовы.</p>
+<div class="lobby-buttons" style="justify-content:center">
+<button id="resume" class="primary" type="button">Продолжить →</button>
+<button id="quit" class="secondary" type="button">Завершить оборону</button>
+</div>
 </div>
 </div>
 
-<div id="rotate"><span>⤾</span><p>Поверните телефон</p><p class="note">Квест проходит в горизонтальном режиме</p></div>
+<div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
 
-</main>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js"></script>
-
-
-<script src="app.js"></script><script src="task02.js"></script>
+<!-- ИНТЕГРАЦИЯ: модуль задания 2 -->
+<script src="task02.js"></script>
+<script src="app.js"></script>
+<!-- ИНТЕГРАЦИЯ: мост результат 1 → задание 2 -->
+<script src="bridge.js"></script>
 </body>
 </html>

@@ -1,5 +1,4 @@
-// task02.js — модуль задания 2 «Кристальный шифр» для командной интеграции.
-// У игроков только просмотр таблицы; ввод и запуск видео — у капитана; старт видео общий по startsAt.
+// task02.js — модуль задания 2 «Кристальный шифр» для командной интеграции (сборка 9).
 window.Task02=(function(){
 const MEDIA={intro:['assets/v02_intro.mp4','v02_intro.mp4'],sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],reveal:['assets/door_open_lum.mp4','door_open_lum.mp4']};
 const W='#ffffff';
@@ -22,8 +21,9 @@ const HINT_SWAP='Расположите цифры по возрастанию: 
 const HINT_PLAYER='Расстановку выполняет капитан. Следите за ячейками и подсказывайте голосом.';
 let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait';
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
-function t2state(){const r=window.NET&&window.NET.room;return r&&r.tasks&&r.tasks.task02?r.tasks.task02:null;}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
+function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));});}
+function goFullscreen(){try{const el=document.documentElement;if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}}catch(e){}}
 function mount(container){
 if(root)unmount();
 active=true;
@@ -52,11 +52,12 @@ LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
 els.remove.addEventListener('click',onRemove);
-els.repeat.addEventListener('click',function(){if(cap())ref().update({stage:'sequence',startsAt:Date.now()+1500});});
+els.repeat.addEventListener('click',function(){if(cap())put({stage:'sequence',startsAt:Date.now()+1500});});
 els.check.addEventListener('click',onCheck);
 els.sound.addEventListener('click',toggleSound);
-els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';ref().update({stage:'intro',startsAt:Date.now()+3000,rev:1});});
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
+els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
+root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
 renderCells();
 render(window.NET.room);
 window.NET.onRoom(function(room){if(active)render(room);});
@@ -67,6 +68,7 @@ function status(t){if(!els.status)return;els.status.textContent=t||'';els.status
 function hint(t,kind){if(!els.hint)return;els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
 function render(room){
+if(!root)return;
 const t=room&&room.tasks&&room.tasks.task02;
 const stage=t?t.stage:'wait';
 const at=(t&&t.startsAt)||0;
@@ -98,7 +100,7 @@ else{playList(list,Math.max(0,Date.now()-at),stage);}
 function playList(list,offset,stage){
 let i=0;
 (function tryOne(){
-if(i>=list.length){if(stage==='reveal'){ref().parent?0:0;if(cap())ref().update({stage:'done',startsAt:Date.now()});}else if(cap()){ref().update(stage==='intro'?{stage:'sequence',startsAt:Date.now()+2000}:{stage:'swap',startsAt:Date.now()});}return;}
+if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
 const src=list[i++]+'?v=9';
 video.src=src;video.muted=!S.soundOn;
 let settled=false;let seeked=false;
@@ -107,7 +109,7 @@ const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;t
 video.onloadedmetadata=function(){settled=true;clearTimeout(to);doSeek();};
 video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
-video.onended=function(){if(cap()){if(stage==='intro')ref().update({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')ref().update({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')ref().update({stage:'done',startsAt:Date.now()});}};
+video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){});});
 })();
 }
@@ -130,7 +132,7 @@ function onRemove(){
 if(!cap()||S.accepted||curStage!=='swap'||S.hl===null)return;
 S.digits.splice(S.hl,1);S.hl=null;hint(HINT_SWAP);renderCells();writeDigits();
 }
-function writeDigits(){clearTimeout(digTimer);digTimer=setTimeout(function(){ref().update({digits:S.digits.join(',')});},250);}
+function writeDigits(){clearTimeout(digTimer);digTimer=setTimeout(function(){put({digits:S.digits.join(',')});},250);}
 function renderCells(){
 if(!els.cells)return;
 els.cells.innerHTML='';
@@ -141,7 +143,7 @@ els.remove.disabled=(S.hl===null);
 function onCheck(){
 if(!cap()||S.accepted||curStage!=='swap'||S.digits.length!==6)return;
 const ok=S.digits.every(function(d,i){return d===CODE[i];});
-if(ok){S.accepted=true;hint('Код принят!','ok');writeDigits();ref().update({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
+if(ok){S.accepted=true;hint('Код принят!','ok');writeDigits();put({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
 else{
 S.attempts++;S.hl=null;
 els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
