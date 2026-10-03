@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>АНОМАЛИЯ · Задание 2 (v2)</title>
+<title>АНОМАЛИЯ · Задание 2 (v4)</title>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden}
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
@@ -51,24 +51,32 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
 <body>
 <div id="t2"></div>
 <script>
-// Задание 2 «Кристальный шифр», самодостаточная тестовая страница task02b (v2).
-// Медиа: assets/v02_intro.mp4, assets/crystal_sequence.mp4,
-// дверь: assets/door_open_lum.mp4 (основное имя), запасное assets/door_lum_reveal.mp4
-console.log('task02b v2');
+// Задание 2 «Кристальный шифр», task02b v4.
+console.log('task02b v4');
 (function(){
-const MEDIA={intro:'assets/v02_intro.mp4',sequence:'assets/crystal_sequence.mp4',reveal:['assets/door_open_lum.mp4','assets/door_lum_reveal.mp4']};
+const CB='?v=3';
+const MEDIA={
+intro:['assets/v02_intro.mp4','v02_intro.mp4'],
+sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],
+reveal:[
+'assets/door_open_lum.mp4','door_open_lum.mp4',
+'assets/Door_open_lum.mp4','Door_open_lum.mp4',
+'assets/door_open_LUM.mp4','door_open_LUM.mp4',
+'assets/door_lum_reveal.mp4','door_lum_reveal.mp4'
+]
+};
 const LEFT=[{shape:'◆',digit:8},{shape:'■',digit:5},{shape:'✚',digit:9},{shape:'▲',digit:4},{shape:'︓',digit:0}];
 const RIGHT=[{shape:'⬭',digit:1},{shape:'∞',digit:3},{shape:'⌒',digit:2},{shape:'≈',digit:6},{shape:';',digit:7}];
 const CODE=[1,2,3,5,8,9];
 const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
 const HINT_SEQ='Капитан: нажимайте строку таблицы, когда расшифруете фигуру — цифра встанет в ячейку.';
-let S=null,root=null,video=null,els={};
+let S=null,video=null,els={};
 function fresh(){return{stage:'start',digits:[],hl:null,attempts:0,accepted:false,soundOn:true};}
 function goFullscreen(){try{const el=document.documentElement;if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}}catch(e){}}
 const rootEl=document.getElementById('t2');
 S=fresh();
 rootEl.innerHTML=
-'<video class="t2-video" playsinline></video>'+
+'<video class="t2-video" playsinline preload="auto"></video>'+
 '<div class="t2-panel left" id="t2-left" hidden></div>'+
 '<div class="t2-panel right" id="t2-right" hidden></div>'+
 '<button class="t2-sound" id="t2-sound" type="button" title="Включить/выключить звук">♪</button>'+
@@ -81,10 +89,10 @@ rootEl.innerHTML=
 '<button class="t2-btn" id="t2-repeat" type="button">Повторить видео</button>'+
 '<button class="t2-btn primary" id="t2-check" type="button" disabled>Открыть дверь</button>'+
 '</div></div>'+
-'<div class="t2-win" id="t2-win" hidden><div class="t2-door"></div><h2>Дверь открыта!</h2><p>Лум свободен. Команда справилась.</p><p class="t2-win-note">Задание 2 пройдено. Переход к заданию 3 — на этапе интеграции.</p></div>'+
+'<div class="t2-win" id="t2-win" hidden><div class="t2-door"></div><h2>Дверь открыта!</h2><p>Лум свободен. Команда справилась.</p><p class="t2-win-note" id="t2-win-note">Задание 2 пройдено. Переход к заданию 3 — на этапе интеграции.</p></div>'+
 '<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Нажмите кнопку — включится видео-инструкция со звуком и во весь экран. Во время видео фигур капитан нажимает строки таблицы слева и справа.</p><button id="t2-start-btn" type="button">▶ Начать со звуком</button></div>';
 video=rootEl.querySelector('.t2-video');
-els={left:rootEl.querySelector('#t2-left'),right:rootEl.querySelector('#t2-right'),status:rootEl.querySelector('#t2-status'),sound:rootEl.querySelector('#t2-sound'),bottom:rootEl.querySelector('#t2-bottom'),hint:rootEl.querySelector('#t2-hint'),cells:rootEl.querySelector('#t2-cells'),buttons:rootEl.querySelector('#t2-buttons'),remove:rootEl.querySelector('#t2-remove'),repeat:rootEl.querySelector('#t2-repeat'),check:rootEl.querySelector('#t2-check'),win:rootEl.querySelector('#t2-win'),start:rootEl.querySelector('#t2-start'),startBtn:rootEl.querySelector('#t2-start-btn')};
+els={left:rootEl.querySelector('#t2-left'),right:rootEl.querySelector('#t2-right'),status:rootEl.querySelector('#t2-status'),sound:rootEl.querySelector('#t2-sound'),bottom:rootEl.querySelector('#t2-bottom'),hint:rootEl.querySelector('#t2-hint'),cells:rootEl.querySelector('#t2-cells'),buttons:rootEl.querySelector('#t2-buttons'),remove:rootEl.querySelector('#t2-remove'),repeat:rootEl.querySelector('#t2-repeat'),check:rootEl.querySelector('#t2-check'),win:rootEl.querySelector('#t2-win'),winNote:rootEl.querySelector('#t2-win-note'),start:rootEl.querySelector('#t2-start'),startBtn:rootEl.querySelector('#t2-start-btn')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
@@ -98,27 +106,35 @@ function makeRow(it){const r=document.createElement('div');r.className='t2-row';
 function status(t){els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(S.stage==='intro'||S.stage==='sequence'||S.stage==='reveal'))video.play().catch(function(){});}
-function playList(list,onDone,onFail){
+function playList(list,onDone,onFail,silent){
 let i=0;
 (function tryOne(){
-if(i>=list.length){if(onFail)onFail();return;}
-const src=list[i++];
+if(i>=list.length){console.warn('task02: не найден ни один файл из',list);if(onFail)onFail();return;}
+const src=list[i++]+CB;
 video.src=src;video.muted=!S.soundOn;
 let settled=false;
-const to=setTimeout(function(){if(!settled){settled=true;tryOne();}},4000);
-video.onloadeddata=function(){settled=true;clearTimeout(to);};
-video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
+const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;if(!silent)status('Не найдено: '+src.split('/').pop()+' — пробую дальше…');tryOne();}},15000);
+video.onloadedmetadata=function(){settled=true;clearTimeout(to);if(!silent)status('');};
+video.oncanplay=function(){settled=true;clearTimeout(to);};
+video.onerror=function(){if(!settled){settled=true;clearTimeout(to);if(!silent)status('Не найдено: '+src.split('/').pop()+' — пробую дальше…');tryOne();}};
 video.onended=function(){if(onDone)onDone();};
-video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';status('Браузер запретил звук — нажмите кнопку ♪ сверху');video.play().catch(function(){});});
+video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';if(!silent)status('Браузер запретил звук — нажмите кнопку ♪ сверху');video.play().catch(function(){});});
 })();
 }
 function startStage(st){
 if(S.accepted&&st!=='reveal')return;
 S.stage=st;
-if(st==='intro'){els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;status('Видео-инструкция Вольта…');playList([MEDIA.intro],function(){startStage('sequence');},function(){status('Файл инструкции не найден — переходим к фигурам.');startStage('sequence');});}
-else if(st==='sequence'){els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.buttons.hidden=true;hint(HINT_SEQ);status('');playList([MEDIA.sequence],function(){startStage('swap');},function(){status('Файл видео фигур не найден — переходим к сборке кода.');startStage('swap');});}
+if(st==='intro'){els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;status('Видео-инструкция Вольта…');playList(MEDIA.intro,function(){startStage('sequence');},function(){status('Файл инструкции не найден — переходим к фигурам.');startStage('sequence');},false);}
+else if(st==='sequence'){els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.buttons.hidden=true;hint(HINT_SEQ);status('');playList(MEDIA.sequence,function(){startStage('swap');},function(){status('Файл видео фигур не найден — переходим к сборке кода.');startStage('swap');},false);}
 else if(st==='swap'){els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.buttons.hidden=false;video.pause();status('');hint(HINT_SWAP);renderCells();}
-else if(st==='reveal'){els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;status('');playList(MEDIA.reveal,showWin,showWin);}
+else if(st==='reveal'){
+els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;
+status('');hint('','');
+playList(MEDIA.reveal,showWin,function(){
+els.winNote.textContent='Видео двери не найдено. Задание 2 пройдено.';
+showWin();
+},true);
+}
 }
 function showWin(){S.stage='done';els.bottom.hidden=true;els.left.hidden=true;els.right.hidden=true;status('');els.win.hidden=false;}
 function onRow(d){
@@ -149,7 +165,7 @@ els.remove.disabled=(S.hl===null);
 function onCheck(){
 if(S.accepted||S.stage!=='swap'||S.digits.length!==6)return;
 const ok=S.digits.every(function(d,i){return d===CODE[i];});
-if(ok){S.accepted=true;hint('Код принят!','ok');setTimeout(function(){startStage('reveal');},500);}
+if(ok){S.accepted=true;hint('Код принят!','ok');setTimeout(function(){startStage('reveal');},400);}
 else{
 S.attempts++;S.hl=null;
 els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
