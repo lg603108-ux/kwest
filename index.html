@@ -13,6 +13,13 @@
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
+#home .home-card{display:grid;grid-template-columns:1.15fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
+#home h1{margin:4px 0;font-size:34px;line-height:1.1}
+#home .home-right label{display:block;font-size:14px;margin-bottom:6px}
+#home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
+#home .home-right .primary{width:100%}
+@media(max-width:740px){#home .home-card{grid-template-columns:1fr;gap:10px;padding:14px}#home h1{font-size:26px}}
+#skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
 </style>
 </head>
 <body>
@@ -27,11 +34,14 @@
 </header>
 
 <section class="screen" id="home">
-<div class="glass brief-card">
+<div class="glass home-card">
+<div class="home-left">
 <p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
 <h1>АНОМАЛИЯ</h1>
-<p class="note">Город в опасности. Действуйте вместе. Войдите в мир аномалии. Ваш телефон — часть команды.</p>
+<p class="note">Город в опасности. Действуйте вместе.</p>
 <p class="note">3–10 игроков в полной версии · Горизонтальный экран</p>
+</div>
+<div class="home-right">
 <p class="eyebrow">⌁ Подключение</p>
 <form id="entry">
 <label for="name">Как вас зовут?</label>
@@ -39,6 +49,7 @@
 <button class="primary" type="submit">Продолжить →</button>
 <p class="note">Имя видно только вашей команде.</p>
 </form>
+</div>
 </div>
 </section>
 
@@ -125,6 +136,15 @@
 <div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
 
+<div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
+<button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
+<button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
+<button class="sk" data-act="b" type="button">⏭ Сразу бой (20 сек)</button>
+<button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
+<button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
+<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
+</div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -136,7 +156,6 @@
 <script src="app.js"></script>
 <script>
 // ВШИТЫЙ МОСТ v3: кнопка «Продолжить квест» у капитана и монтаж задания 2.
-// Не зависит от отдельных файлов: опрос каждые 0.5 с, дубли исключены по id.
 (function(){
 var mounted=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
@@ -167,6 +186,40 @@ setTimeout(tryMount,800);setTimeout(tryMount,2500);setTimeout(tryMount,5000);
 };
 }
 setInterval(function(){addContinueButton();tryMount();},500);
+})();
+</script>
+<script>
+// ТЕСТОВАЯ ПАНЕЛЬ ПРОПУСКОВ (только капитан, только для прогонов). app.js не меняет.
+(function(){
+function cap(){try{return window.NET&&NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
+function t2ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task02');}
+var panel=document.getElementById('skip-panel');
+function refresh(){
+if(!cap()){panel.style.display='none';return;}
+panel.style.display='flex';
+var r=NET.room||{};var st=r.state||{};var ph=st.phase||'';
+var t2=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
+var i,btns=panel.querySelectorAll('.sk');
+for(i=0;i<btns.length;i++)btns[i].style.display='none';
+function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.display='block';}
+if(ph==='cinema')on('p1');
+if(ph==='intro')on('p2');
+if(ph==='brief')on('b');
+if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
+}
+panel.addEventListener('click',function(e){
+var a=e.target&&e.target.dataset?e.target.dataset.act:null;
+if(!a||!cap())return;
+var now=Date.now();
+function err(x){var t=document.getElementById('toast');if(t){t.textContent='Ошибка: '+(x&&x.message||x);t.style.display='block';setTimeout(function(){t.style.display='none';},6000);}}
+if(a==='p1')NET.setPhase('intro',now+500).catch(err);
+if(a==='p2')NET.setPhase('brief',0).catch(err);
+if(a==='b')NET.setPhase('battle',now+2000,20000).catch(err);
+if(a==='t2a')t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);
+if(a==='t2b')t2ref().update({stage:'swap',startsAt:now}).catch(err);
+if(a==='t2c')t2ref().update({stage:'done',startsAt:now}).catch(err);
+});
+setInterval(refresh,500);
 })();
 </script>
 </body>
