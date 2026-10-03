@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>АНОМАЛИЯ · Задание 2 (v2)</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
+.t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
+.t2-start{position:absolute;inset:0;z-index:40;background:radial-gradient(1200px 600px at 70% 20%,#1b3a3f,#0d161a 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+.t2-start[hidden]{display:none}
+.t2-start h1{font-size:26px;margin:0}
+.t2-start p{font-size:15px;color:#9fd8d8;margin:0;max-width:560px;line-height:1.4}
+.t2-start button{min-height:52px;padding:12px 26px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000;cursor:pointer}
+.t2-panel{position:absolute;top:0;bottom:0;width:112px;background:#000;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:10}
+.t2-panel.left{left:0}.t2-panel.right{right:0}
+.t2-panel[hidden]{display:none}
+.t2-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:10px 8px;min-height:44px;border:1px solid #333;border-radius:8px;cursor:pointer;user-select:none;background:#000}
+.t2-row:active{border-color:#30e5dc}
+.t2-row .shape{font-size:24px;color:#fff;line-height:1}
+.t2-row .digit{font-size:24px;color:#30e5dc;font-weight:700}
+.t2-bottom{position:absolute;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(0,0,0,.82);border:1px solid rgba(190,245,245,.35);border-radius:14px;padding:10px 14px;max-width:min(94vw,640px)}
+.t2-bottom[hidden]{display:none}
+.t2-hint{font-size:14px;line-height:1.35;text-align:center;min-height:18px;max-width:560px}
+.t2-hint.err{color:#ff8a80}.t2-hint.ok{color:#30e5dc}
+.t2-cells{display:flex;gap:8px}
+.t2-cells.shake{animation:t2shake .45s}
+@keyframes t2shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+.t2-cell{width:48px;height:48px;border:2px solid #30e5dc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;background:rgba(20,29,33,.92);cursor:pointer;user-select:none}
+.t2-cell.hl{background:#30e5dc;color:#000;border-color:#fff}
+.t2-cell:empty::before{content:'·';color:#4a6a6a}
+.t2-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.t2-buttons[hidden]{display:none}
+.t2-btn{min-height:44px;padding:9px 14px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer}
+.t2-btn.primary{background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000}
+.t2-btn:disabled{opacity:.45;cursor:wait}
+.t2-sound{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:13;width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer}
+.t2-status{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:12;font-size:13px;color:#9fd8d8;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:10px;max-width:80vw;text-align:center}
+.t2-win{position:absolute;inset:0;z-index:35;background:radial-gradient(900px 500px at 50% 45%,#123c3c,#070d10 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}
+.t2-win[hidden]{display:none}
+.t2-win h2{font-size:30px;margin:0;color:#30e5dc;text-shadow:0 0 24px rgba(48,229,220,.6)}
+.t2-win p{font-size:16px;color:#eafffb;margin:0}
+.t2-win .t2-win-note{font-size:13px;color:#9fd8d8}
+.t2-door{width:120px;height:160px;border:3px solid #30e5dc;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(48,229,220,.45)}
+.t2-door::before{content:'';position:absolute;inset:0;background:linear-gradient(110deg,#25c8bd,#30e5dc);transform:translateX(-101%);animation:t2door 2.2s ease forwards}
+@keyframes t2door{to{transform:translateX(0)}}
+@media(max-width:740px){.t2-panel{width:84px;padding:6px;gap:6px}.t2-row{padding:8px 6px}.t2-row .shape,.t2-row .digit{font-size:19px}.t2-cell{width:40px;height:40px;font-size:20px}.t2-bottom{padding:8px 10px}.t2-hint{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="t2"></div>
+<script>
+// Задание 2 «Кристальный шифр», самодостаточная тестовая страница task02b (v2).
+// Медиа: assets/v02_intro.mp4, assets/crystal_sequence.mp4,
+// дверь: assets/door_open_lum.mp4 (основное имя), запасное assets/door_lum_reveal.mp4
+console.log('task02b v2');
+(function(){
+const MEDIA={intro:'assets/v02_intro.mp4',sequence:'assets/crystal_sequence.mp4',reveal:['assets/door_open_lum.mp4','assets/door_lum_reveal.mp4']};
+const LEFT=[{shape:'◆',digit:8},{shape:'■',digit:5},{shape:'✚',digit:9},{shape:'▲',digit:4},{shape:'︓',digit:0}];
+const RIGHT=[{shape:'⬭',digit:1},{shape:'∞',digit:3},{shape:'⌒',digit:2},{shape:'≈',digit:6},{shape:';',digit:7}];
+const CODE=[1,2,3,5,8,9];
+const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
+const HINT_SEQ='Капитан: нажимайте строку таблицы, когда расшифруете фигуру — цифра встанет в ячейку.';
+let S=null,root=null,video=null,els={};
+function fresh(){return{stage:'start',digits:[],hl:null,attempts:0,accepted:false,soundOn:true};}
+function goFullscreen(){try{const el=document.documentElement;if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}}catch(e){}}
+const rootEl=document.getElementById('t2');
+S=fresh();
+rootEl.innerHTML=
+'<video class="t2-video" playsinline></video>'+
+'<div class="t2-panel left" id="t2-left" hidden></div>'+
+'<div class="t2-panel right" id="t2-right" hidden></div>'+
+'<button class="t2-sound" id="t2-sound" type="button" title="Включить/выключить звук">♪</button>'+
+'<div class="t2-status" id="t2-status" style="display:none"></div>'+
+'<div class="t2-bottom" id="t2-bottom" hidden>'+
+'<div class="t2-hint" id="t2-hint"></div>'+
+'<div class="t2-cells" id="t2-cells"></div>'+
+'<div class="t2-buttons" id="t2-buttons" hidden>'+
+'<button class="t2-btn" id="t2-remove" type="button">Убрать выбранную</button>'+
+'<button class="t2-btn" id="t2-repeat" type="button">Повторить видео</button>'+
+'<button class="t2-btn primary" id="t2-check" type="button" disabled>Открыть дверь</button>'+
+'</div></div>'+
+'<div class="t2-win" id="t2-win" hidden><div class="t2-door"></div><h2>Дверь открыта!</h2><p>Лум свободен. Команда справилась.</p><p class="t2-win-note">Задание 2 пройдено. Переход к заданию 3 — на этапе интеграции.</p></div>'+
+'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Нажмите кнопку — включится видео-инструкция со звуком и во весь экран. Во время видео фигур капитан нажимает строки таблицы слева и справа.</p><button id="t2-start-btn" type="button">▶ Начать со звуком</button></div>';
+video=rootEl.querySelector('.t2-video');
+els={left:rootEl.querySelector('#t2-left'),right:rootEl.querySelector('#t2-right'),status:rootEl.querySelector('#t2-status'),sound:rootEl.querySelector('#t2-sound'),bottom:rootEl.querySelector('#t2-bottom'),hint:rootEl.querySelector('#t2-hint'),cells:rootEl.querySelector('#t2-cells'),buttons:rootEl.querySelector('#t2-buttons'),remove:rootEl.querySelector('#t2-remove'),repeat:rootEl.querySelector('#t2-repeat'),check:rootEl.querySelector('#t2-check'),win:rootEl.querySelector('#t2-win'),start:rootEl.querySelector('#t2-start'),startBtn:rootEl.querySelector('#t2-start-btn')};
+LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
+RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
+els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
+els.remove.addEventListener('click',onRemove);
+els.repeat.addEventListener('click',function(){startStage('sequence');});
+els.check.addEventListener('click',onCheck);
+els.sound.addEventListener('click',toggleSound);
+els.startBtn.addEventListener('click',function(){S.soundOn=true;video.muted=false;els.start.hidden=true;goFullscreen();startStage('intro');});
+renderCells();
+function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+it.shape+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
+function status(t){els.status.textContent=t||'';els.status.style.display=t?'':'none';}
+function hint(t,kind){els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
+function toggleSound(){S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(S.stage==='intro'||S.stage==='sequence'||S.stage==='reveal'))video.play().catch(function(){});}
+function playList(list,onDone,onFail){
+let i=0;
+(function tryOne(){
+if(i>=list.length){if(onFail)onFail();return;}
+const src=list[i++];
+video.src=src;video.muted=!S.soundOn;
+let settled=false;
+const to=setTimeout(function(){if(!settled){settled=true;tryOne();}},4000);
+video.onloadeddata=function(){settled=true;clearTimeout(to);};
+video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
+video.onended=function(){if(onDone)onDone();};
+video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';status('Браузер запретил звук — нажмите кнопку ♪ сверху');video.play().catch(function(){});});
+})();
+}
+function startStage(st){
+if(S.accepted&&st!=='reveal')return;
+S.stage=st;
+if(st==='intro'){els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;status('Видео-инструкция Вольта…');playList([MEDIA.intro],function(){startStage('sequence');},function(){status('Файл инструкции не найден — переходим к фигурам.');startStage('sequence');});}
+else if(st==='sequence'){els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.buttons.hidden=true;hint(HINT_SEQ);status('');playList([MEDIA.sequence],function(){startStage('swap');},function(){status('Файл видео фигур не найден — переходим к сборке кода.');startStage('swap');});}
+else if(st==='swap'){els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.buttons.hidden=false;video.pause();status('');hint(HINT_SWAP);renderCells();}
+else if(st==='reveal'){els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;status('');playList(MEDIA.reveal,showWin,showWin);}
+}
+function showWin(){S.stage='done';els.bottom.hidden=true;els.left.hidden=true;els.right.hidden=true;status('');els.win.hidden=false;}
+function onRow(d){
+if(S.accepted)return;
+if(S.stage!=='sequence'&&S.stage!=='swap')return;
+if(S.digits.includes(d))return;
+if(S.digits.length>=6)return;
+S.digits.push(d);renderCells();
+}
+function onCell(i){
+if(S.accepted||S.stage!=='swap')return;
+if(S.digits[i]===undefined)return;
+if(S.hl===null){S.hl=i;hint('Ячейка выделена. Теперь нажмите ячейку, с которой хотите поменять её местами.');}
+else if(S.hl===i){S.hl=null;hint(HINT_SWAP);}
+else{const t=S.digits[S.hl];S.digits[S.hl]=S.digits[i];S.digits[i]=t;S.hl=null;hint(HINT_SWAP);}
+renderCells();
+}
+function onRemove(){
+if(S.accepted||S.stage!=='swap'||S.hl===null)return;
+S.digits.splice(S.hl,1);S.hl=null;hint(HINT_SWAP);renderCells();
+}
+function renderCells(){
+els.cells.innerHTML='';
+for(let i=0;i<6;i++){const c=document.createElement('div');c.className='t2-cell'+(S.hl===i?' hl':'');c.dataset.i=i;c.textContent=S.digits[i]!==undefined?S.digits[i]:'';els.cells.appendChild(c);}
+els.check.disabled=!(S.stage==='swap'&&S.digits.length===6&&!S.accepted);
+els.remove.disabled=(S.hl===null);
+}
+function onCheck(){
+if(S.accepted||S.stage!=='swap'||S.digits.length!==6)return;
+const ok=S.digits.every(function(d,i){return d===CODE[i];});
+if(ok){S.accepted=true;hint('Код принят!','ok');setTimeout(function(){startStage('reveal');},500);}
+else{
+S.attempts++;S.hl=null;
+els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
+hint('Код не принят. Проверьте выбранные фигуры и порядок цифр.','err');
+const a=S.attempts;
+setTimeout(function(){if(S.accepted)return;
+if(a===1)hint('Подсказка 1: берите только полностью собранные фигуры из таблицы.');
+else if(a===2)hint('Подсказка 2: вводите от меньшей к большей.');
+else if(a===3)hint('Подсказка 3: нужные формы — ромб, овал, квадрат, бесконечность, крест, дуга.');
+else hint('Явная помощь: 1 2 3 5 8 9.');},1600);
+renderCells();
+}
+}
+})();
+</script>
+</body>
+</html>
