@@ -24,7 +24,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
 #task02-mount{position:fixed;inset:0;z-index:300;display:none;background:#000}
 #task02-mount.active{display:block}
-/* ===== стили задания 2 вшиты ===== */
+#role{display:none!important}
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
 #t2 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
 #t2 .t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
@@ -86,13 +86,25 @@ body[data-screen="task02"] #app>header{display:none!important}
 <p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
 </div>
 <div class="home-right">
-<p class="eyebrow">⌁ Подключение</p>
+<p class="eyebrow"> Подключение</p>
 <form id="entry">
 <label for="name">Как вас зовут?</label>
 <input id="name" autocomplete="name" enterkeyhint="go">
 <button class="primary" type="submit">Продолжить →</button>
 <p class="note">Имя видно только вашей команде.</p>
 </form>
+<div id="home-actions" style="display:none;margin-top:16px">
+<button id="btn-create" class="primary" type="button" style="width:100%;margin-bottom:8px">Создать комнату</button>
+<button id="btn-join" class="secondary" type="button" style="width:100%">Войти по коду</button>
+</div>
+<div id="home-join-box" style="display:none;margin-top:16px">
+<form id="join-form">
+<label for="join-code" style="display:block;font-size:14px;margin-bottom:6px">Код комнаты</label>
+<input id="join-code" placeholder="например A1B2C3" autocomplete="off" enterkeyhint="go" style="width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px">
+<button id="btn-join-go" class="primary" type="submit" style="width:100%;margin-bottom:8px">Войти</button>
+<button id="btn-join-back" class="secondary" type="button" style="width:100%">Назад</button>
+</form>
+</div>
 </div>
 </div>
 </section>
@@ -139,7 +151,6 @@ body[data-screen="task02"] #app>header{display:none!important}
 <video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
 <canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
 <div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
-<!-- HUD: общий и личный счёт слева рядом, таймер по центру, кнопка паузы отдельно справа -->
 <div style="position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none">
 <div style="display:flex;gap:8px;pointer-events:auto">
 <div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px"><span style="font-size:11px;color:#9fd8d8;display:block">Общий счёт</span><b id="team-score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
@@ -187,11 +198,11 @@ body[data-screen="task02"] #app>header{display:none!important}
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
-<button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
+<button class="sk" data-act="p2" type="button"> Пропустить интро</button>
 <button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
 <button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
-<button class="sk" data-act="t2c" type="button"> 2: пропустить видео двери</button>
+<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
 </div>
 
 </div>
@@ -203,7 +214,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 <script src="task02.js"></script>
 <script src="app.js"></script>
 <script>
-// МОСТ v5: кнопка «Продолжить квест» + монтаж задания 2 + диагностика запуска видео.
+// МОСТ v5: кнопка «Продолжить квест» + монтаж задания 2.
 (function(){
 var mounted=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
@@ -219,10 +230,7 @@ if(!window.Task02){toastMsg('Модуль задания 2 не загружен
 mounted=true;
 mountEl.classList.add('active');
 document.body.dataset.screen='task02';
-try{
-Task02.mount(mountEl);
-toastMsg('Задание 2 запущено');
-}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
+try{Task02.mount(mountEl);toastMsg('Задание 2 запущено');}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
 }
 if(r.state.phase!=='task02'&&mounted){
 mounted=false;
@@ -250,7 +258,7 @@ setInterval(function(){addContinueButton();tryMount();},500);
 })();
 </script>
 <script>
-// ПАНЕЛЬ ПРОПУСКОВ v3 + диагностика запуска видео задания 2.
+// ПАНЕЛЬ ПРОПУСКОВ v3.
 (function(){
 function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
@@ -281,15 +289,85 @@ if(!a||!inRoom())return;
 var now=Date.now();
 if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
 if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
-if(a==='bs'){
-if(window.__testSkipBattle)window.__testSkipBattle();
-if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);
-}
+if(a==='bs'){if(window.__testSkipBattle)window.__testSkipBattle();if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);}
 if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).then(function(){toastMsg('Инструкция пропущена');}).catch(err);}
 if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).then(function(){toastMsg('Фигуры пропущены');}).catch(err);}
 if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).then(function(){toastMsg('Видео двери пропущено');}).catch(err);}
 });
 setInterval(refresh,500);
+})();
+</script>
+<script>
+// УПРОЩЁННЫЙ ВХОД: без выбора роли. Первый создаёт комнату — становится капитаном.
+(function(){
+var form=document.getElementById('entry');
+if(form){
+form.addEventListener('submit',function(e){
+e.preventDefault();e.stopPropagation();
+var name=document.getElementById('name').value.trim()||'Игрок';
+try{localStorage.setItem('anomaly-name',name);}catch(ex){}
+window.__playerName=name;
+document.getElementById('home-actions').style.display='block';
+form.style.display='none';
+try{document.getElementById('app').requestFullscreen();}catch(ex){}
+},true);
+}
+var btnCreate=document.getElementById('btn-create');
+if(btnCreate){
+btnCreate.onclick=function(){
+if(!window.NET){alert('Нет связи с Firebase');return;}
+btnCreate.disabled=true;btnCreate.textContent='Создаём...';
+NET.createRoom(window.__playerName,2).then(function(code){
+document.getElementById('home-actions').style.display='none';
+}).catch(function(e){
+btnCreate.disabled=false;btnCreate.textContent='Создать комнату';
+alert('Ошибка: '+(e.message||e));
+});
+};
+}
+var btnJoin=document.getElementById('btn-join');
+if(btnJoin){
+btnJoin.onclick=function(){
+document.getElementById('home-actions').style.display='none';
+document.getElementById('home-join-box').style.display='block';
+};
+}
+var btnBack=document.getElementById('btn-join-back');
+if(btnBack){
+btnBack.onclick=function(){
+document.getElementById('home-join-box').style.display='none';
+document.getElementById('home-actions').style.display='block';
+};
+}
+var joinForm=document.getElementById('join-form');
+if(joinForm){
+joinForm.addEventListener('submit',function(e){
+e.preventDefault();e.stopPropagation();
+var code=document.getElementById('join-code').value.trim().toUpperCase();
+if(code.length<4){alert('Введите код комнаты');return;}
+if(!window.NET){alert('Нет связи');return;}
+var btn=document.getElementById('btn-join-go');
+btn.disabled=true;btn.textContent='Подключаемся...';
+NET.joinRoom(code,window.__playerName).then(function(){
+document.getElementById('home-join-box').style.display='none';
+}).catch(function(e){
+btn.disabled=false;btn.textContent='Войти';
+alert('Ошибка: '+(e.message||e));
+});
+},true);
+}
+if(window.NET){
+NET.onRoom(function(room){
+if(room){
+var a=document.getElementById('home-actions');
+var j=document.getElementById('home-join-box');
+var f=document.getElementById('entry');
+if(a)a.style.display='none';
+if(j)j.style.display='none';
+if(f)f.style.display='none';
+}
+});
+}
 })();
 </script>
 </body>
