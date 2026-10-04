@@ -6,20 +6,62 @@
 <title>АНОМАЛИЯ</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
-<!-- ИНТЕГРАЦИЯ: стили модуля задания 2 -->
-<link rel="stylesheet" href="task02.css">
 <style>
 .hidden{display:none!important}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
-#home .home-card{display:grid;grid-template-columns:1.15fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
-#home h1{margin:4px 0;font-size:34px;line-height:1.1}
+body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{display:none}
+#home .home-card{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
+#home h1{margin:2px 0;font-size:34px;line-height:1.05}
+#home .home-left .eyebrow{margin:0}
 #home .home-right label{display:block;font-size:14px;margin-bottom:6px}
 #home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
 #home .home-right .primary{width:100%}
-@media(max-width:740px){#home .home-card{grid-template-columns:1fr;gap:10px;padding:14px}#home h1{font-size:26px}}
+@media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
+/* ===== стили задания 2, вшиты напрямую (внешний task02.css не нужен) ===== */
+#t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff;z-index:200}
+#t2 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
+#t2 .t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
+@media(orientation:portrait){#t2 .t2-rotate{display:flex}}
+#t2 .t2-start{position:absolute;inset:0;z-index:40;background:radial-gradient(1200px 600px at 70% 20%,#1b3a3f,#0d161a 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+#t2 .t2-start[hidden]{display:none}
+#t2 .t2-start h1{font-size:26px;margin:0}
+#t2 .t2-start p{font-size:15px;color:#9fd8d8;margin:0;max-width:560px;line-height:1.4}
+#t2 .t2-start button{min-height:52px;padding:12px 26px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000;cursor:pointer}
+#t2 .t2-panel{position:absolute;top:0;bottom:0;width:118px;background:#000;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:10}
+#t2 .t2-panel.left{left:env(safe-area-inset-left,0px)}#t2 .t2-panel.right{right:env(safe-area-inset-right,0px)}
+#t2 .t2-panel[hidden]{display:none}
+#t2 .t2-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:10px 8px;min-height:44px;border:1px solid #333;border-radius:8px;cursor:pointer;user-select:none;background:#000}
+#t2 .t2-row:active{border-color:#30e5dc}
+#t2 .t2-row .shape{width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center}
+#t2 .t2-row .shape svg{width:100%;height:100%;display:block}
+#t2 .t2-row .digit{font-size:24px;color:#30e5dc;font-weight:700}
+#t2 .t2-bottom{position:absolute;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(0,0,0,.82);border:1px solid rgba(190,245,245,.35);border-radius:14px;padding:10px 14px;max-width:min(94vw,640px)}
+#t2 .t2-bottom[hidden]{display:none}
+#t2 .t2-bottom.compact{background:transparent;border:0;padding:4px 8px;gap:4px}
+#t2 .t2-bottom.compact .t2-cell{width:34px;height:34px;font-size:16px;border-width:2px;border-radius:8px;background:#14292f}
+#t2 .t2-hint{font-size:14px;line-height:1.35;text-align:center;min-height:18px;max-width:560px}
+#t2 .t2-hint.err{color:#ff8a80}#t2 .t2-hint.ok{color:#30e5dc}
+#t2 .t2-cells{display:flex;gap:8px}
+#t2 .t2-cells.shake{animation:t2shake .45s}
+@keyframes t2shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+#t2 .t2-cell{width:48px;height:48px;border:2px solid #30e5dc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;background:#14292f;cursor:pointer;user-select:none}
+#t2 .t2-cell.hl{background:#30e5dc;color:#000;border-color:#fff}
+#t2 .t2-cell:empty::before{content:'·';color:#4a6a6a}
+#t2 .t2-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#t2 .t2-buttons[hidden]{display:none}
+#t2 .t2-btn{min-height:44px;padding:9px 14px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer}
+#t2 .t2-btn.primary{background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000}
+#t2 .t2-btn:disabled{opacity:.45;cursor:wait}
+#t2 .t2-btn.t2-big{min-height:52px;padding:12px 26px;font-size:17px}
+#t2 .t2-sound{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:13;width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer}
+#t2 .t2-status{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:12;font-size:13px;color:#9fd8d8;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:10px;max-width:80vw;text-align:center}
+#t2 .t2-nextwrap{position:absolute;inset:0;z-index:35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45)}
+#t2 .t2-nextwrap[hidden]{display:none}
+#t2 .t2-nextnote{font-size:14px;color:#9fd8d8;margin:0;text-align:center;max-width:80vw}
+@media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
 <body>
@@ -36,10 +78,8 @@
 <section class="screen" id="home">
 <div class="glass home-card">
 <div class="home-left">
-<p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
 <h1>АНОМАЛИЯ</h1>
-<p class="note">Город в опасности. Действуйте вместе.</p>
-<p class="note">3–10 игроков в полной версии · Горизонтальный экран</p>
+<p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
 </div>
 <div class="home-right">
 <p class="eyebrow">⌁ Подключение</p>
@@ -95,13 +135,13 @@
 <video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
 <canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
 <div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
-<div style="position:absolute;top:8px;left:12px;right:12px;display:flex;gap:14px;align-items:center;z-index:5;color:#fff;font-size:14px;flex-wrap:wrap">
-<span>Общий счёт <b id="team-score">0</b></span>
-<span>Счёт игрока <b id="score">0</b></span>
-<span>Таймер <b id="clock">05:00</b></span>
-<button id="battle-pause" class="icon" type="button" style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer">Ⅱ</button>
+<div style="position:absolute;top:10px;left:10px;right:10px;display:flex;gap:10px;align-items:center;z-index:5;flex-wrap:wrap">
+<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Общий счёт</span><b id="team-score" style="font-size:20px;color:#30e5dc;line-height:1.1">0</b></div>
+<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Счёт игрока</span><b id="score" style="font-size:20px;color:#30e5dc;line-height:1.1">0</b></div>
+<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Таймер</span><b id="clock" style="font-size:20px;color:#30e5dc;line-height:1.1">05:00</b></div>
+<button id="battle-pause" class="icon" type="button" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer">Ⅱ</button>
 </div>
-<div id="boss-tip" class="hidden" style="position:absolute;top:52px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бейте!</div>
+<div id="boss-tip" class="hidden" style="position:absolute;top:76px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бейте!</div>
 </section>
 
 <section class="screen" id="result">
@@ -140,6 +180,7 @@
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
 <button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
 <button class="sk" data-act="b" type="button">⏭ Сразу бой (20 сек)</button>
+<button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
 <button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
 <button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
@@ -151,7 +192,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js"></script>
-<!-- ИНТЕГРАЦИЯ: модуль задания 2 -->
 <script src="task02.js"></script>
 <script src="app.js"></script>
 <script>
@@ -189,35 +229,46 @@ setInterval(function(){addContinueButton();tryMount();},500);
 })();
 </script>
 <script>
-// ТЕСТОВАЯ ПАНЕЛЬ ПРОПУСКОВ (только капитан, только для прогонов). app.js не меняет.
+// ТЕСТОВАЯ ПАНЕЛЬ ПРОПУСКОВ v2: фазовые пропуски — только капитан; пропуск боя — всем устройствам комнаты.
 (function(){
-function cap(){try{return window.NET&&NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
+function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
+function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function t2ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task02');}
+function err(x){var t=document.getElementById('toast');if(t){t.textContent='Ошибка: '+(x&&x.message||x);t.style.display='block';setTimeout(function(){t.style.display='none';},6000);}}
 var panel=document.getElementById('skip-panel');
+var lastSkip=0;
 function refresh(){
-if(!cap()){panel.style.display='none';return;}
+if(!inRoom()){panel.style.display='none';return;}
 panel.style.display='flex';
 var r=NET.room||{};var st=r.state||{};var ph=st.phase||'';
 var t2=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
-var i,btns=panel.querySelectorAll('.sk');
+var btns=panel.querySelectorAll('.sk'),i;
 for(i=0;i<btns.length;i++)btns[i].style.display='none';
 function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.display='block';}
+if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
 if(ph==='brief')on('b');
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 }
+if(ph==='battle')on('bs');
+var ts=st.testSkip||0;
+if(ts!==lastSkip){lastSkip=ts;if(ts&&window.__testSkipBattle)window.__testSkipBattle();}
+}
 panel.addEventListener('click',function(e){
 var a=e.target&&e.target.dataset?e.target.dataset.act:null;
-if(!a||!cap())return;
+if(!a||!inRoom())return;
 var now=Date.now();
-function err(x){var t=document.getElementById('toast');if(t){t.textContent='Ошибка: '+(x&&x.message||x);t.style.display='block';setTimeout(function(){t.style.display='none';},6000);}}
-if(a==='p1')NET.setPhase('intro',now+500).catch(err);
-if(a==='p2')NET.setPhase('brief',0).catch(err);
-if(a==='b')NET.setPhase('battle',now+2000,20000).catch(err);
-if(a==='t2a')t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);
-if(a==='t2b')t2ref().update({stage:'swap',startsAt:now}).catch(err);
-if(a==='t2c')t2ref().update({stage:'done',startsAt:now}).catch(err);
+if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
+if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
+if(a==='b'&&cap())NET.setPhase('battle',now+2000,20000).catch(err);
+if(a==='bs'){
+if(window.__testSkipBattle)window.__testSkipBattle();
+if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);
+}
+if(a==='t2a'&&cap())t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);
+if(a==='t2b'&&cap())t2ref().update({stage:'swap',startsAt:now}).catch(err);
+if(a==='t2c'&&cap())t2ref().update({stage:'done',startsAt:now}).catch(err);
 });
 setInterval(refresh,500);
 })();
