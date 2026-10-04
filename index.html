@@ -86,25 +86,15 @@ body[data-screen="task02"] #app>header{display:none!important}
 <p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
 </div>
 <div class="home-right">
-<p class="eyebrow"> Подключение</p>
+<p class="eyebrow">⌁ Подключение</p>
 <form id="entry">
 <label for="name">Как вас зовут?</label>
 <input id="name" autocomplete="name" enterkeyhint="go">
-<button class="primary" type="submit">Продолжить →</button>
-<p class="note">Имя видно только вашей команде.</p>
+<label for="room-code" style="margin-top:8px">Код комнаты (если есть)</label>
+<input id="room-code" placeholder="например A1B2C3 (оставьте пустым, чтобы создать новую)" autocomplete="off" enterkeyhint="go">
+<button id="btn-enter" class="primary" type="submit">Войти</button>
+<p class="note" id="enter-status">Первый вошедший станет капитаном и создаст комнату.</p>
 </form>
-<div id="home-actions" style="display:none;margin-top:16px">
-<button id="btn-create" class="primary" type="button" style="width:100%;margin-bottom:8px">Создать комнату</button>
-<button id="btn-join" class="secondary" type="button" style="width:100%">Войти по коду</button>
-</div>
-<div id="home-join-box" style="display:none;margin-top:16px">
-<form id="join-form">
-<label for="join-code" style="display:block;font-size:14px;margin-bottom:6px">Код комнаты</label>
-<input id="join-code" placeholder="например A1B2C3" autocomplete="off" enterkeyhint="go" style="width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px">
-<button id="btn-join-go" class="primary" type="submit" style="width:100%;margin-bottom:8px">Войти</button>
-<button id="btn-join-back" class="secondary" type="button" style="width:100%">Назад</button>
-</form>
-</div>
 </div>
 </div>
 </section>
@@ -298,73 +288,80 @@ setInterval(refresh,500);
 })();
 </script>
 <script>
-// УПРОЩЁННЫЙ ВХОД: без выбора роли. Первый создаёт комнату — становится капитаном.
+// УПРОЩЁННЫЙ ВХОД v2: один экран, без выбора. Первый вошедший = капитан.
 (function(){
 var form=document.getElementById('entry');
+var btn=document.getElementById('btn-enter');
+var statusEl=document.getElementById('enter-status');
+var nameInput=document.getElementById('name');
+var codeInput=document.getElementById('room-code');
+var entered=false;
+
 if(form){
 form.addEventListener('submit',function(e){
 e.preventDefault();e.stopPropagation();
-var name=document.getElementById('name').value.trim()||'Игрок';
+if(entered)return;
+var name=nameInput.value.trim()||'Игрок';
+var code=codeInput.value.trim().toUpperCase();
 try{localStorage.setItem('anomaly-name',name);}catch(ex){}
 window.__playerName=name;
-document.getElementById('home-actions').style.display='block';
-form.style.display='none';
-try{document.getElementById('app').requestFullscreen();}catch(ex){}
+entered=true;
+btn.disabled=true;
+
+function setStatus(s){if(statusEl)statusEl.textContent=s;}
+function resetBtn(){entered=false;btn.disabled=false;}
+
+// Таймаут 15 секунд
+var timeout=setTimeout(function(){
+setStatus('Превышено время ожидания. Проверьте связь и попробуйте снова.');
+resetBtn();
+},15000);
+
+if(!window.NET){setStatus('Нет связи с Firebase');resetBtn();clearTimeout(timeout);return;}
+
+// Сначала пытаемся присоединиться
+if(code.length>=4){
+setStatus('Подключаемся к комнате '+code+'...');
+NET.joinRoom(code,name).then(function(){
+clearTimeout(timeout);
+setStatus('Вы в комнате!');
+}).catch(function(err){
+clearTimeout(timeout);
+var msg=err&&err.message?err.message:String(err);
+if(msg.indexOf('не найдена')!==-1||msg.indexOf('not found')!==-1){
+// Комната не найдена — создаём новую (первый = капитан)
+setStatus('Комната не найдена. Создаём новую...');
+NET.createRoom(name,2).then(function(newCode){
+setStatus('Комната создана! Ваш код: '+newCode.toLowerCase());
+}).catch(function(e2){
+setStatus('Ошибка создания: '+(e2&&e2.message||e2));
+resetBtn();
+});
+}else{
+setStatus('Ошибка: '+msg);
+resetBtn();
+}
+});
+}else{
+// Код не введён — создаём новую комнату
+setStatus('Создаём комнату...');
+NET.createRoom(name,2).then(function(newCode){
+clearTimeout(timeout);
+setStatus('Комната создана! Ваш код: '+newCode.toLowerCase());
+}).catch(function(e){
+clearTimeout(timeout);
+setStatus('Ошибка создания: '+(e&&e.message||e));
+resetBtn();
+});
+}
 },true);
 }
-var btnCreate=document.getElementById('btn-create');
-if(btnCreate){
-btnCreate.onclick=function(){
-if(!window.NET){alert('Нет связи с Firebase');return;}
-btnCreate.disabled=true;btnCreate.textContent='Создаём...';
-NET.createRoom(window.__playerName,2).then(function(code){
-document.getElementById('home-actions').style.display='none';
-}).catch(function(e){
-btnCreate.disabled=false;btnCreate.textContent='Создать комнату';
-alert('Ошибка: '+(e.message||e));
-});
-};
-}
-var btnJoin=document.getElementById('btn-join');
-if(btnJoin){
-btnJoin.onclick=function(){
-document.getElementById('home-actions').style.display='none';
-document.getElementById('home-join-box').style.display='block';
-};
-}
-var btnBack=document.getElementById('btn-join-back');
-if(btnBack){
-btnBack.onclick=function(){
-document.getElementById('home-join-box').style.display='none';
-document.getElementById('home-actions').style.display='block';
-};
-}
-var joinForm=document.getElementById('join-form');
-if(joinForm){
-joinForm.addEventListener('submit',function(e){
-e.preventDefault();e.stopPropagation();
-var code=document.getElementById('join-code').value.trim().toUpperCase();
-if(code.length<4){alert('Введите код комнаты');return;}
-if(!window.NET){alert('Нет связи');return;}
-var btn=document.getElementById('btn-join-go');
-btn.disabled=true;btn.textContent='Подключаемся...';
-NET.joinRoom(code,window.__playerName).then(function(){
-document.getElementById('home-join-box').style.display='none';
-}).catch(function(e){
-btn.disabled=false;btn.textContent='Войти';
-alert('Ошибка: '+(e.message||e));
-});
-},true);
-}
+
+// Скрываем форму после успешного входа
 if(window.NET){
 NET.onRoom(function(room){
-if(room){
-var a=document.getElementById('home-actions');
-var j=document.getElementById('home-join-box');
-var f=document.getElementById('entry');
-if(a)a.style.display='none';
-if(j)j.style.display='none';
-if(f)f.style.display='none';
+if(room&&entered){
+form.style.display='none';
 }
 });
 }
