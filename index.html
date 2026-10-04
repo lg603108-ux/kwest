@@ -24,7 +24,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
 #task02-mount{position:fixed;inset:0;z-index:300;display:none;background:#000}
 #task02-mount.active{display:block}
-#role{display:none!important}
+/* ===== стили задания 2 вшиты ===== */
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
 #t2 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
 #t2 .t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
@@ -90,10 +90,8 @@ body[data-screen="task02"] #app>header{display:none!important}
 <form id="entry">
 <label for="name">Как вас зовут?</label>
 <input id="name" autocomplete="name" enterkeyhint="go">
-<label for="room-code" style="margin-top:8px">Код комнаты (если есть)</label>
-<input id="room-code" placeholder="например A1B2C3 (оставьте пустым, чтобы создать новую)" autocomplete="off" enterkeyhint="go">
-<button id="btn-enter" class="primary" type="submit">Войти</button>
-<p class="note" id="enter-status">Первый вошедший станет капитаном и создаст комнату.</p>
+<button class="primary" type="submit">Продолжить →</button>
+<p class="note">Имя видно только вашей команде.</p>
 </form>
 </div>
 </div>
@@ -141,6 +139,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 <video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
 <canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
 <div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
+<!-- HUD: общий и личный счёт слева рядом, таймер по центру, кнопка паузы отдельно справа -->
 <div style="position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none">
 <div style="display:flex;gap:8px;pointer-events:auto">
 <div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px"><span style="font-size:11px;color:#9fd8d8;display:block">Общий счёт</span><b id="team-score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
@@ -188,11 +187,11 @@ body[data-screen="task02"] #app>header{display:none!important}
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
-<button class="sk" data-act="p2" type="button"> Пропустить интро</button>
+<button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
 <button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
 <button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
-<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
+<button class="sk" data-act="t2c" type="button"> 2: пропустить видео двери</button>
 </div>
 
 </div>
@@ -204,7 +203,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 <script src="task02.js"></script>
 <script src="app.js"></script>
 <script>
-// МОСТ v5: кнопка «Продолжить квест» + монтаж задания 2.
+// МОСТ v5: кнопка «Продолжить квест» + монтаж задания 2 + диагностика запуска видео.
 (function(){
 var mounted=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
@@ -220,7 +219,10 @@ if(!window.Task02){toastMsg('Модуль задания 2 не загружен
 mounted=true;
 mountEl.classList.add('active');
 document.body.dataset.screen='task02';
-try{Task02.mount(mountEl);toastMsg('Задание 2 запущено');}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
+try{
+Task02.mount(mountEl);
+toastMsg('Задание 2 запущено');
+}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
 }
 if(r.state.phase!=='task02'&&mounted){
 mounted=false;
@@ -248,7 +250,7 @@ setInterval(function(){addContinueButton();tryMount();},500);
 })();
 </script>
 <script>
-// ПАНЕЛЬ ПРОПУСКОВ v3.
+// ПАНЕЛЬ ПРОПУСКОВ v3 + диагностика запуска видео задания 2.
 (function(){
 function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
@@ -279,92 +281,15 @@ if(!a||!inRoom())return;
 var now=Date.now();
 if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
 if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
-if(a==='bs'){if(window.__testSkipBattle)window.__testSkipBattle();if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);}
+if(a==='bs'){
+if(window.__testSkipBattle)window.__testSkipBattle();
+if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);
+}
 if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).then(function(){toastMsg('Инструкция пропущена');}).catch(err);}
 if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).then(function(){toastMsg('Фигуры пропущены');}).catch(err);}
 if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).then(function(){toastMsg('Видео двери пропущено');}).catch(err);}
 });
 setInterval(refresh,500);
-})();
-</script>
-<script>
-// УПРОЩЁННЫЙ ВХОД v2: один экран, без выбора. Первый вошедший = капитан.
-(function(){
-var form=document.getElementById('entry');
-var btn=document.getElementById('btn-enter');
-var statusEl=document.getElementById('enter-status');
-var nameInput=document.getElementById('name');
-var codeInput=document.getElementById('room-code');
-var entered=false;
-
-if(form){
-form.addEventListener('submit',function(e){
-e.preventDefault();e.stopPropagation();
-if(entered)return;
-var name=nameInput.value.trim()||'Игрок';
-var code=codeInput.value.trim().toUpperCase();
-try{localStorage.setItem('anomaly-name',name);}catch(ex){}
-window.__playerName=name;
-entered=true;
-btn.disabled=true;
-
-function setStatus(s){if(statusEl)statusEl.textContent=s;}
-function resetBtn(){entered=false;btn.disabled=false;}
-
-// Таймаут 15 секунд
-var timeout=setTimeout(function(){
-setStatus('Превышено время ожидания. Проверьте связь и попробуйте снова.');
-resetBtn();
-},15000);
-
-if(!window.NET){setStatus('Нет связи с Firebase');resetBtn();clearTimeout(timeout);return;}
-
-// Сначала пытаемся присоединиться
-if(code.length>=4){
-setStatus('Подключаемся к комнате '+code+'...');
-NET.joinRoom(code,name).then(function(){
-clearTimeout(timeout);
-setStatus('Вы в комнате!');
-}).catch(function(err){
-clearTimeout(timeout);
-var msg=err&&err.message?err.message:String(err);
-if(msg.indexOf('не найдена')!==-1||msg.indexOf('not found')!==-1){
-// Комната не найдена — создаём новую (первый = капитан)
-setStatus('Комната не найдена. Создаём новую...');
-NET.createRoom(name,2).then(function(newCode){
-setStatus('Комната создана! Ваш код: '+newCode.toLowerCase());
-}).catch(function(e2){
-setStatus('Ошибка создания: '+(e2&&e2.message||e2));
-resetBtn();
-});
-}else{
-setStatus('Ошибка: '+msg);
-resetBtn();
-}
-});
-}else{
-// Код не введён — создаём новую комнату
-setStatus('Создаём комнату...');
-NET.createRoom(name,2).then(function(newCode){
-clearTimeout(timeout);
-setStatus('Комната создана! Ваш код: '+newCode.toLowerCase());
-}).catch(function(e){
-clearTimeout(timeout);
-setStatus('Ошибка создания: '+(e&&e.message||e));
-resetBtn();
-});
-}
-},true);
-}
-
-// Скрываем форму после успешного входа
-if(window.NET){
-NET.onRoom(function(room){
-if(room&&entered){
-form.style.display='none';
-}
-});
-}
 })();
 </script>
 </body>
