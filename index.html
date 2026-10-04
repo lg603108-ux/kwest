@@ -11,7 +11,11 @@
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
-body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{display:none}
+/* Шапка скрыта на бою, кино и задании 2 */
+body[data-screen="battle"] #app>header,
+body[data-screen="cinema"] #app>header,
+body[data-screen="task02"] #app>header{display:none!important}
+/* Первый экран: две колонки */
 #home .home-card{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
 #home h1{margin:2px 0;font-size:34px;line-height:1.05}
 #home .home-left .eyebrow{margin:0}
@@ -19,9 +23,13 @@ body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{di
 #home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
 #home .home-right .primary{width:100%}
 @media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
+/* Панель пропусков */
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
-/* ===== стили задания 2, вшиты напрямую (внешний task02.css не нужен) ===== */
-#t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff;z-index:200}
+/* Контейнер задания 2 — фиксированный, поверх всего */
+#task02-mount{position:fixed;inset:0;z-index:300;display:none;background:#000}
+#task02-mount.active{display:block}
+/* ===== стили задания 2 вшиты ===== */
+#t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
 #t2 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
 #t2 .t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
 @media(orientation:portrait){#t2 .t2-rotate{display:flex}}
@@ -135,13 +143,14 @@ body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{di
 <video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
 <canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
 <div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
-<div style="position:absolute;top:10px;left:10px;right:10px;display:flex;gap:10px;align-items:center;z-index:5;flex-wrap:wrap">
-<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Общий счёт</span><b id="team-score" style="font-size:20px;color:#30e5dc;line-height:1.1">0</b></div>
-<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Счёт игрока</span><b id="score" style="font-size:20px;color:#30e5dc;line-height:1.1">0</b></div>
-<div style="background:rgba(20,40,44,.85);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column"><span style="font-size:11px;color:#9fd8d8">Таймер</span><b id="clock" style="font-size:20px;color:#30e5dc;line-height:1.1">05:00</b></div>
-<button id="battle-pause" class="icon" type="button" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer">Ⅱ</button>
+<!-- HUD: три плашки равномерно, без слова АНОМАЛИЯ сверху -->
+<div style="position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none">
+<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;pointer-events:auto"><span style="font-size:11px;color:#9fd8d8;display:block">Общий счёт</span><b id="team-score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
+<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;pointer-events:auto"><span style="font-size:11px;color:#9fd8d8;display:block">Таймер</span><b id="clock" style="font-size:22px;color:#30e5dc;line-height:1.1">05:00</b></div>
+<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;pointer-events:auto"><span style="font-size:11px;color:#9fd8d8;display:block">Счёт игрока</span><b id="score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
 </div>
-<div id="boss-tip" class="hidden" style="position:absolute;top:76px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бейте!</div>
+<button id="battle-pause" class="icon" type="button" style="position:absolute;top:10px;right:10px;z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer"></button>
+<div id="boss-tip" class="hidden" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бейте!</div>
 </section>
 
 <section class="screen" id="result">
@@ -176,14 +185,17 @@ body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{di
 <div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
 
+<!-- Контейнер задания 2 — фиксированный, не теряется при fullscreen -->
+<div id="task02-mount"></div>
+
+<!-- Панель пропусков: только на cinema/intro/battle/task02, НЕ на brief -->
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
 <button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
-<button class="sk" data-act="b" type="button">⏭ Сразу бой (20 сек)</button>
 <button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
-<button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
+<button class="sk" data-act="t2a" type="button"> 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
-<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
+<button class="sk" data-act="t2c" type="button"> 2: пропустить видео двери</button>
 </div>
 
 </div>
@@ -195,7 +207,7 @@ body[data-screen="battle"] #app>header,body[data-screen="cinema"] #app>header{di
 <script src="task02.js"></script>
 <script src="app.js"></script>
 <script>
-// ВШИТЫЙ МОСТ v3: кнопка «Продолжить квест» у капитана и монтаж задания 2.
+// МОСТ v4: кнопка «Продолжить квест» + монтаж задания 2 в фиксированный контейнер.
 (function(){
 var mounted=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
@@ -205,10 +217,23 @@ function tryMount(){
 if(!ready())return;
 var r=NET.room;if(!r||!r.state)return;
 if(r.state.phase==='task02'&&!mounted){
+var mountEl=document.getElementById('task02-mount');
+if(!mountEl){toastMsg('Контейнер задания 2 не найден');return;}
 if(!window.Task02){toastMsg('Модуль задания 2 не загружен (task02.js)');return;}
-mounted=true;Task02.mount(document.body);
+mounted=true;
+mountEl.classList.add('active');
+document.body.dataset.screen='task02';
+try{
+Task02.mount(mountEl);
+toastMsg('Задание 2 запущено');
+}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
 }
-if(r.state.phase!=='task02'&&mounted){mounted=false;if(window.Task02)Task02.unmount();}
+if(r.state.phase!=='task02'&&mounted){
+mounted=false;
+var mountEl=document.getElementById('task02-mount');
+if(mountEl)mountEl.classList.remove('active');
+if(window.Task02){try{Task02.unmount();}catch(e){}}
+}
 }
 function addContinueButton(){
 if(!ready())return;
@@ -221,7 +246,7 @@ again.parentNode.insertBefore(b,again.nextSibling);
 b.onclick=function(){
 b.disabled=true;toastMsg('Переводим команду в задание 2…');
 NET.setPhase('task02',Date.now()+1500).then(function(){
-setTimeout(tryMount,800);setTimeout(tryMount,2500);setTimeout(tryMount,5000);
+setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){b.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 };
 }
@@ -229,7 +254,7 @@ setInterval(function(){addContinueButton();tryMount();},500);
 })();
 </script>
 <script>
-// ТЕСТОВАЯ ПАНЕЛЬ ПРОПУСКОВ v2: фазовые пропуски — только капитан; пропуск боя — всем устройствам комнаты.
+// ПАНЕЛЬ ПРОПУСКОВ v3: только на cinema/intro/battle/task02. На brief — нет, чтобы не мешать кнопке «Начать оборону».
 (function(){
 function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
@@ -248,7 +273,6 @@ function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.disp
 if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
-if(ph==='brief')on('b');
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 }
 if(ph==='battle')on('bs');
@@ -261,7 +285,6 @@ if(!a||!inRoom())return;
 var now=Date.now();
 if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
 if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
-if(a==='b'&&cap())NET.setPhase('battle',now+2000,20000).catch(err);
 if(a==='bs'){
 if(window.__testSkipBattle)window.__testSkipBattle();
 if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);
