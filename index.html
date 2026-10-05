@@ -6,14 +6,12 @@
 <title>АНОМАЛИЯ</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 .hidden{display:none!important}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
-body[data-screen="battle"] #app>header,
-body[data-screen="cinema"] #app>header,
-body[data-screen="task02"] #app>header{display:none!important}
 #home .home-card{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
 #home h1{margin:2px 0;font-size:34px;line-height:1.05}
 #home .home-left .eyebrow{margin:0}
@@ -24,7 +22,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
 #task02-mount{position:fixed;inset:0;z-index:300;display:none;background:#000}
 #task02-mount.active{display:block}
-/* ===== стили задания 2 вшиты ===== */
+#t2 .t2-sound{display:none!important}
 #t2{position:fixed;inset:0;background:#000;overflow:hidden;font-family:QuestSans,Arial,sans-serif;color:#fff}
 #t2 .t2-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000}
 #t2 .t2-rotate{display:none;position:absolute;inset:0;z-index:60;background:#0d161a;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.4;color:#9fd8d8}
@@ -60,7 +58,6 @@ body[data-screen="task02"] #app>header{display:none!important}
 #t2 .t2-btn.primary{background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#000}
 #t2 .t2-btn:disabled{opacity:.45;cursor:wait}
 #t2 .t2-btn.t2-big{min-height:52px;padding:12px 26px;font-size:17px}
-#t2 .t2-sound{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:13;width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer}
 #t2 .t2-status{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:12;font-size:13px;color:#9fd8d8;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:10px;max-width:80vw;text-align:center}
 #t2 .t2-nextwrap{position:absolute;inset:0;z-index:35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45)}
 #t2 .t2-nextwrap[hidden]{display:none}
@@ -71,11 +68,11 @@ body[data-screen="task02"] #app>header{display:none!important}
 <body>
 <div id="app">
 
-<header style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;position:relative;z-index:20">
-<a class="brand" href="#" style="color:#fff;text-decoration:none;font-weight:800;font-size:20px">◇ АНОМАЛИЯ</a>
-<div style="display:flex;gap:8px">
-<button id="sound" class="icon" type="button" aria-label="Выключить звук" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer">♪</button>
-<button id="fullscreen" class="icon" type="button" aria-label="Полноэкранный режим" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:18px;cursor:pointer">⛶</button>
+<header id="topbar">
+<a class="brand" href="#"><span class="brand-mark">◇</span>АНОМАЛИЯ</a>
+<div class="top-actions">
+<button id="sound" class="icon" type="button" aria-label="Выключить звук">♪</button>
+<button id="fullscreen" class="icon" type="button" aria-label="Полноэкранный режим">⛶</button>
 </div>
 </header>
 
@@ -110,9 +107,9 @@ body[data-screen="task02"] #app>header{display:none!important}
 </section>
 
 <section class="screen" id="cinema">
-<video id="movie" playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000"></video>
+<video id="movie" playsinline></video>
 <h2 id="movie-title" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;color:#fff;font-size:18px;margin:0;text-align:center;max-width:90vw"></h2>
-<div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:6;flex-wrap:wrap;justify-content:center">
+<div class="cinema-controls">
 <button id="movie-pause" class="secondary" type="button">Пауза</button>
 <button id="movie-retry" class="secondary hidden" type="button">Запустить видео</button>
 <button id="movie-next" class="primary hidden" type="button">Продолжить →</button>
@@ -124,59 +121,63 @@ body[data-screen="task02"] #app>header{display:none!important}
 <p class="eyebrow">ЗАДАНИЕ 01 · ОБОРОНА</p>
 <h2>Ваш телефон — импульсный стабилизатор</h2>
 <p class="note">Коротко касайтесь тварей. Повторяйте попадания, пока цель не исчезнет.</p>
-<p class="note">1 Сфера и глаз · 2 Осьминог · 3 Паук</p>
-<p class="note">На пятой минуте появится Материнская сфера. Поражайте её во время раскрытия: +100 очков и оглушение на 5 секунд.</p>
-<div class="lobby-buttons">
-<button id="rules-audio" class="secondary" type="button">♪ Повторить инструкцию</button>
-<button id="repeat-intro" class="secondary" type="button">Повторить видео</button>
-<button id="battle-start" class="primary" type="button">Начать оборону →</button>
+<div class="hit-guide">
+<span><b>1</b> Сфера и глаз</span>
+<span><b>2</b> Осьминог</span>
+<span><b>3</b> Паук</span>
 </div>
+<p class="note">На пятой минуте появится Материнская сфера. Поражайте её во время раскрытия: +100 очков и оглушение на 5 секунд.</p>
+<div class="row">
+<button id="rules-audio" class="secondary" type="button">♪ Инструкция</button>
+<button id="repeat-intro" class="secondary" type="button">Повторить видео</button>
+</div>
+<button id="battle-start" class="primary" type="button">Начать оборону →</button>
 <p class="note" id="loading-note"></p>
 </div>
 </section>
 
 <section class="screen" id="battle">
-<video id="street" playsinline loop muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1"></video>
-<canvas id="field" style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></canvas>
-<div id="monsters" style="position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden"></div>
-<!-- HUD: общий и личный счёт слева рядом, таймер по центру, кнопка паузы отдельно справа -->
-<div style="position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none">
-<div style="display:flex;gap:8px;pointer-events:auto">
-<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px"><span style="font-size:11px;color:#9fd8d8;display:block">Общий счёт</span><b id="team-score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
-<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px"><span style="font-size:11px;color:#9fd8d8;display:block">Счёт игрока</span><b id="score" style="font-size:22px;color:#30e5dc;line-height:1.1">0</b></div>
+<video id="street" playsinline loop muted></video>
+<canvas id="field"></canvas>
+<div id="monsters"></div>
+<div class="battle-hud">
+<div class="hud-panel"><small>Таймер</small><strong id="clock">05:00</strong></div>
+<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.92);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:6px 10px;pointer-events:auto">
+<div id="battle-qrcode" style="width:34px;height:34px;background:#fff;border-radius:4px"></div>
+<span id="battle-room-code" style="font-size:14px;color:#30e5dc;font-weight:700;letter-spacing:1px">----</span>
 </div>
-<div style="background:rgba(20,40,44,.9);border:1px solid rgba(190,245,245,.35);border-radius:10px;padding:6px 12px;pointer-events:auto"><span style="font-size:11px;color:#9fd8d8;display:block">Таймер</span><b id="clock" style="font-size:22px;color:#30e5dc;line-height:1.1">05:00</b></div>
-<button id="battle-pause" class="icon" type="button" style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;font-size:16px;cursor:pointer;pointer-events:auto">Ⅱ</button>
+<div class="hud-panel"><small>Общий счёт</small><strong id="team-score">0</strong></div>
+<div class="hud-panel"><small>Счёт игрока</small><strong id="score">0</strong></div>
+<button id="battle-pause" class="icon" type="button" style="display:none!important">Ⅱ</button>
 </div>
-<div id="boss-tip" class="hidden" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);color:#30e5dc;font-weight:700;z-index:5;text-align:center">Материнская сфера раскрывается — бейте!</div>
+<div id="boss-tip" class="boss-tip hidden" style="display:none!important">Материнская сфера раскрывается — бейте!</div>
 </section>
 
 <section class="screen" id="result">
 <div class="glass result-card">
 <h2>ОБОРОНА ЗАВЕРШЕНА</h2>
 <p class="note">Вы сдержали прорыв</p>
-<p style="font-size:34px;font-weight:800;margin:6px 0"><span id="result-score">0</span> очков</p>
+<p class="result-number" id="result-score">0</p>
+<p class="note">очков</p>
 <p class="note" id="result-name">Игрок</p>
 <div class="result-stats">
-<p class="note">Уничтожено: <b id="result-kills">0</b></p>
-<p class="note">Оглушения сферы: <b id="result-stuns">0</b></p>
+<div><small>Уничтожено</small><strong id="result-kills">0</strong></div>
+<div><small>Оглушения сферы</small><strong id="result-stuns">0</strong></div>
 </div>
 <p class="note" id="result-team"></p>
-<div class="lobby-buttons">
+<div class="row">
 <button id="again" class="primary" type="button">Повторить задание</button>
 <button id="home-button" class="secondary" type="button">На главный экран</button>
 </div>
 </div>
 </section>
 
-<div id="pause-modal" class="hidden" style="position:fixed;inset:0;z-index:60;background:rgba(4,10,12,.72);display:flex;align-items:center;justify-content:center;padding:20px">
-<div class="glass" style="max-width:420px;padding:20px;text-align:center">
+<div id="pause-modal" class="modal hidden">
+<div class="glass">
 <h2>Оборона на паузе</h2>
 <p class="note">Таймер остановлен. Продолжите, когда будете готовы.</p>
-<div class="lobby-buttons" style="justify-content:center">
 <button id="resume" class="primary" type="button">Продолжить →</button>
 <button id="quit" class="secondary" type="button">Завершить оборону</button>
-</div>
 </div>
 </div>
 
@@ -191,7 +192,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 <button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
 <button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
-<button class="sk" data-act="t2c" type="button"> 2: пропустить видео двери</button>
+<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
 </div>
 
 </div>
@@ -203,7 +204,7 @@ body[data-screen="task02"] #app>header{display:none!important}
 <script src="task02.js"></script>
 <script src="app.js"></script>
 <script>
-// МОСТ v5: кнопка «Продолжить квест» + монтаж задания 2 + диагностика запуска видео.
+// МОСТ: кнопка «Продолжить квест» у капитана и монтаж задания 2.
 (function(){
 var mounted=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
@@ -213,21 +214,15 @@ function tryMount(){
 if(!ready())return;
 var r=NET.room;if(!r||!r.state)return;
 if(r.state.phase==='task02'&&!mounted){
-var mountEl=document.getElementById('task02-mount');
-if(!mountEl){toastMsg('Контейнер задания 2 не найден');return;}
+var el=document.getElementById('task02-mount');
+if(!el){toastMsg('Контейнер задания 2 не найден');return;}
 if(!window.Task02){toastMsg('Модуль задания 2 не загружен (task02.js)');return;}
-mounted=true;
-mountEl.classList.add('active');
-document.body.dataset.screen='task02';
-try{
-Task02.mount(mountEl);
-toastMsg('Задание 2 запущено');
-}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
+mounted=true;el.classList.add('active');document.body.dataset.screen='task02';
+try{Task02.mount(el);toastMsg('Задание 2 запущено');}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
 }
 if(r.state.phase!=='task02'&&mounted){
 mounted=false;
-var mountEl=document.getElementById('task02-mount');
-if(mountEl)mountEl.classList.remove('active');
+var el=document.getElementById('task02-mount');if(el)el.classList.remove('active');
 if(window.Task02){try{Task02.unmount();}catch(e){}}
 }
 }
@@ -250,7 +245,7 @@ setInterval(function(){addContinueButton();tryMount();},500);
 })();
 </script>
 <script>
-// ПАНЕЛЬ ПРОПУСКОВ v3 + диагностика запуска видео задания 2.
+// ПАНЕЛЬ ПРОПУСКОВ (тестовая, только капитан).
 (function(){
 function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
@@ -281,15 +276,91 @@ if(!a||!inRoom())return;
 var now=Date.now();
 if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
 if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
-if(a==='bs'){
-if(window.__testSkipBattle)window.__testSkipBattle();
-if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);
-}
-if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).then(function(){toastMsg('Инструкция пропущена');}).catch(err);}
-if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).then(function(){toastMsg('Фигуры пропущены');}).catch(err);}
-if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).then(function(){toastMsg('Видео двери пропущено');}).catch(err);}
+if(a==='bs'){if(window.__testSkipBattle)window.__testSkipBattle();if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);}
+if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);}
+if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).catch(err);}
+if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).catch(err);}
 });
 setInterval(refresh,500);
+})();
+</script>
+<script>
+// ПАТЧ 2.0: QR-код, голосовые подсказки, авто-старт 15 сек, синхронный конец боя.
+(function(){
+function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
+function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
+function playVoice(name){try{var a=new Audio('assets/'+name);a.volume=0.9;a.play().catch(function(){});}catch(e){}}
+var lastCode='';
+function fillBattleQr(){
+if(!inRoom())return;
+var q=document.getElementById('battle-qrcode');if(!q)return;
+var code=(NET.room&&NET.room.code||'').toLowerCase();if(!code)return;
+var t=document.getElementById('battle-room-code');if(t)t.textContent=code;
+if(code===lastCode&&q.childElementCount)return;
+lastCode=code;
+if(window.QRCode){q.innerHTML='';new QRCode(q,{text:location.origin+location.pathname+'?room='+code,width:34,height:34,correctLevel:QRCode.CorrectLevel.M});}
+}
+function fillLobbyQr(){
+if(!inRoom()||document.body.dataset.screen!=='lobby')return;
+var card=document.querySelector('#lobby .lobby-card');if(!card)return;
+var code=(NET.room.code||'').toLowerCase();if(!code)return;
+var ex=document.getElementById('lobby-qr');
+if(ex&&ex.dataset.code===code)return;
+if(ex)ex.remove();
+var d=document.createElement('div');d.id='lobby-qr';d.dataset.code=code;d.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:12px';
+d.innerHTML='<div style="width:120px;height:120px;background:#fff;border-radius:8px;padding:4px" id="lobby-qr-img"></div><span style="font-size:14px;color:#9fd8d8">Сканируйте для входа · код: <b style="color:#30e5dc">'+code+'</b></span>';
+card.appendChild(d);
+if(window.QRCode){new QRCode(d.querySelector('#lobby-qr-img'),{text:location.origin+location.pathname+'?room='+code,width:112,height:112,correctLevel:QRCode.CorrectLevel.M});}
+}
+var m=location.search.match(/[?&]room=([a-zA-Z0-9]+)/);
+if(m){try{localStorage.setItem('anomaly-room',m[1].toLowerCase());}catch(e){}}
+function prefillRoom(){
+var inp=document.getElementById('room-input');
+if(inp&&!inp.value){var c=localStorage.getItem('anomaly-room');if(c)inp.value=c;}
+}
+var waitTimer=null,waitVoiceDone=false,briefKey='';
+function handleBrief(){
+if(document.body.dataset.screen!=='brief'||!cap()||!inRoom())return;
+var r=NET.room;var key=r.code+'_'+(r.state?r.state.startsAt:0);
+if(briefKey===key)return;
+briefKey=key;waitVoiceDone=false;clearTimeout(waitTimer);
+var btn=document.getElementById('battle-start');
+if(btn&&btn.disabled){
+waitVoiceDone=true;playVoice('volt_wait.mp3');
+waitTimer=setTimeout(function(){
+var rr=NET.room;if(rr&&rr.state&&rr.state.phase==='brief'&&cap()){NET.setPhase('battle',Date.now()+2000,300000);}
+},15000);
+}
+}
+var lobbyKey='';
+function handleLobbyVoice(){
+if(!cap()||!inRoom()||document.body.dataset.screen!=='lobby')return;
+var k=NET.room?NET.room.code:'';if(!k||lobbyKey===k)return;lobbyKey=k;playVoice('volt_lobby.mp3');
+}
+var t2StageKey='';
+function handleTask2(){
+if(!inRoom())return;
+var r=NET.room;if(!r||!r.tasks||!r.tasks.task02)return;
+var st=r.tasks.task02.stage||'wait';
+if(st==='sequence'&&t2StageKey!==r.code+'_seq'){t2StageKey=r.code+'_seq';playVoice('volt_task2.mp3');}
+var t2root=document.getElementById('t2');
+if(t2root&&!document.getElementById('t2-instr-btn')){
+var b=document.createElement('button');b.id='t2-instr-btn';b.type='button';b.textContent='🔊 Инструкция';
+b.style.cssText='position:absolute;top:10px;right:10px;z-index:14;min-height:40px;padding:8px 12px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer';
+b.onclick=function(){playVoice('volt_task2.mp3');};
+t2root.appendChild(b);
+}
+}
+var sentEnd=0,seenEnd=0,resetKey='';
+function handleBattleSync(){
+if(!inRoom())return;
+var r=NET.room;if(!r||!r.state)return;
+var be=r.state.battleEnded||0;
+if(cap()&&r.state.phase==='battle'&&resetKey!==r.state.startsAt){resetKey=r.state.startsAt;seenEnd=0;firebase.database().ref('rooms/'+r.code+'/state/battleEnded').set(0).catch(function(){});}
+if(cap()&&document.body.dataset.screen==='result'&&sentEnd!==(r.state.startsAt||0)){sentEnd=r.state.startsAt||0;firebase.database().ref('rooms/'+r.code+'/state/battleEnded').set(Date.now()).catch(function(){});}
+if(!cap()&&be&&be!==seenEnd){seenEnd=be;if(document.body.dataset.screen==='battle'&&window.__testSkipBattle){window.__testSkipBattle();}}
+}
+setInterval(function(){fillBattleQr();fillLobbyQr();prefillRoom();handleBrief();handleLobbyVoice();handleTask2();handleBattleSync();},700);
 })();
 </script>
 </body>
