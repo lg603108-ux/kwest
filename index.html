@@ -12,6 +12,15 @@
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
+body[data-screen="cinema"] #movie-title{top:78px}
+/* Бой: компактные плашки, центр свободен под QR */
+.battle-hud{top:max(10px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));gap:8px}
+.battle-hud .hud-panel{flex:0 1 auto;min-width:0;padding:6px 12px;border-radius:10px}
+.battle-hud .hud-panel small{font-size:15px;line-height:1.15}
+.battle-hud .hud-panel strong{font-size:24px;line-height:1.15;margin-top:2px}
+.battle-hud .hud-panel:nth-child(3){margin-left:0}
+@media(max-width:740px){.battle-hud .hud-panel{padding:5px 10px}.battle-hud .hud-panel small{font-size:12px}.battle-hud .hud-panel strong{font-size:20px}}
+@media(max-height:550px){.battle-hud .hud-panel small{font-size:12px}.battle-hud .hud-panel strong{font-size:20px}}
 #home .home-card{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:center;padding:18px 22px;max-width:860px}
 #home h1{margin:2px 0;font-size:34px;line-height:1.05}
 #home .home-left .eyebrow{margin:0}
@@ -142,11 +151,7 @@
 <div id="monsters"></div>
 <div class="battle-hud">
 <div class="hud-panel"><small>Таймер</small><strong id="clock">05:00</strong></div>
-<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.92);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:6px 10px;pointer-events:auto">
-<div id="battle-qrcode" style="width:34px;height:34px;background:#fff;border-radius:4px"></div>
-<span id="battle-room-code" style="font-size:14px;color:#30e5dc;font-weight:700;letter-spacing:1px">----</span>
-</div>
-<div class="hud-panel"><small>Общий счёт</small><strong id="team-score">0</strong></div>
+<div class="hud-panel" style="margin-left:auto"><small>Общий счёт</small><strong id="team-score">0</strong></div>
 <div class="hud-panel"><small>Счёт игрока</small><strong id="score">0</strong></div>
 <button id="battle-pause" class="icon" type="button" style="display:none!important">Ⅱ</button>
 </div>
@@ -183,6 +188,20 @@
 
 <div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
+
+<!-- QR + код комнаты: всегда по центру вверху, на всех экранах -->
+<div id="qr-widget" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:650;display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.88);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:4px 8px;cursor:pointer">
+<div id="qr-widget-img" style="width:44px;height:44px;background:#fff;border-radius:4px"></div>
+<span id="qr-widget-code" style="font-size:12px;color:#30e5dc;font-weight:700;letter-spacing:1px">----</span>
+</div>
+<!-- Большой QR по нажатию -->
+<div id="qr-popup" style="position:fixed;inset:0;z-index:700;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);cursor:pointer">
+<div style="background:#14282c;border:1px solid rgba(190,245,245,.35);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px">
+<div id="qr-popup-img" style="width:220px;height:220px;background:#fff;border-radius:8px;padding:6px"></div>
+<div id="qr-popup-code" style="font-size:26px;color:#30e5dc;font-weight:800;letter-spacing:2px">----</div>
+<p style="margin:0;font-size:14px;color:#9fd8d8">Сканируйте камерой или введите код</p>
+</div>
+</div>
 
 <div id="task02-mount"></div>
 
@@ -285,82 +304,117 @@ setInterval(refresh,500);
 })();
 </script>
 <script>
-// ПАТЧ 2.0: QR-код, голосовые подсказки, авто-старт 15 сек, синхронный конец боя.
+// ПАТЧ 2.3: QR по центру везде, компактные плашки боя, бой стартует после доигрывания аудио, звук говорящих видео только у капитана, тихий сторож видео.
 (function(){
 function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
+function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__pt);window.__pt=setTimeout(function(){t.style.display='none';},6000);}
 function playVoice(name){try{var a=new Audio('assets/'+name);a.volume=0.9;a.play().catch(function(){});}catch(e){}}
-var lastCode='';
-function fillBattleQr(){
+function roomCode(){return inRoom()?(NET.room.code||'').toLowerCase():'';}
+function qrUrl(code){return location.origin+location.pathname+'?room='+code;}
+function renderQr(el,code,size){
+if(!el||!code)return;
+if(el.dataset.code===code&&el.childElementCount)return;
+el.dataset.code=code;el.innerHTML='';
+if(window.QRCode){try{new QRCode(el,{text:qrUrl(code),width:size,height:size,correctLevel:QRCode.CorrectLevel.M});}catch(e){}}
+}
+// --- большой QR по нажатию ---
+var popup=document.getElementById('qr-popup');
+function openPopup(){
+var code=roomCode();if(!code)return;
+document.getElementById('qr-popup-code').textContent=code;
+renderQr(document.getElementById('qr-popup-img'),code,210);
+popup.style.display='flex';
+}
+popup.addEventListener('click',function(){popup.style.display='none';});
+// --- виджет по центру вверху на ВСЕХ экранах ---
+var widget=document.getElementById('qr-widget');
+widget.addEventListener('click',openPopup);
+function refreshWidget(){
+var code=roomCode();
+widget.style.display=code?'flex':'none';
+if(code){
+document.getElementById('qr-widget-code').textContent=code;
+renderQr(document.getElementById('qr-widget-img'),code,44);
+}
+}
+// --- звук говорящих видео: только у капитана ---
+var muteDone=false;
+function handleMute(){
+if(muteDone||!inRoom())return;
+muteDone=true;
+if(!cap()){
+var s=document.getElementById('sound');
+if(s&&s.textContent!=='×'){s.click();}
+}
+}
+// --- бой: аудио доигрывает → старт ---
+var brief={key:'',t0:0,fired:false};
+function handleBrief(){
+if(!cap()||!inRoom()||document.body.dataset.screen!=='brief'){brief.key='';return;}
+var r=NET.room;var key=r.code+'_'+(r.state?r.state.startsAt:0);
+if(key!==brief.key){brief.key=key;brief.t0=Date.now();brief.fired=false;}
+if(brief.fired)return;
+var me=r.players&&r.players[NET.uid];
+var audioDone=!!(me&&me.seg==='rules');
+var hardCap=Date.now()>brief.t0+60000;
+if(audioDone||hardCap){
+brief.fired=true;
+setTimeout(function(){
+var rr=NET.room;
+if(rr&&rr.state&&rr.state.phase==='brief'&&cap()){NET.setPhase('battle',Date.now()+2000,300000);}
+},3000);
+}
+}
+// --- голоса задания 2 ---
+var seqKey='',swapKey='';
+function handleTask2Voice(){
 if(!inRoom())return;
-var q=document.getElementById('battle-qrcode');if(!q)return;
-var code=(NET.room&&NET.room.code||'').toLowerCase();if(!code)return;
-var t=document.getElementById('battle-room-code');if(t)t.textContent=code;
-if(code===lastCode&&q.childElementCount)return;
-lastCode=code;
-if(window.QRCode){q.innerHTML='';new QRCode(q,{text:location.origin+location.pathname+'?room='+code,width:34,height:34,correctLevel:QRCode.CorrectLevel.M});}
+var r=NET.room;if(!r||!r.tasks||!r.tasks.task02)return;
+var t=r.tasks.task02;var st=t.stage||'wait';
+if(st==='sequence'){var k1=r.code+'_seq_'+(t.startsAt||0);if(seqKey!==k1){seqKey=k1;playVoice('volt_task2.mp3');}}
+if(st==='swap'){var k2=r.code+'_swap_'+(t.startsAt||0);if(swapKey!==k2){swapKey=k2;playVoice('volt_swap.mp3');}}
+var t2root=document.getElementById('t2');
+if(t2root&&!document.getElementById('t2-instr-btn')){
+var b=document.createElement('button');b.id='t2-instr-btn';b.type='button';b.textContent='🔊 Инструкция';
+b.style.cssText='position:absolute;top:10px;right:10px;z-index:14;min-height:40px;padding:8px 12px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer';
+b.onclick=function(){
+var rr=NET.room;var s=(rr&&rr.tasks&&rr.tasks.task02&&rr.tasks.task02.stage)||'';
+playVoice(s==='swap'?'volt_swap.mp3':'volt_task2.mp3');
+};
+t2root.appendChild(b);
 }
-function fillLobbyQr(){
-if(!inRoom()||document.body.dataset.screen!=='lobby')return;
-var card=document.querySelector('#lobby .lobby-card');if(!card)return;
-var code=(NET.room.code||'').toLowerCase();if(!code)return;
-var ex=document.getElementById('lobby-qr');
-if(ex&&ex.dataset.code===code)return;
-if(ex)ex.remove();
-var d=document.createElement('div');d.id='lobby-qr';d.dataset.code=code;d.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:12px';
-d.innerHTML='<div style="width:120px;height:120px;background:#fff;border-radius:8px;padding:4px" id="lobby-qr-img"></div><span style="font-size:14px;color:#9fd8d8">Сканируйте для входа · код: <b style="color:#30e5dc">'+code+'</b></span>';
-card.appendChild(d);
-if(window.QRCode){new QRCode(d.querySelector('#lobby-qr-img'),{text:location.origin+location.pathname+'?room='+code,width:112,height:112,correctLevel:QRCode.CorrectLevel.M});}
 }
+// --- тихий сторож видео задания 2 ---
+var wd={last:-1,stuck:0};
+function watchdog(){
+if(!inRoom())return;
+var r=NET.room;var st=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
+var v=document.querySelector('#t2 .t2-video');
+if(!v||!(st==='intro'||st==='sequence'||st==='reveal')){wd.last=-1;wd.stuck=0;return;}
+var at=(r.tasks.task02.startsAt)||0;
+if(v.paused){
+if(at&&Date.now()>at+1500){v.play().catch(function(){});}
+wd.last=-1;wd.stuck=0;return;
+}
+if(Math.abs(v.currentTime-wd.last)<0.01&&v.readyState<3){wd.stuck++;}else{wd.stuck=0;}
+wd.last=v.currentTime;
+if(wd.stuck>=4){wd.stuck=0;try{v.load();setTimeout(function(){v.play().catch(function(){});},300);}catch(e){}}
+}
+// --- код из QR подставляется в поле ввода ---
 var m=location.search.match(/[?&]room=([a-zA-Z0-9]+)/);
 if(m){try{localStorage.setItem('anomaly-room',m[1].toLowerCase());}catch(e){}}
 function prefillRoom(){
 var inp=document.getElementById('room-input');
 if(inp&&!inp.value){var c=localStorage.getItem('anomaly-room');if(c)inp.value=c;}
 }
-var waitTimer=null,waitVoiceDone=false,briefKey='';
-function handleBrief(){
-if(document.body.dataset.screen!=='brief'||!cap()||!inRoom())return;
-var r=NET.room;var key=r.code+'_'+(r.state?r.state.startsAt:0);
-if(briefKey===key)return;
-briefKey=key;waitVoiceDone=false;clearTimeout(waitTimer);
-var btn=document.getElementById('battle-start');
-if(btn&&btn.disabled){
-waitVoiceDone=true;playVoice('volt_wait.mp3');
-waitTimer=setTimeout(function(){
-var rr=NET.room;if(rr&&rr.state&&rr.state.phase==='brief'&&cap()){NET.setPhase('battle',Date.now()+2000,300000);}
-},15000);
-}
-}
+// --- голос лобби у капитана ---
 var lobbyKey='';
 function handleLobbyVoice(){
 if(!cap()||!inRoom()||document.body.dataset.screen!=='lobby')return;
-var k=NET.room?NET.room.code:'';if(!k||lobbyKey===k)return;lobbyKey=k;playVoice('volt_lobby.mp3');
+var k=roomCode();if(!k||lobbyKey===k)return;lobbyKey=k;playVoice('volt_lobby.mp3');
 }
-var t2StageKey='';
-function handleTask2(){
-if(!inRoom())return;
-var r=NET.room;if(!r||!r.tasks||!r.tasks.task02)return;
-var st=r.tasks.task02.stage||'wait';
-if(st==='sequence'&&t2StageKey!==r.code+'_seq'){t2StageKey=r.code+'_seq';playVoice('volt_task2.mp3');}
-var t2root=document.getElementById('t2');
-if(t2root&&!document.getElementById('t2-instr-btn')){
-var b=document.createElement('button');b.id='t2-instr-btn';b.type='button';b.textContent='🔊 Инструкция';
-b.style.cssText='position:absolute;top:10px;right:10px;z-index:14;min-height:40px;padding:8px 12px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer';
-b.onclick=function(){playVoice('volt_task2.mp3');};
-t2root.appendChild(b);
-}
-}
-var sentEnd=0,seenEnd=0,resetKey='';
-function handleBattleSync(){
-if(!inRoom())return;
-var r=NET.room;if(!r||!r.state)return;
-var be=r.state.battleEnded||0;
-if(cap()&&r.state.phase==='battle'&&resetKey!==r.state.startsAt){resetKey=r.state.startsAt;seenEnd=0;firebase.database().ref('rooms/'+r.code+'/state/battleEnded').set(0).catch(function(){});}
-if(cap()&&document.body.dataset.screen==='result'&&sentEnd!==(r.state.startsAt||0)){sentEnd=r.state.startsAt||0;firebase.database().ref('rooms/'+r.code+'/state/battleEnded').set(Date.now()).catch(function(){});}
-if(!cap()&&be&&be!==seenEnd){seenEnd=be;if(document.body.dataset.screen==='battle'&&window.__testSkipBattle){window.__testSkipBattle();}}
-}
-setInterval(function(){fillBattleQr();fillLobbyQr();prefillRoom();handleBrief();handleLobbyVoice();handleTask2();handleBattleSync();},700);
+setInterval(function(){refreshWidget();prefillRoom();handleMute();handleBrief();handleLobbyVoice();handleTask2Voice();watchdog();},700);
 })();
 </script>
 </body>
