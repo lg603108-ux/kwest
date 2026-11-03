@@ -116,6 +116,7 @@ function updatePublic(uid,path,obj){
     pushWrite(uid,path,obj,false,'permission_denied');
     return reject('permission_denied');
   }
+  if(consumeFailure('update:'+path)){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
   pushWrite(uid,path,obj,true);
   room.tasks.task03=room.tasks.task03||{};
   merge(room.tasks.task03,obj);

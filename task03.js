@@ -22,6 +22,7 @@ function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task03');}
 function deckRef(){return db().ref('task03Decks/'+NET.room.code);}
 function secretRef(uid){return db().ref('task03Secrets/'+NET.room.code+'/'+uid);}
 function error(e){status('Ошибка связи: '+(e&&e.message||e));}
+function stepError(label){return function(e){throw new Error(label+': '+(e&&e.message||e));};}
 function write(obj){return publicRef().update(obj).catch(function(e){error(e);throw e;});}
 function validDeck(value){const a=value&&value.order;return Array.isArray(a)&&a.length===10&&a.every(function(id,i){return EMOTIONS.some(function(e){return e.id===id;})&&a.indexOf(id)===i;})?a.slice():null;}
 function shuffled(){const a=EMOTIONS.map(function(e){return e.id;});for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const x=a[i];a[i]=a[j];a[j]=x;}return a;}
@@ -71,13 +72,13 @@ function startIntro(){
 if(!cap()||!task||task.stage!=='wait'||starting)return;
 const ps=players(roomState);if(ps.length<2){status('Для задания нужны хотя бы два игрока.');return;}
 starting=true;els.start.disabled=true;status('Готовим чувства Лума…');
-let promise=deckOrder?Promise.resolve(deckOrder):deckRef().once('value').then(function(s){return validDeck(s.val());});
+let promise=deckOrder?Promise.resolve(deckOrder):deckRef().once('value').then(function(s){return validDeck(s.val());}).catch(stepError('чтение колоды'));
 promise.then(function(order){
-if(!order){order=shuffled();return deckRef().set({order:order}).then(function(){return order;});}
+if(!order){order=shuffled();return deckRef().set({order:order}).catch(stepError('сохранение колоды')).then(function(){return order;});}
 return order;
 }).then(function(order){
 if(!active||!cap())return;deckOrder=order;
-return write({stage:'intro',startsAt:Date.now(),round:0,actorUid:ps[0].uid,judgeUid:ps[1].uid,accepted:false,reactionId:null,guess:null,verdict:null});
+return write({stage:'intro',startsAt:Date.now(),round:0,actorUid:ps[0].uid,judgeUid:ps[1].uid,accepted:false,reactionId:null,guess:null,verdict:null}).catch(stepError('запуск инструкции'));
 }).catch(error).finally(function(){starting=false;if(els.start)els.start.disabled=false;});
 }
 function render(){

@@ -58,6 +58,21 @@ async function endReaction(round,captain){
 async function scenario(name,fn){try{await fn();}catch(e){check(name+' / сценарий выполнен',false,e.stack||String(e));}}
 async function makeTask02(id){const f=document.createElement('iframe');f.id=id;f.name=id;f.src='task03_client.html?v=8&role='+id+'&module=task02';document.body.appendChild(f);for(let i=0;i<50&&!w(id).clientReady;i++)await wait(50);if(!w(id).clientReady||w(id).clientError)throw new Error(w(id).clientError||'Task02 client timeout');}
 
+async function startErrorLabels(){
+  await resetRoom({stage:'wait',startsAt:0});
+  taskBus.failNext('once:'+DECK,1);
+  w('cap').document.getElementById('t3-start').click();await settle();
+  check('Диагностика: отказ чтения колоды назван отдельно',statusText('cap').indexOf('чтение колоды')>=0&&t().stage==='wait',statusText('cap'));
+  await resetRoom({stage:'wait',startsAt:0});
+  taskBus.failNext('set:'+DECK,1);
+  w('cap').document.getElementById('t3-start').click();await settle();
+  check('Диагностика: отказ сохранения колоды назван отдельно',statusText('cap').indexOf('сохранение колоды')>=0&&t().stage==='wait',statusText('cap'));
+  await resetRoom({stage:'wait',startsAt:0});
+  taskBus.failNext('update:'+PUBLIC,1);
+  w('cap').document.getElementById('t3-start').click();await settle();
+  check('Диагностика: отказ запуска инструкции назван отдельно',statusText('cap').indexOf('запуск инструкции')>=0&&t().stage==='wait',statusText('cap'));
+}
+
 async function deckShapeAndStart(){
   await resetRoom({stage:'wait',startsAt:0});
   await expectRejected('Mock/Rules: deck.order строкой запрещён',()=>taskBus.ref('cap',DECK).set({order:ids.join(',')}));
@@ -360,6 +375,7 @@ async function run(){
   if(missing){check('Task03 доступен',false,missing);window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);return;}
   check('Task03 доступен',true);
   const scenarios=[
+    ['Start error labels',startErrorLabels],
     ['Deck shape and start',deckShapeAndStart],
     ['Field rights',fieldRights],
     ['Media click',mediaClick],
