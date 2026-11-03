@@ -1,0 +1,368 @@
+<!doctype html><meta charset="utf-8"><title>Изолированная проверка задания 3</title>
+<style>iframe{width:320px;height:180px}</style>
+<iframe id="cap" name="cap" src="task03_client.html?v=7&role=cap"></iframe>
+<iframe id="p1" name="p1" src="task03_client.html?v=7&role=p1"></iframe>
+<iframe id="p2" name="p2" src="task03_client.html?v=7&role=p2"></iframe>
+<script src="task03_mock.js?v=7"></script>
+<script>
+window.testResults=[];window.testDone=false;
+const names=['cap','p1','p2'];
+const expected=[['fear','Страх','Испуганное лицо'],['joy','Радость','Улыбка'],['anger','Гнев','Нахмуренное лицо'],['sadness','Грусть','Печальное лицо'],['surprise','Удивление','Раскрытые глаза и рот'],['disgust','Отвращение','Сморщенное лицо'],['pain','Боль','Зажмуренное лицо'],['anxiety','Тревога','Обеспокоенное лицо'],['doubt','Сомнение','Задумчивое лицо'],['relief','Облегчение','Спокойный выдох']];
+const ids=expected.map(x=>x[0]);
+const PUBLIC='rooms/test/tasks/task03';
+const DECK='task03Decks/test';
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const settle=()=>wait(80);
+function w(id){return document.getElementById(id).contentWindow;}
+function t(){return taskBus.room.tasks.task03;}
+function video(id){const v=w(id).document.querySelector('.t3-video');if(!v)throw new Error('Нет видео у '+id);return v;}
+function check(name,ok,detail){testResults.push({name,ok:!!ok,detail:detail===undefined?'':String(detail)});}
+function statusText(id){const el=w(id).document.querySelector('#t3-status');return el?el.textContent:'';}
+function publicLeak(){const s=JSON.stringify(t());return /order|deck|secret/.test(s)||(/emotionId/.test(s)&&!t().guess);}
+function setEnded(id,val){const v=video(id);if(val)Object.defineProperty(v,'ended',{configurable:true,writable:true,value:true});else delete v.ended;}
+function fireEnded(id){setEnded(id,true);const v=video(id);if(typeof v.onended==='function')v.onended();}
+function attemptCount(uid,predicate){return taskBus.writeAttempts.filter(x=>x.uid===uid&&predicate(x)).length;}
+function successCount(uid,predicate){return taskBus.writes.filter(x=>x.uid===uid&&predicate(x)).length;}
+function secretAttempts(uid){return attemptCount(uid,x=>x.path.indexOf('task03Secrets/')===0);}
+function secretSuccesses(uid){return successCount(uid,x=>x.path.indexOf('task03Secrets/')===0);}
+function atomicAttempts(uid){return attemptCount(uid,x=>x.path==='atomic');}
+function atomicSuccesses(uid){return successCount(uid,x=>x.path==='atomic');}
+async function expectRejected(name,action){let ok=false,detail='';try{await action();detail='mock принял запись/чтение';}catch(e){ok=true;detail=(e&&e.message)||String(e);}check(name,ok,detail);}
+async function expectAccepted(name,action){let ok=true,detail='';try{await action();}catch(e){ok=false;detail=(e&&e.message)||String(e);}check(name,ok,detail);}
+async function resetRoom(state,opts){
+  opts=opts||{};
+  names.forEach(id=>{const win=w(id);if(win.Task03)win.Task03.unmount();if(win.NET)win.NET.room=null;});
+  taskBus.init({code:'test',captain:opts.captain||'cap',state:{phase:'task03',startsAt:0},players:{cap:{name:'Аня',joinedAt:100},p1:{name:'Боря',joinedAt:200},p2:{name:'Вера',joinedAt:300}},tasks:{task03:state,task02:{stage:'done',startsAt:0}}});
+  if(opts.deck)taskBus.setDeck({order:opts.deck.slice()});
+  if(opts.secrets)Object.keys(opts.secrets).forEach(uid=>taskBus.setSecret(uid,opts.secrets[uid]));
+  if(opts.playFailures)Object.keys(opts.playFailures).forEach(id=>{w(id).playFailures=opts.playFailures[id];});
+  names.forEach(id=>w(id).remount());
+  taskBus.broadcast();
+  await settle();
+}
+async function correctGuess(round){
+  const actor=t().actorUid,judge=t().judgeUid;
+  const secret=taskBus.secrets[actor];
+  if(!secret)throw new Error('Нет секрета у актёра '+actor);
+  const b=w(judge).document.querySelector('.t3-emotion[data-emotion="'+secret.emotionId+'"]');
+  if(!b)throw new Error('Нет верной кнопки у '+judge);
+  b.click();await settle();
+  check('C3/C4: верный ответ открывает реакцию, раунд '+round,t().stage==='reaction'&&t().reactionId===secret.emotionId,JSON.stringify(t()));
+}
+async function endReaction(round,captain){
+  fireEnded(captain);await settle();setEnded(captain,false);
+  if(round<9)check('C4: ротация после реакции '+(round+1),t().stage==='play'&&t().round===round+1&&t().actorUid===names[(round+1)%3]&&t().judgeUid===names[(round+2)%3],JSON.stringify(t()));
+}
+async function scenario(name,fn){try{await fn();}catch(e){check(name+' / сценарий выполнен',false,e.stack||String(e));}}
+async function makeTask02(id){const f=document.createElement('iframe');f.id=id;f.name=id;f.src='task03_client.html?v=7&role='+id+'&module=task02';document.body.appendChild(f);for(let i=0;i<50&&!w(id).clientReady;i++)await wait(50);if(!w(id).clientReady||w(id).clientError)throw new Error(w(id).clientError||'Task02 client timeout');}
+
+async function deckShapeAndStart(){
+  await resetRoom({stage:'wait',startsAt:0});
+  await expectRejected('Mock/Rules: deck.order строкой запрещён',()=>taskBus.ref('cap',DECK).set({order:ids.join(',')}));
+  await expectRejected('Mock/Rules: deck.order из 9 ID запрещён',()=>taskBus.ref('cap',DECK).set({order:ids.slice(0,9)}));
+  await expectRejected('Mock/Rules: deck.order с дублем запрещён',()=>taskBus.ref('cap',DECK).set({order:['fear','fear'].concat(ids.slice(2))}));
+  await expectRejected('Mock/Rules: deck.order с неизвестным ID запрещён',()=>taskBus.ref('cap',DECK).set({order:['unknown'].concat(ids.slice(1))}));
+  await expectRejected('Mock/Rules: лишнее поле колоды запрещено',()=>taskBus.ref('cap',DECK).set({order:ids.slice(),extra:1}));
+  check('Mock: невалидные попытки не создали колоду',!taskBus.deck,JSON.stringify(taskBus.deck));
+  w('p1').document.getElementById('t3-start').click();await settle();
+  check('C7: intro запускает только фактический капитан',t().stage==='wait',t().stage);
+  w('cap').document.getElementById('t3-start').click();await settle();
+  const order=taskBus.deck&&taskBus.deck.order;
+  check('C5: колода — приватный массив из 10 уникальных допустимых ID',Array.isArray(order)&&order.length===10&&new Set(order).size===10&&ids.every(id=>order.indexOf(id)>=0)&&Object.keys(taskBus.deck).every(k=>k==='order')&&!publicLeak(),JSON.stringify(taskBus.deck));
+  check('C4: первая роль по joinedAt',t().actorUid==='cap'&&t().judgeUid==='p1',JSON.stringify(t()));
+  names.forEach(id=>check('C7: intro у '+id,video(id).src.endsWith('/assets/v03_intro.mp4')&&video(id).muted===(id!=='cap'),video(id).src+' muted='+video(id).muted));
+  fireEnded('p1');await settle();
+  check('C7: ended обычного игрока не меняет intro',t().stage==='intro',t().stage);
+  setEnded('p1',false);
+  fireEnded('cap');await settle();
+  check('C1/C5: play без публичной колоды и секрета',t().stage==='play'&&taskBus.secrets.cap&&taskBus.secrets.cap.round===0&&!publicLeak(),JSON.stringify(t()));
+  setEnded('cap',false);
+  check('C1: эмоция и инструкция только Актёру',!!w('cap').document.querySelector('.t3-secret')&&!w('p1').document.querySelector('.t3-secret')&&!w('p2').document.querySelector('.t3-secret'));
+  const buttons=Array.from(w('p1').document.querySelectorAll('.t3-emotion'));
+  check('C2: у Судьи 2×5 точных кнопок',buttons.length===10&&expected.every((x,i)=>buttons[i].dataset.emotion===x[0]&&buttons[i].textContent.includes(x[1])&&buttons[i].textContent.includes(x[2]))&&!w('p2').document.querySelector('.t3-emotion'),String(buttons.length));
+  const secret=taskBus.secrets.cap.emotionId;
+  const wrong=expected.find(x=>x[0]!==secret)[0];
+  const wrongBtn=w('p1').document.querySelector('.t3-emotion[data-emotion="'+wrong+'"]');
+  const before=taskBus.writeAttempts.length;
+  wrongBtn.click();await settle();
+  const judgeAttempts=taskBus.writeAttempts.slice(before).filter(x=>x.uid==='p1'&&x.path===PUBLIC);
+  check('C2/Rules: Судья пишет только guess и не трогает verdict',judgeAttempts.length===1&&judgeAttempts[0].accepted&&Object.keys(judgeAttempts[0].obj).length===1&&'guess' in judgeAttempts[0].obj&&judgeAttempts[0].obj.guess.by==='p1',JSON.stringify(judgeAttempts.map(x=>({accepted:x.accepted,keys:Object.keys(x.obj),reason:x.reason}))));
+  const firstGuess=t().guess&&t().guess.id;
+  check('C2: ошибка окрашена, секрет не раскрыт',!!firstGuess&&t().stage==='play'&&t().verdict&&t().verdict.correct===false&&wrongBtn.classList.contains('t3-wrong')&&!publicLeak(),JSON.stringify(t().verdict));
+  if(firstGuess){
+    wrongBtn.click();await settle();
+    check('C2: повтор создаёт новый guessId',t().guess&&t().guess.id!==firstGuess&&t().verdict&&t().verdict.correct===false,t().guess&&t().guess.id);
+    const guessId=t().guess.id;
+    taskBus.room.tasks.task03.verdict={guessId:'stale',correct:true,round:0};taskBus.broadcast();await settle();
+    check('C2/C3: stale guessId игнорируется',t().stage==='play',t().stage);
+    taskBus.room.tasks.task03.verdict={guessId:guessId,correct:true,round:-1};taskBus.broadcast();await settle();
+    check('C2/C3: stale round игнорируется',t().stage==='play',t().stage);
+  }else{
+    check('C2: повтор создаёт новый guessId',false,'первый guess не принят');
+    check('C2/C3: stale guessId игнорируется',false,'нет guess');
+    check('C2/C3: stale round игнорируется',false,'нет guess');
+  }
+  const oldBtn=w('p1').document.querySelector('.t3-emotion[data-emotion="'+secret+'"]');
+  oldBtn.click();await settle();
+  check('C3: реакция показывается всем со звуком',t().stage==='reaction'&&names.every(id=>video(id).src.endsWith('/assets/lum_'+secret+'.mp4')&&!video(id).muted),t().stage);
+  if(t().stage==='reaction'){
+    const reactionWrites=taskBus.writes.filter(x=>x.obj&&x.obj.stage==='reaction').length;
+    const guessId=t().guess.id;
+    oldBtn.click();taskBus.room.tasks.task03.verdict={guessId:guessId,correct:true,round:0};taskBus.broadcast();await settle();
+    check('C3: повтор/старый verdict не запускает второй переход',taskBus.writes.filter(x=>x.obj&&x.obj.stage==='reaction').length===reactionWrites&&t().guess.id===guessId,JSON.stringify({before:reactionWrites,after:taskBus.writes.filter(x=>x.obj&&x.obj.stage==='reaction').length,guessId:guessId,currentGuess:t().guess&&t().guess.id,stage:t().stage}));
+    fireEnded('p2');await settle();
+    check('C3: ended зрителя не меняет reaction',t().stage==='reaction',t().stage);
+    setEnded('p2',false);
+  }else{
+    check('C3: повтор/старый verdict не запускает второй переход',false,'реакция не началась');
+    check('C3: ended зрителя не меняет reaction',false,'реакция не началась');
+  }
+}
+
+async function fieldRights(){
+  const deck=ids.slice();
+  await resetRoom({stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck,secrets:{p1:{round:1,emotionId:deck[1]}}});
+  const actor='p1',judge='p2';
+  await expectRejected('Rules/mock: Судья не может писать verdict',()=>taskBus.ref(judge,PUBLIC).update({verdict:null}));
+  await expectRejected('Rules/mock: Судья не может менять stage',()=>taskBus.ref(judge,PUBLIC).update({stage:'done'}));
+  await expectRejected('Rules/mock: Судья не может менять round',()=>taskBus.ref(judge,PUBLIC).update({round:0}));
+  await expectRejected('Rules/mock: Актёр не может писать guess',()=>taskBus.ref(actor,PUBLIC).update({guess:{id:'invalid',emotionId:'fear',by:actor,round:t().round}}));
+  await expectRejected('Rules/mock: Актёр не может менять stage',()=>taskBus.ref(actor,PUBLIC).update({stage:'reaction'}));
+  await expectRejected('Rules/mock: Судья не может писать guess с чужим by',()=>taskBus.ref(judge,PUBLIC).update({guess:{id:'invalid',emotionId:'fear',by:actor,round:t().round}}));
+  await expectRejected('Rules/mock: Судья не может писать guess старого раунда',()=>taskBus.ref(judge,PUBLIC).update({guess:{id:'invalid',emotionId:'fear',by:judge,round:t().round-1}}));
+  await expectRejected('Rules/mock: капитан не может писать неизвестное поле task03',()=>taskBus.ref('cap',PUBLIC).update({order:deck.slice()}));
+  await expectAccepted('Rules/mock: фактический капитан может обновить общее поле',()=>taskBus.ref('cap',PUBLIC).update({startsAt:t().startsAt}));
+  const wrongId=ids.find(id=>id!==deck[1]);
+  const before=taskBus.writeAttempts.length;
+  w(judge).document.querySelector('.t3-emotion[data-emotion="'+wrongId+'"]').click();await settle();
+  const judgeAttempt=taskBus.writeAttempts.slice(before).find(x=>x.uid===judge&&x.path===PUBLIC);
+  check('Rules/mock: реальный ответ Судьи принимается как guess-only',!!judgeAttempt&&judgeAttempt.accepted&&Object.keys(judgeAttempt.obj).length===1&&judgeAttempt.obj.guess.round===1,JSON.stringify(judgeAttempt));
+  check('Rules/mock: Актёр пишет verdict после guess',t().verdict&&t().verdict.correct===false&&t().verdict.round===1,JSON.stringify(t().verdict));
+  const judgeAttemptsBefore=taskBus.writeAttemptsBy(judge).length;
+  const judgeDeckAttemptsBefore=taskBus.deckAttempts(judge);
+  taskBus.setCaptainTransfer(judge);await settle();
+  check('Rules/mock: captainTransfer candidate не читает колоду и не пишет',taskBus.deckAttempts(judge)===judgeDeckAttemptsBefore&&taskBus.deckPrivateCount(judge)===0&&taskBus.writeAttemptsBy(judge).length===judgeAttemptsBefore,JSON.stringify({deck:taskBus.deckAttempts(judge),subs:taskBus.deckPrivateCount(judge),writes:taskBus.writeAttemptsBy(judge).length}));
+  await expectRejected('Rules/mock: captainTransfer candidate не может читать deck',()=>taskBus.ref(judge,DECK).once());
+  await expectRejected('Rules/mock: captainTransfer candidate не может писать stage',()=>taskBus.ref(judge,PUBLIC).update({stage:'done'}));
+  await expectRejected('Rules/mock: captainTransfer candidate не может писать секрет',()=>taskBus.ref(judge,'task03Secrets/test/'+actor).set({round:t().round,emotionId:'fear'}));
+  check('Rules/mock: candidate не получил активную приватную подписку',taskBus.deckPrivateCount(judge)===0,String(taskBus.deckPrivateCount(judge)));
+  taskBus.clearCaptainTransfer();await settle();
+  check('Rules/mock: отклонённые записи не изменили общие роли и раунд',t().stage==='play'&&t().round===1&&t().actorUid===actor&&t().judgeUid===judge&&successCount(judge,x=>x.path===PUBLIC||x.path===DECK||x.path.indexOf('task03Secrets/')===0)===1,JSON.stringify(t()));
+}
+
+async function mediaClick(){
+  const deck=ids.slice();
+  await resetRoom({stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:'fear',guess:{id:'g0',emotionId:'fear',by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}},{deck:deck,playFailures:{cap:1}});
+  check('C7: отказ автовоспроизведения показывает подсказку',statusText('cap').indexOf('Нажмите на видео')>=0,statusText('cap'));
+  const v=video('cap');
+  const before=v.__playCount||0;
+  v.click();await settle();
+  check('C7: подсказка «нажмите на видео» имеет реальный click/tap handler',(v.__playCount||0)>before&&statusText('cap')==='',JSON.stringify({before:before,plays:v.__playCount,status:statusText('cap')}));
+}
+
+async function introTransfer(){
+  const deck=ids.slice();
+  await resetRoom({stage:'intro',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck});
+  taskBus.setCaptainTransfer('p1');await settle();
+  check('C5: captainTransfer candidate не читает приватную колоду',taskBus.deckAttempts('p1')===0&&taskBus.deckPrivateCount('p1')===0,JSON.stringify({attempts:taskBus.deckAttempts('p1'),subs:taskBus.deckPrivateCount('p1')}));
+  check('C5: captainTransfer candidate ничего не пишет',taskBus.writeAttemptsBy('p1').length===0,JSON.stringify(taskBus.writeAttemptsBy('p1')));
+  fireEnded('p1');await settle();
+  check('C5: ended candidate до фактической передачи игнорируется',t().stage==='intro'&&taskBus.writeAttemptsBy('p1').length===0,JSON.stringify({stage:t().stage,writes:taskBus.writeAttemptsBy('p1').length}));
+  taskBus.failNext('on:'+DECK,1);
+  taskBus.setCaptain('p1');await settle();
+  check('C5: ошибка deck-подписки фактического капитана очищает её для повтора',taskBus.deckPrivateCount('p1')===0&&taskBus.deckAttempts('p1')>=1&&t().stage==='intro'&&secretAttempts('p1')===0,JSON.stringify({subs:taskBus.deckPrivateCount('p1'),attempts:taskBus.deckAttempts('p1'),stage:t().stage}));
+  taskBus.failNext('set:task03Secrets/test/cap',1);
+  taskBus.broadcast();await settle();
+  check('C5: deck-подписка повторяется, но ошибка startPlay не продвигает раунд',taskBus.deckPrivateCount('p1')===1&&t().stage==='intro'&&!taskBus.secrets.cap&&secretAttempts('p1')===1&&secretSuccesses('p1')===0,JSON.stringify({subs:taskBus.deckPrivateCount('p1'),stage:t().stage,attempts:secretAttempts('p1'),successes:secretSuccesses('p1')}));
+  taskBus.broadcast();await settle();
+  check('C5: повтор после ошибки выполняет задержанный startPlay без нового ended',t().stage==='play'&&t().round===0&&taskBus.secrets.cap&&taskBus.secrets.cap.round===0&&secretAttempts('p1')===2&&secretSuccesses('p1')===1&&successCount('p1',x=>x.path===PUBLIC&&x.obj.stage==='play')===1,JSON.stringify({stage:t().stage,round:t().round,attempts:secretAttempts('p1'),successes:secretSuccesses('p1')}));
+  setEnded('p1',false);
+}
+
+async function reactionTransfer(){
+  const deck=ids.slice();
+  await resetRoom({stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:deck[0],guess:{id:'g0',emotionId:deck[0],by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}},{deck:deck});
+  const p1Before=taskBus.writeAttemptsBy('p1').length;
+  taskBus.setCaptainTransfer('p1');await settle();
+  check('C3: captainTransfer candidate не читает колоду до фактической передачи',taskBus.deckAttempts('p1')===0&&taskBus.deckPrivateCount('p1')===0&&taskBus.writeAttemptsBy('p1').length===p1Before,JSON.stringify({attempts:taskBus.deckAttempts('p1'),subs:taskBus.deckPrivateCount('p1'),writes:taskBus.writeAttemptsBy('p1').length}));
+  fireEnded('p1');await settle();
+  check('C3: ended candidate reaction до передачи игнорируется',t().stage==='reaction'&&t().round===0&&taskBus.writeAttemptsBy('p1').length===p1Before,JSON.stringify({stage:t().stage,round:t().round,writes:taskBus.writeAttemptsBy('p1').length}));
+  taskBus.setDeckEmitPaused(true);
+  taskBus.setCaptain('p1');await settle();
+  check('C3: фактический капитан reaction подписан на колоду и ждёт deckOrder',taskBus.deckPrivateCount('p1')===1&&t().stage==='reaction'&&t().round===0&&atomicAttempts('p1')===0,JSON.stringify({subs:taskBus.deckPrivateCount('p1'),stage:t().stage,round:t().round,atomic:atomicAttempts('p1')}));
+  taskBus.failNext('atomic',1);
+  taskBus.setDeckEmitPaused(false);
+  taskBus.emitDeck();await settle();
+  check('C3: ошибка задержанного advance не продвигает раунд',t().stage==='reaction'&&t().round===0&&atomicAttempts('p1')===1&&atomicSuccesses('p1')===0,JSON.stringify({stage:t().stage,round:t().round,attempts:atomicAttempts('p1'),successes:atomicSuccesses('p1')}));
+  taskBus.broadcast();await settle();
+  check('C3: повтор после ошибки выполняет задержанный advance без нового ended',t().stage==='play'&&t().round===1&&t().actorUid==='p1'&&t().judgeUid==='p2'&&atomicAttempts('p1')===2&&atomicSuccesses('p1')===1,JSON.stringify({stage:t().stage,round:t().round,actor:t().actorUid,judge:t().judgeUid,attempts:atomicAttempts('p1'),successes:atomicSuccesses('p1')}));
+  setEnded('p1',false);
+}
+
+async function atomicRotationRules(){
+  const deck=ids.slice();
+  const reactionState={stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:deck[0],guess:{id:'g0',emotionId:deck[0],by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}};
+  await resetRoom(reactionState,{deck:deck});
+  const pub={stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null};
+  const sec={round:1,emotionId:deck[1]};
+  const upd={};upd[PUBLIC]=pub;upd['task03Secrets/test/p1']=sec;
+  await expectAccepted('Rules/mock: атомарная ротация из reaction пишет секрет старому Судье по pre-update root',()=>taskBus.ref('cap','').update(upd));
+  check('Rules/mock: атомарная ротация применяет общее состояние и секрет',t().stage==='play'&&t().round===1&&t().actorUid==='p1'&&t().judgeUid==='p2'&&taskBus.secrets.p1&&taskBus.secrets.p1.round===1&&taskBus.secrets.p1.emotionId===deck[1],JSON.stringify({task:t(),secret:taskBus.secrets.p1}));
+
+  await resetRoom(reactionState,{deck:deck});
+  const invalidViewer={};invalidViewer[PUBLIC]={stage:'play',startsAt:Date.now(),round:1,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null,guess:null,verdict:null};invalidViewer['task03Secrets/test/p2']={round:1,emotionId:deck[1]};
+  await expectRejected('Rules/mock: атомарная ротация не может писать секрет зрителю',()=>taskBus.ref('cap','').update(invalidViewer));
+  check('Rules/mock: отклонённая ротация зрителю не меняет состояние',t().stage==='reaction'&&t().round===0&&t().actorUid==='cap'&&t().judgeUid==='p1'&&!taskBus.secrets.p2,JSON.stringify({task:t(),secrets:Object.keys(taskBus.secrets)}));
+
+  await resetRoom({stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck,secrets:{p1:{round:1,emotionId:deck[1]}}});
+  const invalidPlay={};invalidPlay[PUBLIC]={stage:'play',startsAt:Date.now(),round:2,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null,guess:null,verdict:null};invalidPlay['task03Secrets/test/p2']={round:2,emotionId:deck[2]};
+  await expectRejected('Rules/mock: во время play нельзя заранее писать секрет Судье',()=>taskBus.ref('cap','').update(invalidPlay));
+  check('Rules/mock: отклонённая ранняя ротация не раскрывает секрет',t().stage==='play'&&t().round===1&&t().actorUid==='p1'&&!taskBus.secrets.p2,JSON.stringify({task:t(),secrets:Object.keys(taskBus.secrets)}));
+
+  await resetRoom(reactionState,{deck:deck});
+  const nonCaptain={};nonCaptain[PUBLIC]=pub;nonCaptain['task03Secrets/test/p1']=sec;
+  await expectRejected('Rules/mock: не-капитан не может атомарно ротировать',()=>taskBus.ref('p1','').update(nonCaptain));
+  check('Rules/mock: не-капитан не изменил ротацию',t().stage==='reaction'&&t().round===0&&t().judgeUid==='p1'&&!taskBus.secrets.p1,JSON.stringify({task:t(),secrets:Object.keys(taskBus.secrets)}));
+}
+
+async function wrongHighlightOnce(){
+  const deck=ids.slice();
+  await resetRoom({stage:'play',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck,secrets:{cap:{round:0,emotionId:deck[0]}}});
+  const wrongId=ids.find(id=>id!==deck[0]);
+  const btn=w('p1').document.querySelector('.t3-emotion[data-emotion="'+wrongId+'"]');
+  let adds=0;
+  const MO=w('p1').MutationObserver;
+  const mo=new MO(function(muts){muts.forEach(function(){if(btn.classList.contains('t3-wrong'))adds++;});});
+  mo.observe(btn,{attributes:true,attributeFilter:['class']});
+  btn.click();await settle();
+  check('C2: неверная кнопка подсвечена один раз',btn.classList.contains('t3-wrong')&&adds===1,JSON.stringify({cls:btn.className,adds:adds}));
+  const writesBefore=taskBus.writeAttempts.length;
+  for(let i=0;i<3;i++)taskBus.broadcast();
+  await wait(20);
+  check('C2: room-события не подсвечивают старую ошибку повторно',adds===1&&taskBus.writeAttempts.length===writesBefore,JSON.stringify({cls:btn.className,adds:adds,writes:taskBus.writeAttempts.length-writesBefore}));
+  await wait(800);
+  mo.disconnect();
+  check('C2: подсветка исчезает после короткой анимации',!btn.classList.contains('t3-wrong')&&adds===1,JSON.stringify({cls:btn.className,adds:adds}));
+  taskBus.broadcast();await settle();
+  check('C2: старая неверная отметка не мигает повторно',!btn.classList.contains('t3-wrong')&&adds===1&&taskBus.writeAttempts.length===writesBefore,JSON.stringify({cls:btn.className,adds:adds,writes:taskBus.writeAttempts.length-writesBefore}));
+}
+
+async function secretSubErrorRecovery(){
+  const deck=ids.slice();
+  await resetRoom({stage:'play',startsAt:Date.now(),round:0,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck,secrets:{p1:{round:0,emotionId:deck[0]}}});
+  check('C1: секрет виден Актёру до ошибки подписки',!!w('p1').document.querySelector('.t3-secret')&&!w('p1').document.querySelector('.t3-secret').hidden,String(taskBus.privateCount('p1')));
+  w('p1').Task03.unmount();w('p1').NET.room=null;await settle();
+  taskBus.failNext('on:task03Secrets/test/p1',1);
+  w('p1').remount();taskBus.broadcast();await settle();
+  check('C6: ошибка подписки на секрет очищает её и скрывает эмоцию',taskBus.privateCount('p1')===0&&(!w('p1').document.querySelector('.t3-secret')||w('p1').document.querySelector('.t3-secret').hidden),JSON.stringify({private:taskBus.privateCount('p1'),secretVisible:!!w('p1').document.querySelector('.t3-secret')&&!w('p1').document.querySelector('.t3-secret').hidden}));
+  taskBus.broadcast();await settle();
+  check('C6: секрет-подписка повторяется после ошибки и показывает эмоцию',taskBus.privateCount('p1')===1&&!!w('p1').document.querySelector('.t3-secret')&&!w('p1').document.querySelector('.t3-secret').hidden,JSON.stringify({private:taskBus.privateCount('p1'),secretVisible:!!w('p1').document.querySelector('.t3-secret')&&!w('p1').document.querySelector('.t3-secret').hidden}));
+}
+
+async function fullTenRounds(){
+  await resetRoom({stage:'wait',startsAt:0});
+  w('cap').document.getElementById('t3-start').click();await settle();
+  check('C5: полный сценарий создаёт колоду и intro',!!taskBus.deck&&t().stage==='intro',JSON.stringify({deck:taskBus.deck,stage:t().stage}));
+  fireEnded('cap');await settle();
+  check('C1/C5: первый раунд открывается без публичной колоды',t().stage==='play'&&t().round===0&&taskBus.secrets.cap&&taskBus.secrets.cap.round===0&&!publicLeak(),JSON.stringify(t()));
+  setEnded('cap',false);
+  await correctGuess(0);await endReaction(0,'cap');
+  await correctGuess(1);await endReaction(1,'cap');
+  const deckBefore=JSON.stringify(taskBus.deck),rolesBefore=t().actorUid+'/'+t().judgeUid,roundBefore=t().round,actor=t().actorUid,judge=t().judgeUid;
+  w(actor).remount();w(judge).remount();await settle();
+  check('C6: возврат сохраняет эмоцию, раунд и роли',t().round===roundBefore&&rolesBefore===t().actorUid+'/'+t().judgeUid&&taskBus.secrets[actor].emotionId===taskBus.deck.order[roundBefore]&&!!w(actor).document.querySelector('.t3-secret'),JSON.stringify(t()));
+  taskBus.setCaptain('p1');await settle();
+  check('C5/C6: смена капитана не переставляет роли и колоду',JSON.stringify(taskBus.deck)===deckBefore&&rolesBefore===t().actorUid+'/'+t().judgeUid,JSON.stringify(t()));
+  await correctGuess(2);
+  fireEnded('cap');await settle();
+  check('C3: ended прежнего капитана игнорируется',t().stage==='reaction',t().stage);
+  setEnded('cap',false);
+  await endReaction(2,'p1');
+  for(let round=3;round<10;round++){await correctGuess(round);await endReaction(round,'p1');}
+  check('C4: десять раундов завершаются без task04',t().stage==='done'&&t().round===9&&taskBus.room.state.phase==='task03',JSON.stringify(t()));
+  check('C5: все десять эмоций использованы один раз',Object.keys(taskBus.secrets).length===3&&taskBus.writes.filter(x=>x.path.indexOf('task03Secrets/')===0||x.path==='atomic').length===10,String(taskBus.writes.filter(x=>x.path.indexOf('task03Secrets/')===0||x.path==='atomic').length));
+  const v2=w('p2').document.querySelector('.t3-video');
+  names.forEach(id=>{if(w(id).Task03)w(id).Task03.unmount();});
+  await settle();
+  check('C6: unmount очищает DOM, медиа и приватные подписки',!w('p2').document.querySelector('#t3')&&taskBus.privateCount()===0&&taskBus.roomCount('p2')===0&&(!v2||v2.__pauseCount>0),JSON.stringify({private:taskBus.privateCount(),room:taskBus.roomCount('p2'),pause:v2&&v2.__pauseCount}));
+}
+
+async function testRealNet(){
+  const src=await (await fetch('../net.js?cb='+Date.now())).text();
+  const rooms={};
+  function refStub(path){return{
+    on(type,cb){(rooms[path]=rooms[path]||[]).push(cb);},
+    off(){},
+    once(){return Promise.resolve({exists:()=>true,val:()=>({})});},
+    set(){return Promise.resolve();},
+    update(){return Promise.resolve();},
+    child(name){return refStub(path+'/'+name);},
+    onDisconnect(){return{set(){return Promise.resolve();}};}
+  };}
+  const dbStub={INTERNAL:{forceLongPolling(){}},ref:refStub};
+  const firebaseStub={initializeApp(){},auth:()=>({signInAnonymously:()=>Promise.resolve({user:{uid:'net-tester'}})}),database:()=>dbStub};
+  const win={};
+  const factory=new Function('window','firebase','console','setTimeout','clearTimeout','setInterval','clearInterval',src+';return window.NET;');
+  const NET=factory(win,firebaseStub,{log(){},warn(){}},()=>0,()=>0,()=>0,()=>0);
+  const code=await NET.createRoom('Net test',2);
+  const listeners=rooms['rooms/'+code]||[];
+  check('Реальный net.js загружен в изолированный stub',listeners.length>0,String(listeners.length));
+  let a=0,b=0;
+  const offA=NET.onRoom(()=>{a++;});
+  const offB=NET.onRoom(()=>{b++;});
+  listeners[0]({val:()=>({captain:NET.uid,players:{}})});
+  const hasOff=typeof offA==='function'&&typeof offB==='function';
+  check('Реальный NET.onRoom возвращает unsubscribe',hasOff,'typeof offA='+typeof offA);
+  if(hasOff){
+    const a0=a,b0=b;
+    offA();
+    listeners[0]({val:()=>({captain:NET.uid,players:{}})});
+    check('Реальный unsubscribe удаляет только свой callback',a===a0&&b===b0+1,JSON.stringify({a:a,b:b,a0:a0,b0:b0}));
+    offA();offB();
+    const a1=a,b1=b;
+    listeners[0]({val:()=>({captain:NET.uid,players:{}})});
+    check('Повторная отписка реального NET безопасна',a===a1&&b===b1,JSON.stringify({a:a,b:b,a1:a1,b1:b1}));
+  }
+  NET.leaveRoom();
+}
+
+async function task02Integration(){
+  names.forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
+  await makeTask02('cap');await makeTask02('p1');
+  taskBus.setCaptain('cap');
+  taskBus.room.state.phase='task02';
+  taskBus.room.tasks.task02={stage:'done',startsAt:0};
+  taskBus.broadcast();await settle();
+  w('p1').document.getElementById('t2-continue').click();await settle();
+  check('C8: continue игрока не меняет общую фазу',!taskBus.writes.some(x=>x.path==='state'&&x.uid==='p1'));
+  w('cap').document.getElementById('t2-continue').click();await settle();
+  check('C8: continue капитана вызывает task03',taskBus.room.state.phase==='task03'&&taskBus.writes.filter(x=>x.path==='state'&&x.obj.phase==='task03').length===1,JSON.stringify(taskBus.room.state));
+  const html=await(await fetch('../index.html')).text();
+  check('C8: index подключает и монтирует/размонтирует Task03',/task03\.css/.test(html)&&/task03\.js/.test(html)&&/task03-mount/.test(html)&&/Task03\.mount/.test(html)&&/Task03\.unmount/.test(html));
+}
+
+async function run(){
+  for(let i=0;i<60&&names.some(id=>!w(id).clientReady);i++)await wait(50);
+  const missing=names.map(id=>w(id).clientError).find(Boolean);
+  if(missing){check('Task03 доступен',false,missing);window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);return;}
+  check('Task03 доступен',true);
+  const scenarios=[
+    ['Deck shape and start',deckShapeAndStart],
+    ['Field rights',fieldRights],
+    ['Media click',mediaClick],
+    ['Intro transfer',introTransfer],
+    ['Reaction transfer',reactionTransfer],
+    ['Atomic rotation rules',atomicRotationRules],
+    ['Wrong highlight once',wrongHighlightOnce],
+    ['Secret subscription error recovery',secretSubErrorRecovery],
+    ['Full ten rounds',fullTenRounds],
+    ['Real net',testRealNet],
+    ['Task02 integration',task02Integration]
+  ];
+  const only=(new URLSearchParams(location.search).get('only')||'').toLowerCase();
+  const selected=only?scenarios.filter(s=>only.split(',').some(k=>k&&s[0].toLowerCase().indexOf(k)>=0)):scenarios;
+  for(let i=0;i<selected.length;i++)await scenario(selected[i][0],selected[i][1]);
+  window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);
+}
+run();
+</script>

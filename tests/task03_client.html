@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><base href="../"><title>Mock-клиент задания 3</title>
+<div id="mount"></div>
+<script>
+const params=new URLSearchParams(location.search);
+const uid=params.get('role');
+const moduleName=params.get('module')==='task02'?'Task02':'Task03';
+const roomListeners=[];
+let mounted=false;
+const nativePlay=HTMLMediaElement.prototype.play,nativePause=HTMLMediaElement.prototype.pause;
+HTMLMediaElement.prototype.play=function(){this.__playCount=(this.__playCount||0)+1;if((window.playFailures||0)>0){window.playFailures--;return Promise.reject(new Error('play() failed: user gesture required'));}if(this.__failPlays>0){this.__failPlays--;return Promise.reject(new Error('play() failed: user gesture required'));}return Promise.resolve();};
+HTMLMediaElement.prototype.pause=function(){this.__pauseCount=(this.__pauseCount||0)+1;};
+window.NET={uid,room:null,isCaptain(){const r=this.room;return !!(r&&(r.captain===this.uid||(r.captainTransfer&&r.captainTransfer.to===this.uid)));},inRoom(){return true;},onRoom(cb){roomListeners.push(cb);parent.taskBus.registerRoom(uid);if(this.room)cb(this.room);return()=>{const i=roomListeners.indexOf(cb);if(i>=0)roomListeners.splice(i,1);parent.taskBus.unregisterRoom(uid);};},setPhase(phase,startsAt){return parent.taskBus.setPhase(uid,phase,startsAt);}};
+window.firebase={database(){return{ref(path){return parent.taskBus.ref(uid,path);}};}};
+window.receiveRoom=function(room){NET.room=room;roomListeners.slice().forEach(cb=>cb(room));};
+window.clientError='';window.clientReady=false;
+window.remount=function(){const m=window[moduleName];if(!m)throw new Error(moduleName+' is missing');if(mounted)m.unmount();m.mount(document.getElementById('mount'));mounted=true;};
+window.addEventListener('load',()=>{try{if(!window[moduleName])throw new Error(moduleName+' is missing');remount();}catch(e){clientError=e.message;}clientReady=true;});
+const src=(moduleName==='Task02'?'task02.js':'task03.js')+'?v=7';
+document.write('<script src="'+src+'"><\/script>');
+</script>
