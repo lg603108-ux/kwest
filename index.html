@@ -6,6 +6,7 @@
 <title>АНОМАЛИЯ</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
+<link rel="stylesheet" href="task03.css?v=0311b">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 .hidden{display:none!important}
@@ -204,6 +205,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 </div>
 
 <div id="task02-mount"></div>
+<div id="task03-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -219,13 +221,14 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="net.js"></script>
-<script src="task02.js"></script>
+<script src="net.js?v=0311b"></script>
+<script src="task02.js?v=0311b"></script>
+<script src="task03.js?v=0311b"></script>
 <script src="app.js"></script>
 <script>
-// МОСТ: кнопка «Продолжить квест» у капитана и монтаж задания 2.
+// МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false;
+var mounted=false,mounted03=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -244,6 +247,18 @@ mounted=false;
 var el=document.getElementById('task02-mount');if(el)el.classList.remove('active');
 if(window.Task02){try{Task02.unmount();}catch(e){}}
 }
+if(r.state.phase==='task03'&&!mounted03){
+var el3=document.getElementById('task03-mount');
+if(!el3){toastMsg('Контейнер задания 3 не найден');return;}
+if(!window.Task03){toastMsg('Модуль задания 3 не загружен (task03.js)');return;}
+mounted03=true;el3.classList.add('active');document.body.dataset.screen='task03';
+try{Task03.mount(el3);toastMsg('Задание 3 запущено');}catch(e){mounted03=false;el3.classList.remove('active');toastMsg('Ошибка монтажа задания 3: '+(e&&e.message||e));}
+}
+if(r.state.phase!=='task03'&&mounted03){
+mounted03=false;
+var el3=document.getElementById('task03-mount');if(el3)el3.classList.remove('active');
+if(window.Task03){try{Task03.unmount();}catch(e){}}
+}
 }
 function addContinueButton(){
 if(!ready())return;
@@ -260,7 +275,25 @@ setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){b.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 };
 }
-setInterval(function(){addContinueButton();tryMount();},500);
+// Переход 2 → 3 по аналогии с 1 → 2: мост добавляет обработчик капитанской кнопке
+// «Продолжить квест» задания 2 (task02.js не изменяется) и переводит фазу на task03.
+function task02Done(){try{var r=NET.room;return !!(r&&r.state&&r.state.phase==='task02'&&r.tasks&&r.tasks.task02&&r.tasks.task02.stage==='done');}catch(e){return false;}}
+function wire3(){
+if(!ready()||!cap()||!task02Done())return;
+var btn=document.getElementById('t2-continue');
+if(!btn||btn.getAttribute('data-bridge3'))return;
+btn.setAttribute('data-bridge3','1');
+btn.addEventListener('click',function(){
+if(!cap()||btn.disabled)return;
+btn.disabled=true;
+var note=document.getElementById('t2-donenote');if(note)note.hidden=true;
+toastMsg('Переводим команду в задание 3…');
+NET.setPhase('task03',Date.now()+1500).then(function(){
+setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
+}).catch(function(e){btn.disabled=false;btn.hidden=false;if(note)note.hidden=true;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
+});
+}
+setInterval(function(){addContinueButton();wire3();tryMount();},500);
 })();
 </script>
 <script>
