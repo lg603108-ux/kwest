@@ -1,9 +1,9 @@
 <!doctype html><meta charset="utf-8"><title>Изолированная проверка задания 3</title>
 <style>iframe{width:320px;height:180px}</style>
-<iframe id="cap" name="cap" src="task03_client.html?v=7&role=cap"></iframe>
-<iframe id="p1" name="p1" src="task03_client.html?v=7&role=p1"></iframe>
-<iframe id="p2" name="p2" src="task03_client.html?v=7&role=p2"></iframe>
-<script src="task03_mock.js?v=7"></script>
+<iframe id="cap" name="cap" src="task03_client.html?v=8&role=cap"></iframe>
+<iframe id="p1" name="p1" src="task03_client.html?v=8&role=p1"></iframe>
+<iframe id="p2" name="p2" src="task03_client.html?v=8&role=p2"></iframe>
+<script src="task03_mock.js?v=8"></script>
 <script>
 window.testResults=[];window.testDone=false;
 const names=['cap','p1','p2'];
@@ -18,6 +18,8 @@ function t(){return taskBus.room.tasks.task03;}
 function video(id){const v=w(id).document.querySelector('.t3-video');if(!v)throw new Error('Нет видео у '+id);return v;}
 function check(name,ok,detail){testResults.push({name,ok:!!ok,detail:detail===undefined?'':String(detail)});}
 function statusText(id){const el=w(id).document.querySelector('#t3-status');return el?el.textContent:'';}
+function mediaBtn(id){const b=w(id).document.querySelector('#t3-media');if(!b)throw new Error('Нет медиа-кнопки у '+id);return b;}
+function mediaBtnText(id){const b=w(id).document.querySelector('#t3-media');return b&&!b.hidden?b.textContent:'';}
 function publicLeak(){const s=JSON.stringify(t());return /order|deck|secret/.test(s)||(/emotionId/.test(s)&&!t().guess);}
 function setEnded(id,val){const v=video(id);if(val)Object.defineProperty(v,'ended',{configurable:true,writable:true,value:true});else delete v.ended;}
 function fireEnded(id){setEnded(id,true);const v=video(id);if(typeof v.onended==='function')v.onended();}
@@ -54,7 +56,7 @@ async function endReaction(round,captain){
   if(round<9)check('C4: ротация после реакции '+(round+1),t().stage==='play'&&t().round===round+1&&t().actorUid===names[(round+1)%3]&&t().judgeUid===names[(round+2)%3],JSON.stringify(t()));
 }
 async function scenario(name,fn){try{await fn();}catch(e){check(name+' / сценарий выполнен',false,e.stack||String(e));}}
-async function makeTask02(id){const f=document.createElement('iframe');f.id=id;f.name=id;f.src='task03_client.html?v=7&role='+id+'&module=task02';document.body.appendChild(f);for(let i=0;i<50&&!w(id).clientReady;i++)await wait(50);if(!w(id).clientReady||w(id).clientError)throw new Error(w(id).clientError||'Task02 client timeout');}
+async function makeTask02(id){const f=document.createElement('iframe');f.id=id;f.name=id;f.src='task03_client.html?v=8&role='+id+'&module=task02';document.body.appendChild(f);for(let i=0;i<50&&!w(id).clientReady;i++)await wait(50);if(!w(id).clientReady||w(id).clientError)throw new Error(w(id).clientError||'Task02 client timeout');}
 
 async function deckShapeAndStart(){
   await resetRoom({stage:'wait',startsAt:0});
@@ -152,12 +154,23 @@ async function fieldRights(){
 
 async function mediaClick(){
   const deck=ids.slice();
-  await resetRoom({stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:'fear',guess:{id:'g0',emotionId:'fear',by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}},{deck:deck,playFailures:{cap:1}});
-  check('C7: отказ автовоспроизведения показывает подсказку',statusText('cap').indexOf('Нажмите на видео')>=0,statusText('cap'));
+  const reactionState={stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:'fear',guess:{id:'g0',emotionId:'fear',by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}};
+  await resetRoom(reactionState,{deck:deck,playFailures:{cap:1}});
   const v=video('cap');
-  const before=v.__playCount||0;
-  v.click();await settle();
-  check('C7: подсказка «нажмите на видео» имеет реальный click/tap handler',(v.__playCount||0)>before&&statusText('cap')==='',JSON.stringify({before:before,plays:v.__playCount,status:statusText('cap')}));
+  check('C7: отказ автовоспроизведения продолжает показ без звука',v.muted===true&&mediaBtnText('cap').indexOf('Включить звук')>=0&&statusText('cap')==='',JSON.stringify({muted:v.muted,btn:mediaBtnText('cap'),status:statusText('cap')}));
+  mediaBtn('cap').click();await settle();
+  check('C7: кнопка «Включить звук» снимает заглушение и скрывается',v.muted===false&&mediaBtn('cap').hidden===true,JSON.stringify({muted:v.muted,hidden:mediaBtn('cap').hidden}));
+  await resetRoom(reactionState,{deck:deck,playFailures:{cap:2}});
+  const v2=video('cap');
+  check('C7: повторный отказ показывает кнопку «Продолжить показ»',mediaBtnText('cap').indexOf('Продолжить показ')>=0,mediaBtnText('cap'));
+  const before=v2.__playCount||0;
+  mediaBtn('cap').click();await settle();
+  check('C7: кнопка «Продолжить показ» реально зовёт play',(v2.__playCount||0)>before&&v2.muted===false,JSON.stringify({before:before,plays:v2.__playCount,muted:v2.muted}));
+  await resetRoom(reactionState,{deck:deck,playFailures:{cap:1}});
+  const v3=video('cap');
+  const before3=v3.__playCount||0;
+  v3.click();await settle();
+  check('C7: тап по видео остаётся рабочим fallback',(v3.__playCount||0)>before3,JSON.stringify({before:before3,plays:v3.__playCount}));
 }
 
 async function introTransfer(){

@@ -35,9 +35,10 @@ root=document.createElement('div');root.id='t3';root.innerHTML=
 '<section class="t3-screen t3-wait"><p class="t3-eyebrow">ЗАДАНИЕ 3</p><h1>Чувства Лума</h1><p>Верните Луму десять чувств через пантомиму. Актёр показывает чувство без слов, Судья выбирает его на экране.</p><button id="t3-start" class="t3-primary" type="button">▶ Запустить инструкцию для всех</button><p id="t3-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<section class="t3-screen t3-play" hidden><div id="t3-actor"></div><div id="t3-judge"></div><div id="t3-viewer"></div></section>'+
 '<section class="t3-screen t3-done" hidden><p class="t3-eyebrow">ЗАДАНИЕ 3 ЗАВЕРШЕНО</p><h1>Лум снова жив</h1><p>Все десять чувств возвращены.</p></section>'+
-'<div id="t3-status" role="status" hidden></div>';
+'<div id="t3-status" role="status" hidden></div>'+
+'<button id="t3-media" class="t3-primary t3-mediabtn" type="button" hidden></button>';
 container.appendChild(root);video=root.querySelector('.t3-video');
-els={wait:root.querySelector('.t3-wait'),play:root.querySelector('.t3-play'),done:root.querySelector('.t3-done'),start:root.querySelector('#t3-start'),waitnote:root.querySelector('#t3-waitnote'),actor:root.querySelector('#t3-actor'),judge:root.querySelector('#t3-judge'),viewer:root.querySelector('#t3-viewer'),status:root.querySelector('#t3-status')};
+els={wait:root.querySelector('.t3-wait'),play:root.querySelector('.t3-play'),done:root.querySelector('.t3-done'),start:root.querySelector('#t3-start'),waitnote:root.querySelector('#t3-waitnote'),actor:root.querySelector('#t3-actor'),judge:root.querySelector('#t3-judge'),viewer:root.querySelector('#t3-viewer'),status:root.querySelector('#t3-status'),media:root.querySelector('#t3-media')};
 els.start.addEventListener('click',startIntro);
 roomOff=NET.onRoom(onRoom);
 }
@@ -49,6 +50,8 @@ if(root&&root.parentNode)root.parentNode.removeChild(root);
 root=null;video=null;els={};roomState=null;task=null;deckOrder=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
+function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
+function showMediaBtn(text,fn){if(!els.media)return;els.media.hidden=false;els.media.textContent=text;els.media.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();hideMediaBtn();if(!active||!video)return;if(video.paused)video.play().catch(function(){});fn();};}
 function dropDeck(){if(deckSub){deckSub.ref.off('value',deckSub.cb);deckSub=null;}deckOrder=null;}
 function dropSecret(){if(secretSub){secretSub.ref.off('value',secretSub.cb);secretSub=null;}secret=null;}
 function syncPrivate(){
@@ -85,7 +88,7 @@ els.start.hidden=!cap();els.waitnote.hidden=cap();
 if(stage==='play')renderRoles();
 const key=stage+':'+(task.round||0)+':'+(task.reactionId||'')+':'+(task.startsAt||0);
 if(key!==stageKey){stageKey=key;mediaActionKey='';clearTimeout(startTimer);if(stage==='intro')scheduleMedia('assets/v03_intro.mp4',task.startsAt||0,key);else if(stage==='reaction'&&emotion(task.reactionId))scheduleMedia('assets/lum_'+task.reactionId+'.mp4',task.startsAt||0,key);else stopMedia();}
-if(stage==='intro'||stage==='reaction'){video.hidden=false;video.muted=stage==='intro'?!cap():false;}
+if(stage==='intro'||stage==='reaction'){video.hidden=false;}
 renderWrong();
 }
 function renderRoles(){
@@ -141,15 +144,29 @@ els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(x){x.classLi
 wrongKey=key;b.classList.add('t3-wrong');
 wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');wrongTimer=null;},700);
 }
-function stopMedia(){if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();}
+function stopMedia(){if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();hideMediaBtn();}
 function scheduleMedia(src,at,key){
 stopMedia();mediaKey=key;video.hidden=false;video.src=src;video.muted=task.stage==='intro'?!cap():false;
 video.onloadedmetadata=function(){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}};
 video.onerror=function(){status('Не удалось загрузить видео. Проверьте соединение.');};
 video.onended=function(){if(!active||mediaKey!==key)return;finishMedia();};
-const tryPlay=function(){if(!active||mediaKey!==key||!video)return;status('');video.play().catch(function(){status('Нажмите на видео, чтобы начать воспроизведение.');});};
-video.onclick=function(){tryPlay();};
-const begin=function(){tryPlay();};
+const beginPlay=function(){
+  if(!active||mediaKey!==key||!video)return;
+  const p=video.play();
+  if(!p||!p.then){status('');hideMediaBtn();return;}
+  p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
+    if(!active||mediaKey!==key)return;
+    video.muted=true;
+    const p2=video.play();
+    if(!p2||!p2.then){status('');showMediaBtn('🔊 Включить звук',function(){video.muted=false;});return;}
+    p2.then(function(){if(!active||mediaKey!==key)return;status('');showMediaBtn('🔊 Включить звук',function(){video.muted=false;});},function(){
+      video.muted=false;status('');
+      showMediaBtn('▶ Продолжить показ',function(){beginPlay();});
+    });
+  });
+};
+video.onclick=function(){beginPlay();};
+const begin=function(){beginPlay();};
 const delay=at-Date.now();if(delay>100){status('Видео начнётся одновременно у всех…');startTimer=setTimeout(begin,delay);}else begin();
 }
 function finishMedia(){

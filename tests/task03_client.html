@@ -15,6 +15,6 @@ window.receiveRoom=function(room){NET.room=room;roomListeners.slice().forEach(cb
 window.clientError='';window.clientReady=false;
 window.remount=function(){const m=window[moduleName];if(!m)throw new Error(moduleName+' is missing');if(mounted)m.unmount();m.mount(document.getElementById('mount'));mounted=true;};
 window.addEventListener('load',()=>{try{if(!window[moduleName])throw new Error(moduleName+' is missing');remount();}catch(e){clientError=e.message;}clientReady=true;});
-const src=(moduleName==='Task02'?'task02.js':'task03.js')+'?v=7';
+const src=(moduleName==='Task02'?'task02.js':'task03.js')+'?v=8';
 document.write('<script src="'+src+'"><\/script>');
 </script>
