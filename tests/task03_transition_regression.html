@@ -1,0 +1,60 @@
+<!doctype html><meta charset="utf-8"><title>Сквозная проверка перехода 2 → 3</title>
+<style>iframe{width:480px;height:270px;border:1px solid #888}</style>
+<script src="task03_mock.js"></script>
+<script>
+window.testResults=[];window.testDone=false;
+const names=['cap','p1'];
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function w(id){return document.getElementById(id).contentWindow;}
+function check(name,ok,detail){testResults.push({name,ok:!!ok,detail:detail===undefined?'':String(detail)});}
+function state(){return taskBus.room.state;}
+function task03(){return taskBus.room.tasks.task03;}
+function stub(id){
+  return `<script>
+window.clientErrors=[];window.clientReady=false;
+window.addEventListener('error',e=>clientErrors.push(e.message));
+window.addEventListener('unhandledrejection',e=>clientErrors.push(String(e.reason&&e.reason.message||e.reason)));
+const roomListeners=[];const uid=${JSON.stringify(id)};
+window.NET={uid,room:null,isCaptain(){return !!(this.room&&this.room.captain===this.uid);},inRoom(){return !!this.room;},captainOnline(){return true;},onProgress(){},onRoom(cb){roomListeners.push(cb);parent.taskBus.registerRoom(uid);if(this.room)cb(this.room);return()=>{const i=roomListeners.indexOf(cb);if(i>=0)roomListeners.splice(i,1);parent.taskBus.unregisterRoom(uid);};},setPhase(phase,startsAt){return parent.taskBus.setPhase(uid,phase,startsAt);}};
+window.firebase={database(){return{ref(path){return parent.taskBus.ref(uid,path);}};}};
+window.receiveRoom=function(room){NET.room=room;roomListeners.slice().forEach(cb=>cb(room));};
+<\/script>`;
+}
+async function makeClient(id,html){
+  const f=document.createElement('iframe');f.id=id;f.name=id;
+  let src=html.replace(/<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[^"]+"><\/script>/g,'');
+  src=src.replace('<script src="net.js"><\/script>',stub(id));
+  src='<base href="../">'+src;
+  src=src.replace('</body>','<script>window.clientReady=true;<\/script></body>');
+  f.srcdoc=src;document.body.appendChild(f);
+  for(let i=0;i<100&&!w(id).clientReady;i++)await wait(50);
+  if(!w(id).clientReady)throw new Error('Тайм-аут загрузки '+id);
+}
+async function run(){
+  try{
+    taskBus.init({code:'test',captain:'cap',state:{phase:'task02',startsAt:0},players:{cap:{name:'Аня',joinedAt:100},p1:{name:'Боря',joinedAt:200}},tasks:{task02:{stage:'done',startsAt:0},task03:{stage:'wait',startsAt:0,round:0}}});
+    const html=await(await fetch('../index.html?transition='+Date.now())).text();
+    for(const id of names)await makeClient(id,html);
+    taskBus.broadcast();await wait(700);
+    names.forEach(id=>check('Исходно смонтировано задание 2: '+id,!!w(id).document.querySelector('#t2')&&w(id).document.getElementById('task02-mount').classList.contains('active'),JSON.stringify({screen:w(id).document.body.dataset.screen,room:w(id).NET&&w(id).NET.room,task02:!!w(id).Task02,errors:w(id).clientErrors})));
+    w('p1').document.getElementById('t2-continue').click();await wait(650);
+    check('Кнопка игрока не меняет общую фазу',state().phase==='task02',state().phase);
+    w('cap').document.getElementById('t2-continue').click();await wait(800);
+    check('Кнопка капитана записывает task03',state().phase==='task03',JSON.stringify(state()));
+    names.forEach(id=>{
+      const win=w(id),doc=win.document,mount=doc.getElementById('task03-mount'),start=doc.getElementById('t3-start');
+      check('Задание 2 выгружено: '+id,!doc.querySelector('#t2')&&!doc.getElementById('task02-mount').classList.contains('active'),doc.body.dataset.screen);
+      check('Задание 3 смонтировано и видимо: '+id,!!doc.querySelector('#t3')&&mount.classList.contains('active')&&win.getComputedStyle(mount).display!=='none',mount.className+' '+win.getComputedStyle(mount).display);
+      check('Кнопка инструкции по роли: '+id,!!start&&start.hidden===(id!=='cap'),start?'hidden='+start.hidden:'нет кнопки');
+    });
+    w('p1').document.getElementById('t3-start').click();await wait(150);
+    check('Игрок не запускает intro',task03().stage==='wait',task03().stage);
+    w('cap').document.getElementById('t3-start').click();await wait(250);
+    check('Капитан запускает intro',task03().stage==='intro',JSON.stringify(task03()));
+    names.forEach(id=>{const v=w(id).document.querySelector('.t3-video'),media=w(id).document.getElementById('t3-media');const soundOk=id==='cap'?!!v:v&&v.muted===true;check('Видео инструкции назначено: '+id,!!v&&v.src.endsWith('/assets/v03_intro.mp4')&&soundOk,v?v.src+' muted='+v.muted+' media='+(media&&!media.hidden?media.textContent:'скрыта'):'нет видео');});
+    names.forEach(id=>check('Нет ошибок выполнения: '+id,w(id).clientErrors.length===0,w(id).clientErrors.join(' | ')));
+  }catch(e){check('Сценарий выполнен',false,e.stack||String(e));}
+  window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);
+}
+run();
+</script>
