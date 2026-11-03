@@ -338,15 +338,39 @@ document.getElementById('qr-widget-code').textContent=code;
 renderQr(document.getElementById('qr-widget-img'),code,44);
 }
 }
-// --- звук говорящих видео: только у капитана ---
-var muteDone=false;
+// --- звук инструкций только у капитана; во время игры звук возвращается всем ---
+var lastSoundMode=null;
 function handleMute(){
-if(muteDone||!inRoom())return;
-muteDone=true;
-if(!cap()){
+if(!inRoom())return;
+var c=cap();
+var screen=document.body.dataset.screen||'';
+var r=NET.room;
+var st=(r&&r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
+var instruction=(screen==='lobby'||screen==='cinema'||screen==='brief'||(r&&r.state&&r.state.phase==='task02'&&(st==='wait'||st==='intro')));
+var shouldMute=instruction&&!c;
+var mode=(shouldMute?'muted':'audible')+'_'+(c?'cap':'player');
+if(mode===lastSoundMode)return;
+lastSoundMode=mode;
 var s=document.getElementById('sound');
-if(s&&s.textContent!=='×'){s.click();}
+if(!s)return;
+var mutedNow=(s.textContent==='×');
+if(shouldMute&&!mutedNow){s.click();}
+else if(!shouldMute&&mutedNow){s.click();if(c&&instruction)toastMsg('Вы теперь капитан — звук инструкций у вас.');}
 }
+// --- подписи «ожидание капитана», когда роль реально перешла ---
+function handleWaitingLabels(){
+if(!inRoom())return;
+var waitingCaptain=cap()===false&&document.body.dataset.screen!=='lobby';
+var t=document.getElementById('movie-title');
+if(t&&t.textContent==='Ожидание капитана…'&&cap()){t.textContent='Вы — новый капитан. Нажмите «Продолжить», когда будете готовы.';var nb=document.getElementById('movie-next');if(nb)nb.classList.remove('hidden');}
+var ln=document.getElementById('loading-note');
+if(ln&&ln.textContent.indexOf('капитан')>=0&&cap()){ln.textContent='Вы — новый капитан.';var bs=document.getElementById('battle-start');if(bs&&document.body.dataset.screen==='brief'){bs.disabled=false;}}
+var ag=document.getElementById('again');
+if(ag&&ag.disabled&&cap()&&document.body.dataset.screen==='result'){ag.disabled=false;ag.textContent='Повторить оборону для команды →';}
+var pn=document.getElementById('t2-playernote');
+if(pn&&!pn.hidden&&cap()){pn.hidden=true;var cb=document.getElementById('t2-continue');if(cb)cb.hidden=false;var dn=document.getElementById('t2-donenote');if(dn)dn.hidden=true;}
+var st=document.getElementById('t2-start');
+if(st&&!st.hidden){var sb=document.getElementById('t2-start-btn');var wn=document.getElementById('t2-waitnote');if(sb&&wn){sb.hidden=!cap();wn.hidden=cap();}}
 }
 // --- бой: аудио доигрывает → старт ---
 var brief={key:'',t0:0,fired:false};
@@ -372,10 +396,12 @@ function handleTask2Voice(){
 if(!inRoom())return;
 var r=NET.room;if(!r||!r.tasks||!r.tasks.task02)return;
 var t=r.tasks.task02;var st=t.stage||'wait';
-if(st==='sequence'){var k1=r.code+'_seq_'+(t.startsAt||0);if(seqKey!==k1){seqKey=k1;playVoice('volt_task2.mp3');}}
-if(st==='swap'){var k2=r.code+'_swap_'+(t.startsAt||0);if(swapKey!==k2){swapKey=k2;playVoice('volt_swap.mp3');}}
+if(st==='sequence'&&cap()){var k1=r.code+'_seq_'+(t.startsAt||0);if(seqKey!==k1){seqKey=k1;playVoice('volt_task2.mp3');}}
+if(st==='swap'&&cap()){var k2=r.code+'_swap_'+(t.startsAt||0);if(swapKey!==k2){swapKey=k2;playVoice('volt_swap.mp3');}}
 var t2root=document.getElementById('t2');
-if(t2root&&!document.getElementById('t2-instr-btn')){
+var oldBtn=document.getElementById('t2-instr-btn');
+if(oldBtn&&!cap()){oldBtn.remove();oldBtn=null;}
+if(t2root&&cap()&&!oldBtn){
 var b=document.createElement('button');b.id='t2-instr-btn';b.type='button';b.textContent='🔊 Инструкция';
 b.style.cssText='position:absolute;top:10px;right:10px;z-index:14;min-height:40px;padding:8px 12px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer';
 b.onclick=function(){
@@ -397,6 +423,8 @@ if(v.paused){
 if(at&&Date.now()>at+1500){v.play().catch(function(){});}
 wd.last=-1;wd.stuck=0;return;
 }
+// Пока браузер активно загружает ролик, не обрываем загрузку: повторный load() мог держать игроков на пустом экране.
+if(v.readyState===0&&v.networkState===2){wd.last=v.currentTime;wd.stuck=0;return;}
 if(Math.abs(v.currentTime-wd.last)<0.01&&v.readyState<3){wd.stuck++;}else{wd.stuck=0;}
 wd.last=v.currentTime;
 if(wd.stuck>=4){wd.stuck=0;try{v.load();setTimeout(function(){v.play().catch(function(){});},300);}catch(e){}}
@@ -414,7 +442,7 @@ function handleLobbyVoice(){
 if(!cap()||!inRoom()||document.body.dataset.screen!=='lobby')return;
 var k=roomCode();if(!k||lobbyKey===k)return;lobbyKey=k;playVoice('volt_lobby.mp3');
 }
-setInterval(function(){refreshWidget();prefillRoom();handleMute();handleBrief();handleLobbyVoice();handleTask2Voice();watchdog();},700);
+setInterval(function(){refreshWidget();prefillRoom();handleMute();handleWaitingLabels();handleBrief();handleLobbyVoice();handleTask2Voice();watchdog();},700);
 })();
 </script>
 </body>

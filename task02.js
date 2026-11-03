@@ -52,7 +52,7 @@ LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
 els.remove.addEventListener('click',onRemove);
-els.repeat.addEventListener('click',function(){if(cap())put({stage:'sequence',startsAt:Date.now()+1500});});
+els.repeat.addEventListener('click',function(){if(cap()){clearTimeout(digTimer);put({stage:'sequence',startsAt:Date.now()+1500,digits:''});}});
 els.check.addEventListener('click',onCheck);
 els.sound.addEventListener('click',toggleSound);
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
@@ -66,7 +66,7 @@ function makeRow(it){const r=document.createElement('div');r.className='t2-row';
 function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';}
 function status(t){if(!els.status)return;els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){if(!els.hint)return;els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
-function toggleSound(){S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
+function toggleSound(){if((curStage==='intro'||curStage==='wait')&&!cap()){S.soundOn=false;video.muted=true;els.sound.textContent='×';return;}S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
 function render(room){
 if(!root)return;
 const t=room&&room.tasks&&room.tasks.task02;
@@ -75,7 +75,7 @@ const at=(t&&t.startsAt)||0;
 const digits=(t&&t.digits)?String(t.digits).split(',').filter(function(x){return x!=='';}).map(Number):[];
 const key=stage+':'+at;
 if(key!==lastKey){lastKey=key;S.digits=digits.slice();S.hl=null;S.attempts=0;applyStage(stage,at);}
-else if(!cap()&&(stage==='swap'||stage==='sequence')){S.digits=digits.slice();renderCells();}
+else{S.digits=digits.slice();renderCells();}
 els.startBtn.hidden=!(cap()&&stage==='wait');
 els.waitnote.hidden=!(!cap()&&stage==='wait');
 els.continueBtn.hidden=!(cap()&&stage==='done');
@@ -83,6 +83,8 @@ els.playernote.hidden=!(!cap()&&stage==='done');
 }
 function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
+S.soundOn=(stage==='intro'||stage==='wait')?cap():true;
+video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
 if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
@@ -145,9 +147,9 @@ if(!cap()||S.accepted||curStage!=='swap'||S.digits.length!==6)return;
 const ok=S.digits.every(function(d,i){return d===CODE[i];});
 if(ok){S.accepted=true;hint('Код принят!','ok');writeDigits();put({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
 else{
-S.attempts++;S.hl=null;
+S.attempts++;S.hl=null;S.digits=[];clearTimeout(digTimer);put({digits:''});
 els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
-hint('Код не принят. Проверьте выбранные фигуры и порядок цифр.','err');
+hint('Код не принят. Цифры очищены: повторите видео и соберите код заново.','err');
 const a=S.attempts;
 setTimeout(function(){if(S.accepted)return;
 if(a===1)hint('Подсказка 1: берите только полностью собранные фигуры из таблицы.');

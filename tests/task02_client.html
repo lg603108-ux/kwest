@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><base href="../"><title>Клиент задания 2</title>
+<script>
+const params=new URLSearchParams(location.search);
+const real=params.get('real')==='1'||(parent!==window&&new URLSearchParams(parent.location.search).get('real')==='1');
+const nativePlay=HTMLMediaElement.prototype.play,nativePause=HTMLMediaElement.prototype.pause;
+HTMLMediaElement.prototype.play=function(){this.__playCount=(this.__playCount||0)+1;return real?nativePlay.call(this):Promise.resolve();};
+HTMLMediaElement.prototype.pause=function(){this.__pauseCount=(this.__pauseCount||0)+1;if(real)return nativePause.call(this);};
+const uid=params.get('role')==='cap'?'cap':params.get('role');
+const listeners=[];
+window.NET={uid,room:{code:'test',captain:'cap',state:{phase:'task02'},tasks:{task02:{stage:'wait',startsAt:0}}},isCaptain(){return this.room&&this.room.captain===this.uid;},onRoom(cb){listeners.push(cb);if(this.room)cb(this.room);}};
+window.firebase={database(){return{ref(){return{update(obj){return parent.taskBus.update(obj);}};}};}};
+window.receiveRoom=function(room){NET.room=room;listeners.forEach(cb=>cb(room));};
+window.clientReady=false;
+window.addEventListener('load',()=>{Task02.mount(document.body);clientReady=true;});
+</script>
+<script src="../task02.js"></script>

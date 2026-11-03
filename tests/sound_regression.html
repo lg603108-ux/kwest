@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><title>Проверка звука</title>
+<div id="toast"></div>
+<div id="qr-popup"><span id="qr-popup-code"></span><div id="qr-popup-img"></div></div>
+<div id="qr-widget"><span id="qr-widget-code"></span><div id="qr-widget-img"></div></div>
+<button id="sound">♪</button>
+<div id="movie-title"></div><div id="movie-next" class="hidden"></div>
+<div id="loading-note"></div><button id="battle-start"></button><button id="again"></button>
+<div id="t2"></div>
+<script>
+window.voiceLog=[];
+window.Audio=class{constructor(src){this.src=src;this.volume=1;}play(){if(this.src.indexOf('volt_')>=0)voiceLog.push(this.src.split('/').pop());return Promise.resolve();}};
+window.NET={uid:'player',room:{code:'test',captain:'cap',state:{phase:'battle',startsAt:1},tasks:{task02:{stage:'wait',startsAt:0}}},inRoom(){return true;},isCaptain(){return this.room.captain===this.uid;}};
+document.getElementById('sound').onclick=function(){this.textContent=this.textContent==='×'?'♪':'×';};
+window.testResults=[];window.testDone=false;
+function check(name,ok,detail){testResults.push({name,ok,detail});}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+async function run(){
+try{
+const html=await (await fetch('../index.html')).text();
+const match=html.match(/<script>\s*(\/\/ ПАТЧ 2\.3[\s\S]*?)<\/script>/);
+if(!match)throw new Error('Не найден проверяемый блок звука');
+eval(match[1]);
+await wait(800);
+check('Оборона: звук игрока включён',document.getElementById('sound').textContent==='♪',document.getElementById('sound').textContent);
+document.body.dataset.screen='cinema';await wait(800);
+check('Инструкция: звук игрока выключен',document.getElementById('sound').textContent==='×',document.getElementById('sound').textContent);
+NET.uid='cap';await wait(800);
+check('Инструкция: звук капитана включён',document.getElementById('sound').textContent==='♪',document.getElementById('sound').textContent);
+voiceLog=[];NET.room.tasks.task02={stage:'sequence',startsAt:100};await wait(800);
+check('Голос задания 2: капитан слышит один раз',voiceLog.filter(x=>x==='volt_task2.mp3').length===1,JSON.stringify(voiceLog));
+check('Кнопка голосовой инструкции есть у капитана',!!document.getElementById('t2-instr-btn'));
+NET.uid='player';voiceLog=[];NET.room.tasks.task02={stage:'sequence',startsAt:200};await wait(800);
+check('Голос задания 2: у игрока нет эха',voiceLog.length===0,JSON.stringify(voiceLog));
+check('Кнопки голосовой инструкции нет у игрока',!document.getElementById('t2-instr-btn'));
+document.body.dataset.screen='battle';await wait(800);
+check('После инструкции звук игрока снова включён',document.getElementById('sound').textContent==='♪',document.getElementById('sound').textContent);
+var v=document.createElement('video');var loads=0;v.className='t2-video';
+Object.defineProperty(v,'paused',{value:false});Object.defineProperty(v,'currentTime',{value:0});Object.defineProperty(v,'readyState',{value:0});Object.defineProperty(v,'networkState',{value:2});
+v.load=function(){loads++;};v.play=function(){return Promise.resolve();};document.getElementById('t2').appendChild(v);
+NET.room.state.phase='task02';NET.room.tasks.task02={stage:'sequence',startsAt:Date.now()-5000};
+await wait(6500);
+check('Медленно загружающееся видео не перезапускается сторожем',loads===0,'Перезагрузок: '+loads);
+}catch(e){check('Ошибка проверки',false,e.stack||String(e));}
+window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);
+}
+run();
+</script>

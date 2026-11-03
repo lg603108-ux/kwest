@@ -1,0 +1,52 @@
+<!doctype html><meta charset="utf-8"><title>Проверка задания 2</title>
+<iframe id="cap" src="task02_client.html?role=cap"></iframe>
+<iframe id="p1" src="task02_client.html?role=p1"></iframe>
+<iframe id="p2" src="task02_client.html?role=p2"></iframe>
+<script>
+const frames={cap:document.getElementById('cap'),p1:document.getElementById('p1'),p2:document.getElementById('p2')};
+let room={code:'test',captain:'cap',state:{phase:'task02'},tasks:{task02:{stage:'wait',startsAt:0}}};
+window.taskBus={update(obj){room={...room,tasks:{...room.tasks,task02:{...room.tasks.task02,...obj}}};broadcast();return Promise.resolve();}};
+function broadcast(){Object.values(frames).forEach(f=>{if(f.contentWindow&&f.contentWindow.clientReady)f.contentWindow.receiveRoom(JSON.parse(JSON.stringify(room)));});}
+function w(id){return frames[id].contentWindow;}
+function video(id){return w(id).document.querySelector('.t2-video');}
+function cells(id){return Array.from(w(id).document.querySelectorAll('.t2-cell')).map(x=>x.textContent);}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+function check(name,ok,detail){testResults.push({name,ok,detail});}
+window.testResults=[];window.testDone=false;
+const real=new URLSearchParams(location.search).get('real')==='1';
+async function run(){
+try{
+if(real){for(let i=0;i<100&&!window.testStart;i++)await wait(100);}
+for(let i=0;i<50&&Object.values(frames).some(f=>!f.contentWindow.clientReady);i++)await wait(100);
+broadcast();
+taskBus.update({stage:'intro',startsAt:Date.now()-1000});await wait(100);
+check('Вступление задания 2: капитан со звуком',video('cap').muted===false,String(video('cap').muted));
+check('Вступление задания 2: игрок 1 без звука',video('p1').muted===true,String(video('p1').muted));
+check('Вступление задания 2: игрок 2 без звука',video('p2').muted===true,String(video('p2').muted));
+w('p1').document.getElementById('t2-sound').click();await wait(50);
+check('Игрок не может сам включить голосовое вступление',video('p1').muted===true,String(video('p1').muted));
+taskBus.update({stage:'sequence',startsAt:Date.now()-1000});await wait(100);
+check('Игровое видео: капитан со звуком',video('cap').muted===false,String(video('cap').muted));
+check('Игровое видео: игрок 1 со звуком',video('p1').muted===false,String(video('p1').muted));
+check('Игровое видео: игрок 2 со звуком',video('p2').muted===false,String(video('p2').muted));
+taskBus.update({stage:'swap',startsAt:Date.now(),digits:'8,5,0,4,9,1'});await wait(100);
+w('cap').document.getElementById('t2-check').click();await wait(100);
+check('После неверного кода цифры очищены у капитана',cells('cap').every(x=>x===''),JSON.stringify(cells('cap')));
+check('После неверного кода цифры очищены у игрока 1',cells('p1').every(x=>x===''),JSON.stringify(cells('p1')));
+check('После неверного кода цифры очищены у игрока 2',cells('p2').every(x=>x===''),JSON.stringify(cells('p2')));
+const before=[video('cap').__playCount||0,video('p1').__playCount||0,video('p2').__playCount||0];
+w('cap').document.getElementById('t2-repeat').click();await wait(1800);
+check('Повтор запущен у капитана',(video('cap').__playCount||0)>before[0],String(video('cap').__playCount));
+check('Повтор запущен у игрока 1',(video('p1').__playCount||0)>before[1],String(video('p1').__playCount));
+check('Повтор запущен у игрока 2',(video('p2').__playCount||0)>before[2],String(video('p2').__playCount));
+if(real){
+const t0=[video('cap').currentTime,video('p1').currentTime,video('p2').currentTime];await wait(2200);
+['cap','p1','p2'].forEach((id,i)=>check('Настоящее видео после повтора идёт: '+id,!video(id).paused&&video(id).currentTime>t0[i],JSON.stringify({paused:video(id).paused,time:video(id).currentTime,was:t0[i],ready:video(id).readyState,error:video(id).error&&video(id).error.code})));
+for(let i=0;i<150&&room.tasks.task02.stage!=='swap';i++)await wait(200);
+}else{video('cap').onended();await wait(150);}
+['cap','p1','p2'].forEach(id=>check('После повтора снова доступны пустые ячейки: '+id,room.tasks.task02.stage==='swap'&&cells(id).every(x=>x===''),JSON.stringify(cells(id))));
+}catch(e){check('Ошибка проверки',false,e.stack||String(e));}
+window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);
+}
+run();
+</script>
