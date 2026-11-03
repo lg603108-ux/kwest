@@ -55,7 +55,7 @@ els.remove.addEventListener('click',onRemove);
 els.repeat.addEventListener('click',function(){if(cap()){clearTimeout(digTimer);put({stage:'sequence',startsAt:Date.now()+1500,digits:''});}});
 els.check.addEventListener('click',onCheck);
 els.sound.addEventListener('click',toggleSound);
-els.continueBtn.addEventListener('click',function(){if(!cap())return;els.continueBtn.disabled=true;status('Переводим команду в задание 3…');NET.setPhase('task03',Date.now()+500).catch(function(e){els.continueBtn.disabled=false;status('Ошибка перехода: '+(e&&e.message||e));});});
+els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
 els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
 root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
 renderCells();
