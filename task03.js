@@ -53,10 +53,10 @@ function dropDeck(){if(deckSub){deckSub.ref.off('value',deckSub.cb);deckSub=null
 function dropSecret(){if(secretSub){secretSub.ref.off('value',secretSub.cb);secretSub=null;}secret=null;}
 function syncPrivate(){
 if(!active||!roomState)return;
-if(cap()&&!deckSub){const ref=deckRef();const cb=function(s){if(!active||!cap())return;deckOrder=validDeck(s.val());finishMedia();};deckSub={ref:ref,cb:cb};ref.on('value',cb,function(e){if(deckSub&&deckSub.ref===ref&&deckSub.cb===cb)deckSub=null;deckOrder=null;error(e);});}
+if(cap()&&!deckSub){const ref=deckRef();const cb=function(s){if(!active||!cap())return;deckOrder=validDeck(s.val());finishMedia();};deckSub={ref:ref,cb:cb};ref.on('value',cb,function(e){if(deckSub&&deckSub.ref===ref&&deckSub.cb===cb){ref.off('value',cb);deckSub=null;}deckOrder=null;error(e);});}
 else if(!cap()&&deckSub)dropDeck();
 const should=task&&task.stage==='play'&&task.actorUid===NET.uid;
-if(should&&!secretSub){const ref=secretRef(NET.uid);const cb=function(s){if(!active||!task||task.actorUid!==NET.uid)return;const v=s.val();secret=v&&v.round===task.round?v:null;renderActorSecret();maybeVerdict();};secretSub={ref:ref,cb:cb};ref.on('value',cb,function(e){if(secretSub&&secretSub.ref===ref&&secretSub.cb===cb){secretSub=null;secret=null;renderActorSecret();}error(e);});}
+if(should&&!secretSub){const ref=secretRef(NET.uid);const cb=function(s){if(!active||!task||task.actorUid!==NET.uid)return;const v=s.val();secret=v&&v.round===task.round?v:null;renderActorSecret();maybeVerdict();};secretSub={ref:ref,cb:cb};ref.on('value',cb,function(e){if(secretSub&&secretSub.ref===ref&&secretSub.cb===cb){ref.off('value',cb);secretSub=null;secret=null;renderActorSecret();}error(e);});}
 else if(!should&&secretSub)dropSecret();
 }
 function onRoom(room){
