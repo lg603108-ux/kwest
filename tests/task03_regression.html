@@ -58,19 +58,13 @@ async function endReaction(round,captain){
 async function scenario(name,fn){try{await fn();}catch(e){check(name+' / сценарий выполнен',false,e.stack||String(e));}}
 async function makeTask02(id){const f=document.createElement('iframe');f.id=id;f.name=id;f.src='task03_client.html?v=8&role='+id+'&module=task02';document.body.appendChild(f);for(let i=0;i<50&&!w(id).clientReady;i++)await wait(50);if(!w(id).clientReady||w(id).clientError)throw new Error(w(id).clientError||'Task02 client timeout');}
 
-async function startErrorLabels(){
+async function captainRoleFields(){
   await resetRoom({stage:'wait',startsAt:0});
-  taskBus.failNext('once:'+DECK,1);
-  w('cap').document.getElementById('t3-start').click();await settle();
-  check('Диагностика: отказ чтения колоды назван отдельно',statusText('cap').indexOf('чтение колоды')>=0&&t().stage==='wait',statusText('cap'));
-  await resetRoom({stage:'wait',startsAt:0});
-  taskBus.failNext('set:'+DECK,1);
-  w('cap').document.getElementById('t3-start').click();await settle();
-  check('Диагностика: отказ сохранения колоды назван отдельно',statusText('cap').indexOf('сохранение колоды')>=0&&t().stage==='wait',statusText('cap'));
-  await resetRoom({stage:'wait',startsAt:0});
-  taskBus.failNext('update:'+PUBLIC,1);
-  w('cap').document.getElementById('t3-start').click();await settle();
-  check('Диагностика: отказ запуска инструкции назван отдельно',statusText('cap').indexOf('запуск инструкции')>=0&&t().stage==='wait',statusText('cap'));
+  const intro={stage:'intro',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:false,reactionId:null};
+  await expectRejected('Rules/mock: капитан не может обнулять guess Судьи',()=>taskBus.ref('cap',PUBLIC).update(Object.assign({guess:null},intro)));
+  await expectRejected('Rules/mock: капитан не может обнулять verdict Актёра',()=>taskBus.ref('cap',PUBLIC).update(Object.assign({verdict:null},intro)));
+  await expectAccepted('Rules/mock: капитан запускает intro без полей Судьи и Актёра',()=>taskBus.ref('cap',PUBLIC).update(intro));
+  check('C4: intro назначает разные роли по очереди',t().stage==='intro'&&t().actorUid==='cap'&&t().judgeUid==='p1',JSON.stringify(t()));
 }
 
 async function deckShapeAndStart(){
@@ -231,19 +225,19 @@ async function atomicRotationRules(){
   const deck=ids.slice();
   const reactionState={stage:'reaction',startsAt:Date.now(),round:0,actorUid:'cap',judgeUid:'p1',accepted:true,reactionId:deck[0],guess:{id:'g0',emotionId:deck[0],by:'p1',round:0},verdict:{guessId:'g0',correct:true,round:0}};
   await resetRoom(reactionState,{deck:deck});
-  const pub={stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null};
+  const pub={stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null};
   const sec={round:1,emotionId:deck[1]};
   const upd={};upd[PUBLIC]=pub;upd['task03Secrets/test/p1']=sec;
   await expectAccepted('Rules/mock: атомарная ротация из reaction пишет секрет старому Судье по pre-update root',()=>taskBus.ref('cap','').update(upd));
   check('Rules/mock: атомарная ротация применяет общее состояние и секрет',t().stage==='play'&&t().round===1&&t().actorUid==='p1'&&t().judgeUid==='p2'&&taskBus.secrets.p1&&taskBus.secrets.p1.round===1&&taskBus.secrets.p1.emotionId===deck[1],JSON.stringify({task:t(),secret:taskBus.secrets.p1}));
 
   await resetRoom(reactionState,{deck:deck});
-  const invalidViewer={};invalidViewer[PUBLIC]={stage:'play',startsAt:Date.now(),round:1,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null,guess:null,verdict:null};invalidViewer['task03Secrets/test/p2']={round:1,emotionId:deck[1]};
+  const invalidViewer={};invalidViewer[PUBLIC]={stage:'play',startsAt:Date.now(),round:1,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null};invalidViewer['task03Secrets/test/p2']={round:1,emotionId:deck[1]};
   await expectRejected('Rules/mock: атомарная ротация не может писать секрет зрителю',()=>taskBus.ref('cap','').update(invalidViewer));
   check('Rules/mock: отклонённая ротация зрителю не меняет состояние',t().stage==='reaction'&&t().round===0&&t().actorUid==='cap'&&t().judgeUid==='p1'&&!taskBus.secrets.p2,JSON.stringify({task:t(),secrets:Object.keys(taskBus.secrets)}));
 
   await resetRoom({stage:'play',startsAt:Date.now(),round:1,actorUid:'p1',judgeUid:'p2',accepted:false,reactionId:null,guess:null,verdict:null},{deck:deck,secrets:{p1:{round:1,emotionId:deck[1]}}});
-  const invalidPlay={};invalidPlay[PUBLIC]={stage:'play',startsAt:Date.now(),round:2,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null,guess:null,verdict:null};invalidPlay['task03Secrets/test/p2']={round:2,emotionId:deck[2]};
+  const invalidPlay={};invalidPlay[PUBLIC]={stage:'play',startsAt:Date.now(),round:2,actorUid:'p2',judgeUid:'cap',accepted:false,reactionId:null};invalidPlay['task03Secrets/test/p2']={round:2,emotionId:deck[2]};
   await expectRejected('Rules/mock: во время play нельзя заранее писать секрет Судье',()=>taskBus.ref('cap','').update(invalidPlay));
   check('Rules/mock: отклонённая ранняя ротация не раскрывает секрет',t().stage==='play'&&t().round===1&&t().actorUid==='p1'&&!taskBus.secrets.p2,JSON.stringify({task:t(),secrets:Object.keys(taskBus.secrets)}));
 
@@ -375,7 +369,7 @@ async function run(){
   if(missing){check('Task03 доступен',false,missing);window.testDone=true;document.body.dataset.results=JSON.stringify(testResults);return;}
   check('Task03 доступен',true);
   const scenarios=[
-    ['Start error labels',startErrorLabels],
+    ['Captain role fields',captainRoleFields],
     ['Deck shape and start',deckShapeAndStart],
     ['Field rights',fieldRights],
     ['Media click',mediaClick],

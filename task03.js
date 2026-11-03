@@ -14,7 +14,7 @@ const EMOTIONS=[
 ];
 let active=false,root=null,video=null,els={},roomState=null,task=null;
 let roomOff=null,deckSub=null,secretSub=null,deckOrder=null,secret=null;
-let startTimer=null,wrongTimer=null,stageKey='',mediaKey='',roleKey='';
+let startTimer=null,wrongTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null;
 let starting=false,reactionKey='',verdictKey='',mediaActionKey='',wrongKey='';
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
@@ -22,15 +22,25 @@ function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task03');}
 function deckRef(){return db().ref('task03Decks/'+NET.room.code);}
 function secretRef(uid){return db().ref('task03Secrets/'+NET.room.code+'/'+uid);}
 function error(e){status('Ошибка связи: '+(e&&e.message||e));}
-function stepError(label){return function(e){throw new Error(label+': '+(e&&e.message||e));};}
 function write(obj){return publicRef().update(obj).catch(function(e){error(e);throw e;});}
 function validDeck(value){const a=value&&value.order;return Array.isArray(a)&&a.length===10&&a.every(function(id,i){return EMOTIONS.some(function(e){return e.id===id;})&&a.indexOf(id)===i;})?a.slice():null;}
 function shuffled(){const a=EMOTIONS.map(function(e){return e.id;});for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const x=a[i];a[i]=a[j];a[j]=x;}return a;}
+function ensureDeck(){
+if(deckOrder)return Promise.resolve(deckOrder);
+if(deckPromise)return deckPromise;
+deckPromise=deckRef().once('value').then(function(s){
+const existing=validDeck(s.val());
+if(existing){deckOrder=existing;return existing;}
+const order=shuffled();
+return deckRef().set({order:order}).then(function(){deckOrder=order;return order;});
+}).then(function(order){deckPromise=null;return order;},function(e){deckPromise=null;throw e;});
+return deckPromise;
+}
 function players(room){return Object.keys((room&&room.players)||{}).map(function(uid){return{uid:uid,name:room.players[uid].name||'Игрок',joinedAt:room.players[uid].joinedAt||0};}).sort(function(a,b){return a.joinedAt-b.joinedAt||a.uid.localeCompare(b.uid);});}
 function emotion(id){return EMOTIONS.find(function(e){return e.id===id;});}
 function mount(container){
 if(root)unmount();
-active=true;deckOrder=null;secret=null;stageKey='';mediaKey='';roleKey='';starting=false;reactionKey='';verdictKey='';mediaActionKey='';wrongKey='';
+active=true;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';starting=false;reactionKey='';verdictKey='';mediaActionKey='';wrongKey='';
 root=document.createElement('div');root.id='t3';root.innerHTML=
 '<video class="t3-video" playsinline preload="auto" hidden></video>'+
 '<section class="t3-screen t3-wait"><p class="t3-eyebrow">ЗАДАНИЕ 3</p><h1>Чувства Лума</h1><p>Верните Луму десять чувств через пантомиму. Актёр показывает чувство без слов, Судья выбирает его на экране.</p><button id="t3-start" class="t3-primary" type="button">▶ Запустить инструкцию для всех</button><p id="t3-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
@@ -48,7 +58,7 @@ active=false;clearTimeout(startTimer);clearTimeout(wrongTimer);startTimer=null;w
 if(typeof roomOff==='function')roomOff();roomOff=null;dropDeck();dropSecret();
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;els={};roomState=null;task=null;deckOrder=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';
+root=null;video=null;els={};roomState=null;task=null;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
@@ -71,15 +81,11 @@ syncPrivate();render();finishMedia();coordinate();maybeVerdict();
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait'||starting)return;
 const ps=players(roomState);if(ps.length<2){status('Для задания нужны хотя бы два игрока.');return;}
-starting=true;els.start.disabled=true;status('Готовим чувства Лума…');
-let promise=deckOrder?Promise.resolve(deckOrder):deckRef().once('value').then(function(s){return validDeck(s.val());}).catch(stepError('чтение колоды'));
-promise.then(function(order){
-if(!order){order=shuffled();return deckRef().set({order:order}).catch(stepError('сохранение колоды')).then(function(){return order;});}
-return order;
-}).then(function(order){
-if(!active||!cap())return;deckOrder=order;
-return write({stage:'intro',startsAt:Date.now(),round:0,actorUid:ps[0].uid,judgeUid:ps[1].uid,accepted:false,reactionId:null,guess:null,verdict:null}).catch(stepError('запуск инструкции'));
-}).catch(error).finally(function(){starting=false;if(els.start)els.start.disabled=false;});
+starting=true;els.start.disabled=true;
+write({stage:'intro',startsAt:Date.now(),round:0,actorUid:ps[0].uid,judgeUid:ps[1].uid,accepted:false,reactionId:null})
+.then(function(){return ensureDeck().catch(function(e){if(active&&cap())error(e);});})
+.catch(error)
+.finally(function(){starting=false;if(els.start)els.start.disabled=false;});
 }
 function render(){
 if(!root||!task)return;
@@ -180,21 +186,32 @@ if(stage==='intro')startPlay();else advance();
 function startPlay(){
 if(!cap()||!task||task.stage!=='intro')return;
 if(mediaActionKey===stageKey)return;
-if(!deckOrder){status('Ждём сохранённую колоду…');return;}
-const id=deckOrder[task.round];if(!id)return;
 const key=stageKey;mediaActionKey=key;
-secretRef(task.actorUid).set({round:task.round,emotionId:id}).then(function(){return publicRef().update({stage:'play',startsAt:Date.now(),accepted:false,reactionId:null,guess:null,verdict:null});}).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});
+ensureDeck().then(function(order){
+if(!active||!cap()||!task||task.stage!=='intro'||mediaActionKey!==key)return;
+const id=order[task.round];
+if(!id){mediaActionKey='';return;}
+return secretRef(task.actorUid).set({round:task.round,emotionId:id}).then(function(){
+return publicRef().update({stage:'play',startsAt:Date.now(),accepted:false,reactionId:null});
+});
+}).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});
 }
 function advance(){
 if(!cap()||!task||task.stage!=='reaction')return;
 if(mediaActionKey===stageKey)return;
-if(task.round>=9){const key=stageKey;mediaActionKey=key;publicRef().update({stage:'done',startsAt:Date.now(),accepted:true}).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});return;}
-if(!deckOrder){status('Ждём сохранённую колоду…');return;}
-const ps=players(roomState),oldJudge=ps.findIndex(function(p){return p.uid===task.judgeUid;});if(oldJudge<0||ps.length<2){status('Ждём участников для следующего раунда.');return;}
-const round=task.round+1,actorUid=task.judgeUid,judgeUid=ps[(oldJudge+1)%ps.length].uid,id=deckOrder[round];if(!id)return;
-const updates={};updates['rooms/'+NET.room.code+'/tasks/task03']={stage:'play',startsAt:Date.now(),round:round,actorUid:actorUid,judgeUid:judgeUid,accepted:false,reactionId:null,guess:null,verdict:null};updates['task03Secrets/'+NET.room.code+'/'+actorUid]={round:round,emotionId:id};
 const key=stageKey;mediaActionKey=key;
-db().ref().update(updates).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});
+if(task.round>=9){publicRef().update({stage:'done',startsAt:Date.now(),accepted:true}).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});return;}
+ensureDeck().then(function(order){
+if(!active||!cap()||!task||task.stage!=='reaction'||mediaActionKey!==key)return;
+const ps=players(roomState),oldJudge=ps.findIndex(function(p){return p.uid===task.judgeUid;});
+if(oldJudge<0||ps.length<2){status('Ждём участников для следующего раунда.');mediaActionKey='';return;}
+const round=task.round+1,actorUid=task.judgeUid,judgeUid=ps[(oldJudge+1)%ps.length].uid,id=order[round];
+if(!id){mediaActionKey='';return;}
+const updates={};
+updates['rooms/'+NET.room.code+'/tasks/task03']={stage:'play',startsAt:Date.now(),round:round,actorUid:actorUid,judgeUid:judgeUid,accepted:false,reactionId:null};
+updates['task03Secrets/'+NET.room.code+'/'+actorUid]={round:round,emotionId:id};
+return db().ref().update(updates);
+}).catch(function(e){if(mediaActionKey===key)mediaActionKey='';error(e);});
 }
 return{mount:mount,unmount:unmount};
 })();

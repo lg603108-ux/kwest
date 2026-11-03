@@ -3,7 +3,7 @@
 // права, форму данных и ошибки, но не доказывает поведение реального RTDB.
 (function(){
 const EMOTION_IDS=['fear','joy','anger','sadness','surprise','disgust','pain','anxiety','doubt','relief'];
-const CAPTAIN_FIELDS=['stage','startsAt','round','actorUid','judgeUid','accepted','reactionId','guess','verdict'];
+const CAPTAIN_FIELDS=['stage','startsAt','round','actorUid','judgeUid','accepted','reactionId'];
 const PUBLIC_PATH='rooms/test/tasks/task03';
 const DECK_PATH='task03Decks/test';
 const listeners={};
@@ -104,17 +104,20 @@ function updatePublic(uid,path,obj){
   const task=task03();
   const keys=Object.keys(obj||{});
   if(keys.length===0){pushWrite(uid,path,obj,false,'empty_update');return reject('empty_update');}
-  if(actualCaptain(uid)){
-    if(!keys.every(k=>CAPTAIN_FIELDS.indexOf(k)>=0)){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
-    if('guess' in obj&&obj.guess!==null&&!validGuess(obj.guess,task,uid)){pushWrite(uid,path,obj,false,'invalid_guess');return reject('invalid_guess');}
-    if('verdict' in obj&&obj.verdict!==null&&!validVerdict(obj.verdict,task)){pushWrite(uid,path,obj,false,'invalid_verdict');return reject('invalid_verdict');}
-  }else if(uid===task.judgeUid&&keys.length===1&&keys[0]==='guess'){
-    if(!validGuess(obj.guess,task,uid)){pushWrite(uid,path,obj,false,'invalid_guess');return reject('invalid_guess');}
-  }else if(uid===task.actorUid&&keys.length===1&&keys[0]==='verdict'){
-    if(!validVerdict(obj.verdict,task)){pushWrite(uid,path,obj,false,'invalid_verdict');return reject('invalid_verdict');}
-  }else{
-    pushWrite(uid,path,obj,false,'permission_denied');
-    return reject('permission_denied');
+  for(let i=0;i<keys.length;i++){
+    const k=keys[i];
+    if(k==='guess'){
+      if(uid!==task.judgeUid){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
+      if(!validGuess(obj.guess,task,uid)){pushWrite(uid,path,obj,false,'invalid_guess');return reject('invalid_guess');}
+    }else if(k==='verdict'){
+      if(uid!==task.actorUid){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
+      if(!validVerdict(obj.verdict,task)){pushWrite(uid,path,obj,false,'invalid_verdict');return reject('invalid_verdict');}
+    }else if(CAPTAIN_FIELDS.indexOf(k)>=0){
+      if(!actualCaptain(uid)){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
+    }else{
+      pushWrite(uid,path,obj,false,'permission_denied');
+      return reject('permission_denied');
+    }
   }
   if(consumeFailure('update:'+path)){pushWrite(uid,path,obj,false,'permission_denied');return reject('permission_denied');}
   pushWrite(uid,path,obj,true);
