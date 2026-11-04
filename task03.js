@@ -14,7 +14,7 @@ const EMOTIONS=[
 ];
 let active=false,root=null,video=null,els={},roomState=null,task=null;
 let roomOff=null,deckSub=null,secretSub=null,deckOrder=null,secret=null;
-let startTimer=null,wrongTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null;
+let startTimer=null,wrongTimer=null,watchdogTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null;
 let starting=false,reactionKey='',verdictKey='',mediaActionKey='',wrongKey='';
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
@@ -54,7 +54,7 @@ els.start.addEventListener('click',startIntro);
 roomOff=NET.onRoom(onRoom);
 }
 function unmount(){
-active=false;clearTimeout(startTimer);clearTimeout(wrongTimer);startTimer=null;wrongTimer=null;
+active=false;clearTimeout(startTimer);clearTimeout(wrongTimer);clearWatchdog();startTimer=null;wrongTimer=null;
 if(typeof roomOff==='function')roomOff();roomOff=null;dropDeck();dropSecret();
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
@@ -151,11 +151,28 @@ els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(x){x.classLi
 wrongKey=key;b.classList.add('t3-wrong');
 wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');wrongTimer=null;},700);
 }
-function stopMedia(){if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();hideMediaBtn();}
+function stopMedia(){clearWatchdog();if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();hideMediaBtn();}
+// Сторожевой таймер: продолжение не должно зависеть от video.ended.
+// Если у капитана видео не доиграло (блокировка автозапуска, фоновая вкладка, ошибка файла),
+// игра всё равно продолжается после длительности ролика + запас.
+function clearWatchdog(){if(watchdogTimer){clearTimeout(watchdogTimer);watchdogTimer=null;}}
+function scheduleWatchdog(at,key){
+clearWatchdog();
+if(!video)return;
+const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
+if(!dur)return;
+const wait=Math.max(1500,(dur*1000)-(Date.now()-at)+3000);
+watchdogTimer=setTimeout(function(){
+watchdogTimer=null;
+if(!active||mediaKey!==key||!cap()||!task)return;
+const st=task.stage||'';
+if(st==='intro'||st==='reaction')finishMedia(true);
+},wait);
+}
 function scheduleMedia(src,at,key){
 stopMedia();mediaKey=key;video.hidden=false;video.src=src;video.muted=task.stage==='intro'?!cap():false;
-video.onloadedmetadata=function(){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}};
-video.onerror=function(){status('Не удалось загрузить видео. Проверьте соединение.');};
+video.onloadedmetadata=function(){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}scheduleWatchdog(at,key);};
+video.onerror=function(){status('Не удалось загрузить видео. Проверьте соединение.');if(cap()){clearWatchdog();watchdogTimer=setTimeout(function(){watchdogTimer=null;if(!active||mediaKey!==key||!cap()||!task)return;const st=task.stage||'';if(st==='intro'||st==='reaction')finishMedia(true);},5000);}};
 video.onended=function(){if(!active||mediaKey!==key)return;finishMedia();};
 const beginPlay=function(){
   if(!active||mediaKey!==key||!video)return;
@@ -176,8 +193,9 @@ video.onclick=function(){beginPlay();};
 const begin=function(){beginPlay();};
 const delay=at-Date.now();if(delay>100){status('Видео начнётся одновременно у всех…');startTimer=setTimeout(begin,delay);}else begin();
 }
-function finishMedia(){
-if(!active||!video||!video.ended||!cap()||!task)return;
+function finishMedia(force){
+if(!active||!video||!cap()||!task)return;
+if(!video.ended&&!force)return;
 const stage=task.stage||'';
 if(stage!=='intro'&&stage!=='reaction')return;
 if(!stageKey||mediaActionKey===stageKey)return;
