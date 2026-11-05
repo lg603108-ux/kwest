@@ -89,7 +89,8 @@ if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
-if(cap()){els.buttons.hidden=false;els.hint.style.display='';hint(HINT_SWAP);}else{els.buttons.hidden=true;els.hint.style.display='';hint(HINT_PLAYER);}
+if(cap()){els.buttons.hidden=false;els.hint.style.display='';hint(HINT_SWAP);els.cells.style.pointerEvents='auto';els.left.style.pointerEvents='auto';els.right.style.pointerEvents='auto';}
+else{els.buttons.hidden=true;els.hint.style.display='';hint(HINT_PLAYER);els.cells.style.pointerEvents='none';els.left.style.pointerEvents='none';els.right.style.pointerEvents='none';}
 renderCells();}
 else if(stage==='reveal'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.reveal,at,'reveal');}
 else if(stage==='done'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=false;status('');}
