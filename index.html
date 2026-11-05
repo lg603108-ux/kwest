@@ -190,7 +190,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
 
-<!-- QR + код комнаты: всегда по центру вверху, на всех экранах -->
+<!-- QR + код комнаты: всегда вверху, на всех экранах. В задании 3 — в правом углу, чтобы не перекрывать Лума по центру. -->
 <div id="qr-widget" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:650;display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.88);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:4px 8px;cursor:pointer">
 <div id="qr-widget-img" style="width:44px;height:44px;background:#fff;border-radius:4px"></div>
 <span id="qr-widget-code" style="font-size:12px;color:#30e5dc;font-weight:700;letter-spacing:1px">----</span>
@@ -222,8 +222,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311b"></script>
-<script src="task03.js?v=0311c"></script>
+<script src="task02.js?v=0311d"></script>
+<script src="task03.js?v=0311d"></script>
 <script src="app.js"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -360,12 +360,17 @@ renderQr(document.getElementById('qr-popup-img'),code,210);
 popup.style.display='flex';
 }
 popup.addEventListener('click',function(){popup.style.display='none';});
-// --- виджет по центру вверху на ВСЕХ экранах ---
+// --- виджет по центру вверху на ВСЕХ экранах; в задании 3 — в правом верхнем углу ---
 var widget=document.getElementById('qr-widget');
 widget.addEventListener('click',openPopup);
 function refreshWidget(){
 var code=roomCode();
 widget.style.display=code?'flex':'none';
+// В задании 3 Лум занимает центр и верх — сдвигаем QR в правый угол.
+var t3=(document.body.dataset.screen==='task03');
+widget.style.left=t3?'auto':'50%';
+widget.style.right=t3?'6px':'auto';
+widget.style.transform=t3?'none':'translateX(-50%)';
 if(code){
 document.getElementById('qr-widget-code').textContent=code;
 renderQr(document.getElementById('qr-widget-img'),code,44);

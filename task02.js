@@ -83,7 +83,7 @@ els.playernote.hidden=!(!cap()&&stage==='done');
 }
 function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
-S.soundOn=(stage==='intro'||stage==='wait')?cap():true;
+S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
 if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
