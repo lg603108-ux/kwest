@@ -179,6 +179,9 @@ clearWatchdog();
 if(!video)return;
 const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
 if(!dur)return;
+// Инструкция (intro) не обрывается таймером — капитан сам нажимает «Продолжить».
+// Только reaction (видео Лума) автоматически переходит дальше.
+if(task.stage==='intro')return;
 const wait=Math.max(1500,(dur*1000)-(Date.now()-at)+3000);
 watchdogTimer=setTimeout(function(){
 watchdogTimer=null;
@@ -198,13 +201,12 @@ const beginPlay=function(){
   if(!p||!p.then){status('');hideMediaBtn();return;}
   p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
     if(!active||mediaKey!==key)return;
+    // У капитана блокировка автозапуска: видео ждёт нажатия, команда не уходит вперёд.
+    // Сторожевой таймер отключён для intro — капитан сам нажимает «Продолжить» после просмотра.
     video.muted=true;
-    const p2=video.play();
-    if(!p2||!p2.then){status('');showMediaBtn('🔊 Включить звук',function(){video.muted=false;});return;}
-    p2.then(function(){if(!active||mediaKey!==key)return;status('');showMediaBtn('🔊 Включить звук',function(){video.muted=false;});},function(){
-      video.muted=false;status('');
-      showMediaBtn('▶ Продолжить показ',function(){beginPlay();});
-    });
+    video.play().catch(function(){});
+    status('');
+    showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){video.muted=false;});
   });
 };
 video.onclick=function(){beginPlay();};
