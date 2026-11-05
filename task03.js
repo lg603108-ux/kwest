@@ -16,6 +16,7 @@ let active=false,root=null,video=null,els={},roomState=null,task=null;
 let roomOff=null,deckSub=null,secretSub=null,deckOrder=null,secret=null;
 let startTimer=null,wrongTimer=null,watchdogTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null;
 let starting=false,reactionKey='',verdictKey='',mediaActionKey='',wrongKey='';
+let reactionMusic=null,lastSfxVerdictKey='';
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
 function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task03');}
@@ -93,8 +94,15 @@ const stage=task.stage||'wait';
 els.wait.hidden=stage!=='wait';els.play.hidden=stage!=='play';els.done.hidden=stage!=='done';
 els.start.hidden=!cap();els.waitnote.hidden=cap();
 if(stage==='play')renderRoles();
+// Звук вердикта слышат все: верно — при переходе в reaction, неверно — при появлении неверного вердикта.
+const v=task.verdict,gg=task.guess;
+if(v&&gg&&v.round===task.round&&v.guessId===gg.id&&gg.round===task.round){
+  const sfxKey=task.round+':'+v.guessId;
+  if(sfxKey!==lastSfxVerdictKey){lastSfxVerdictKey=sfxKey;playSfx(v.correct?'sfx_ui_confirm.mp3':'sfx_ui_error.mp3',v.correct?.5:.45);}
+}
 const key=stage+':'+(task.round||0)+':'+(task.reactionId||'')+':'+(task.startsAt||0);
 if(key!==stageKey){stageKey=key;mediaActionKey='';clearTimeout(startTimer);if(stage==='intro')scheduleMedia('assets/v03_intro.mp4',task.startsAt||0,key);else if(stage==='reaction'&&emotion(task.reactionId))scheduleMedia('assets/lum_'+task.reactionId+'.mp4',task.startsAt||0,key);else stopMedia();}
+if(stage==='reaction')startReactionMusic();else stopReactionMusic();
 if(stage==='intro'||stage==='reaction'){video.hidden=false;}
 renderWrong();
 }
@@ -103,6 +111,8 @@ const ps=players(roomState),byUid={};ps.forEach(function(p){byUid[p.uid]=p;});
 const actor=byUid[task.actorUid],judge=byUid[task.judgeUid];if(!actor||!judge){status('Ждём двух участников для разных ролей.');return;}
 const key=task.round+':'+task.actorUid+':'+task.judgeUid+':'+NET.uid;
 if(key===roleKey)return;roleKey=key;wrongKey='';clearTimeout(wrongTimer);
+if(NET.uid===task.actorUid)playRoleVoice('volt_actor.mp3');
+else if(NET.uid===task.judgeUid)playRoleVoice('volt_judge.mp3');
 els.actor.innerHTML='';els.judge.innerHTML='';els.viewer.innerHTML='';
 const number=task.round+1;
 if(NET.uid===task.actorUid){
@@ -117,6 +127,14 @@ els.viewer.innerHTML='<p class="t3-eyebrow">ЧУВСТВО '+number+' ИЗ 10</p
 }
 function renderActorSecret(){const box=els.actor&&els.actor.querySelector('.t3-secret');if(!box)return;const e=secret&&emotion(secret.emotionId);box.hidden=!e;if(!e)return;box.querySelector('.t3-emotion-name').textContent=e.name;box.querySelector('.t3-instruction').textContent=e.hint;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+// Короткие звуки верного/неверного ответа — слышат все, чтобы команда сразу понимала результат.
+function playSfx(file,volume){try{var a=new Audio('assets/'+file);a.volume=volume;a.play().catch(function(){});}catch(e){}}
+// Тихая музыка «Оборона» из задания 1 под видео реакции Лума.
+function startReactionMusic(){stopReactionMusic();try{reactionMusic=new Audio('assets/music_defense_loop.mp3');reactionMusic.loop=true;reactionMusic.volume=.07;reactionMusic.play().catch(function(){});}catch(e){reactionMusic=null;}}
+function stopReactionMusic(){if(reactionMusic){try{reactionMusic.pause();}catch(e){}reactionMusic=null;}}
+// Голос роли («Ты Актёр» / «Ты Судья») звучит только у того, кому выпала роль.
+// Файлы: assets/volt_actor.mp3, assets/volt_judge.mp3 — подключаются при появлении.
+function playRoleVoice(file){try{var a=new Audio('assets/'+file);a.volume=.85;a.play().catch(function(){});}catch(e){}}
 function guess(emotionId){
 if(!active||!task||task.stage!=='play'||task.accepted||NET.uid!==task.judgeUid)return;
 const id=NET.uid+'_'+Date.now()+'_'+Math.random().toString(36).slice(2);
