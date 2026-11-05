@@ -204,8 +204,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 </div>
 </div>
 
-<div id="task02-mount" style="display:none"></div>
-<div id="task03-mount" style="display:none"></div>
+<div id="task02-mount"></div>
+<div id="task03-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -239,24 +239,24 @@ if(r.state.phase==='task02'&&!mounted){
 var el=document.getElementById('task02-mount');
 if(!el){toastMsg('Контейнер задания 2 не найден');return;}
 if(!window.Task02){toastMsg('Модуль задания 2 не загружен (task02.js)');return;}
-mounted=true;el.classList.add('active');el.style.display='block';document.body.dataset.screen='task02';
+mounted=true;el.classList.add('active');document.body.dataset.screen='task02';
 try{Task02.mount(el);toastMsg('Задание 2 запущено');}catch(e){toastMsg('Ошибка монтажа задания 2: '+(e&&e.message||e));}
 }
 if(r.state.phase!=='task02'&&mounted){
 mounted=false;
-var el=document.getElementById('task02-mount');if(el){el.classList.remove('active');el.style.display='none';}
+var el=document.getElementById('task02-mount');if(el)el.classList.remove('active');
 if(window.Task02){try{Task02.unmount();}catch(e){}}
 }
 if(r.state.phase==='task03'&&!mounted03){
 var el3=document.getElementById('task03-mount');
 if(!el3){toastMsg('Контейнер задания 3 не найден');return;}
 if(!window.Task03){toastMsg('Модуль задания 3 не загружен (task03.js)');return;}
-mounted03=true;el3.classList.add('active');el3.style.display='block';document.body.dataset.screen='task03';
-try{Task03.mount(el3);toastMsg('Задание 3 запущено');}catch(e){mounted03=false;el3.classList.remove('active');el3.style.display='none';toastMsg('Ошибка монтажа задания 3: '+(e&&e.message||e));}
+mounted03=true;el3.classList.add('active');document.body.dataset.screen='task03';
+try{Task03.mount(el3);toastMsg('Задание 3 запущено');}catch(e){mounted03=false;el3.classList.remove('active');toastMsg('Ошибка монтажа задания 3: '+(e&&e.message||e));}
 }
 if(r.state.phase!=='task03'&&mounted03){
 mounted03=false;
-var el3=document.getElementById('task03-mount');if(el3){el3.classList.remove('active');el3.style.display='none';}
+var el3=document.getElementById('task03-mount');if(el3)el3.classList.remove('active');
 if(window.Task03){try{Task03.unmount();}catch(e){}}
 }
 }
