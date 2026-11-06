@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:998;background:#20383e;border:1px solid rgba(190,245,245,.35);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;text-align:center;display:none}
@@ -77,7 +77,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body>
+<body data-build="0311f">
 <div id="app">
 
 <header id="topbar">
@@ -192,8 +192,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="rotate"><div><h2 style="margin:0 0 8px">Поверните телефон</h2><p style="margin:0">Квест проходит в горизонтальном режиме</p></div></div>
 <div id="toast"></div>
 
-<!-- QR + код комнаты: всегда вверху, на всех экранах. В задании 3 — в правом углу, чтобы не перекрывать Лума по центру. -->
-<div id="qr-widget" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:650;display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.88);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:4px 8px;cursor:pointer">
+<!-- QR + код комнаты: справа сверху на всех экранах, КРОМЕ Обороны (battle) и задания 2 — там экран занят игрой и виджет перекрывал кнопки. В задании 3 — в правом углу, чтобы не перекрывать Лума по центру. -->
+<div id="qr-widget" style="position:fixed;top:6px;right:6px;z-index:650;display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(15,32,37,.88);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:4px 8px;cursor:pointer">
 <div id="qr-widget-img" style="width:44px;height:44px;background:#fff;border-radius:4px"></div>
 <span id="qr-widget-code" style="font-size:12px;color:#30e5dc;font-weight:700;letter-spacing:1px">----</span>
 </div>
@@ -224,9 +224,9 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311e"></script>
-<script src="task03.js?v=0311e"></script>
-<script src="app.js?v=0311e"></script>
+<script src="task02.js?v=0311f"></script>
+<script src="task03.js?v=0311f"></script>
+<script src="app.js?v=0311f"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -362,17 +362,16 @@ renderQr(document.getElementById('qr-popup-img'),code,210);
 popup.style.display='flex';
 }
 popup.addEventListener('click',function(){popup.style.display='none';});
-// --- виджет по центру вверху на ВСЕХ экранах; в задании 3 — в правом верхнем углу ---
+// --- виджет справа вверху на всех экранах, КРОМЕ Обороны (battle) и задания 2:
+// там экран занят игрой, а на невысоком ландшафтном экране телефона виджет перекрывал
+// кнопку «Запустить видео для всех» и съедал нажатия (z-index 650 выше слоя задания).
 var widget=document.getElementById('qr-widget');
 widget.addEventListener('click',openPopup);
 function refreshWidget(){
 var code=roomCode();
-widget.style.display=code?'flex':'none';
-// В задании 3 Лум занимает центр и верх — сдвигаем QR в правый угол.
-var t3=(document.body.dataset.screen==='task03');
-widget.style.left=t3?'auto':'50%';
-widget.style.right=t3?'6px':'auto';
-widget.style.transform=t3?'none':'translateX(-50%)';
+var scr=document.body.dataset.screen||'';
+var blocked=(scr==='battle'||scr==='task02');
+widget.style.display=(code&&!blocked)?'flex':'none';
 if(code){
 document.getElementById('qr-widget-code').textContent=code;
 renderQr(document.getElementById('qr-widget-img'),code,44);

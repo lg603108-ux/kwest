@@ -22,7 +22,7 @@ const HINT_PLAYER='Расстановку выполняет капитан. С�
 let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait';
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
-function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));});}
+function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
 function goFullscreen(){try{const el=document.documentElement;if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}}catch(e){}}
 function mount(container){
 if(root)unmount();
@@ -63,7 +63,7 @@ els.mediareqBtn.addEventListener('click',function(){
   video.play().then(function(){els.mediareq.hidden=true;},function(){});
 });
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
-els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
+els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();els.startBtn.disabled=true;status('Запускаем видео для всех…');put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
 root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
 renderCells();
 render(window.NET.room);
