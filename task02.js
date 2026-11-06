@@ -63,7 +63,7 @@ els.mediareqBtn.addEventListener('click',function(){
   video.play().then(function(){els.mediareq.hidden=true;},function(){});
 });
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
-els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();els.startBtn.disabled=true;status('Запускаем видео для всех…');put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
+els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();els.startBtn.disabled=true;status('Запускаем видео для всех…');put({stage:'intro',startsAt:Date.now()+1200,rev:1});});
 root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
 renderCells();
 render(window.NET.room);
@@ -92,7 +92,7 @@ function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
 S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
-if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');}
+if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';video.src=MEDIA.intro+'?v=9';video.load();}catch(e){}}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
