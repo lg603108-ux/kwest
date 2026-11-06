@@ -79,7 +79,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311h">
+<body data-build="0311i">
 <div id="app">
 
 <header id="topbar">
@@ -232,7 +232,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task02.js?v=0311g"></script>
 <script src="task03.js?v=0311g"></script>
 <script src="task04.js?v=0311h"></script>
-<script src="app.js?v=0311h"></script>
+<script src="app.js?v=0311i"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -338,7 +338,8 @@ setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){btn.disabled=false;btn.hidden=false;if(note)note.hidden=true;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 });
 }
-setInterval(function(){addContinueButton();wire3();wire4();tryMount();},500);
+var wasCap=null;
+setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();tryMount();},500);
 })();
 </script>
 <script>
@@ -411,13 +412,13 @@ popup.style.display='flex';
 }
 popup.addEventListener('click',function(){popup.style.display='none';});
 // --- виджет: справа сверху на всех экранах; в Обороне — по центру вверху (возврат выбывших);
-// в задании 2 скрыт — там перекрывал кнопку старта. Нажатие раскрывает большой QR для сканирования.
+// в задании 2 виден по решению автора (06.11). Нажатие раскрывает большой QR для сканирования.
 var widget=document.getElementById('qr-widget');
 widget.addEventListener('click',openPopup);
 function refreshWidget(){
 var code=roomCode();
 var scr=document.body.dataset.screen||'';
-var blocked=(scr==='task02');
+var blocked=false;
 widget.style.display=(code&&!blocked)?'flex':'none';
 var center=(scr==='battle');
 widget.style.left=center?'50%':'auto';
