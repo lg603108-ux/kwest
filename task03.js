@@ -14,7 +14,7 @@ const EMOTIONS=[
 ];
 let active=false,root=null,video=null,els={},roomState=null,task=null;
 let roomOff=null,deckSub=null,secretSub=null,deckOrder=null,secret=null;
-let startTimer=null,wrongTimer=null,watchdogTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null;
+let startTimer=null,wrongTimer=null,watchdogTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null,mediaRetries=0;
 let starting=false,reactionKey='',verdictKey='',mediaActionKey='',wrongKey='';
 let reactionMusic=null,lastSfxVerdictKey='';
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
@@ -59,7 +59,7 @@ active=false;clearTimeout(startTimer);clearTimeout(wrongTimer);clearWatchdog();s
 if(typeof roomOff==='function')roomOff();roomOff=null;dropDeck();dropSecret();
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;els={};roomState=null;task=null;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';
+root=null;video=null;els={};roomState=null;task=null;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';mediaRetries=0;
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
@@ -191,9 +191,14 @@ if(st==='intro'||st==='reaction')finishMedia(true);
 },wait);
 }
 function scheduleMedia(src,at,key){
-stopMedia();mediaKey=key;video.hidden=false;video.src=src;video.muted=task.stage==='intro'?!cap():false;
+stopMedia();mediaKey=key;mediaRetries=0;video.hidden=false;video.src=src;video.muted=!cap();
 video.onloadedmetadata=function(){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}scheduleWatchdog(at,key);};
-video.onerror=function(){status('Не удалось загрузить видео. Проверьте соединение.');if(cap()){clearWatchdog();watchdogTimer=setTimeout(function(){watchdogTimer=null;if(!active||mediaKey!==key||!cap()||!task)return;const st=task.stage||'';if(st==='intro'||st==='reaction')finishMedia(true);},5000);}};
+video.onerror=function(){
+  if(!active||mediaKey!==key||!video)return;
+  // Короткие сбои сети: до двух повторных загрузок файла, прежде чем сдаться.
+  if(mediaRetries<2){mediaRetries++;status('Повторная загрузка видео…');setTimeout(function(){if(!active||mediaKey!==key||!video)return;try{video.src=src;video.load();}catch(e){}beginPlay();},1500);return;}
+  status('Не удалось загрузить видео. Проверьте соединение.');
+  if(cap()){clearWatchdog();watchdogTimer=setTimeout(function(){watchdogTimer=null;if(!active||mediaKey!==key||!cap()||!task)return;const st=task.stage||'';if(st==='intro'||st==='reaction')finishMedia(true);},5000);}};
 video.onended=function(){if(!active||mediaKey!==key)return;finishMedia();};
 const beginPlay=function(){
   if(!active||mediaKey!==key||!video)return;

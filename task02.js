@@ -45,9 +45,10 @@ root.innerHTML=
 '</div></div>'+
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
+'<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
 '<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p></div>';
 video=root.querySelector('.t2-video');
-els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote')};
+els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
@@ -55,6 +56,12 @@ els.remove.addEventListener('click',onRemove);
 els.repeat.addEventListener('click',function(){if(cap()){clearTimeout(digTimer);put({stage:'sequence',startsAt:Date.now()+1500,digits:''});}});
 els.check.addEventListener('click',onCheck);
 els.sound.addEventListener('click',toggleSound);
+els.mediareqBtn.addEventListener('click',function(){
+  if(!active||!video)return;
+  // Касание = жест пользователя: капитану возвращаем звук, игроки остаются в беззвучном режиме.
+  if(cap()&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal')){S.soundOn=true;video.muted=false;els.sound.textContent='♪';}
+  video.play().then(function(){els.mediareq.hidden=true;},function(){});
+});
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
 els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();put({stage:'intro',startsAt:Date.now()+3000,rev:1});});
 root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
@@ -104,6 +111,7 @@ function playList(list,offset,stage){
 let i=0;
 (function tryOne(){
 if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
+els.mediareq.hidden=true;
 const src=list[i++]+'?v=9';
 video.src=src;video.muted=!S.soundOn;
 let settled=false;let seeked=false;
@@ -113,7 +121,7 @@ video.onloadedmetadata=function(){settled=true;clearTimeout(to);doSeek();};
 video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
 video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
-video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){});});
+video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
 })();
 }
 function onRow(d){

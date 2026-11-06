@@ -24,6 +24,10 @@ document.addEventListener('pointerdown',function fs(){goFullscreen();document.re
 const css=`
 #role,#lobby{align-items:flex-start;overflow-y:auto;overflow-x:hidden}
 #role>.brief-card,#lobby>.lobby-card{flex-shrink:0;max-width:100%;min-width:0;margin:0 auto;width:min(760px,100%)}
+#lobby .roomqr{background:#fff;padding:6px;border-radius:10px;line-height:0;flex:0 0 auto}
+#lobby .roomqr img,#lobby .roomqr canvas{display:block;width:104px;height:104px}
+#lobby .roomcode{display:flex;align-items:center;gap:14px}
+#lobby .roomcode-main{display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;min-width:0}
 @media(max-height:600px),(pointer:coarse) and (max-width:1100px){
 #lobby>.lobby-card{display:grid;grid-template-columns:1.2fr 1fr;gap:12px 20px;padding:12px 14px}
 #lobby>.lobby-card>h2{grid-column:1;font-size:20px;margin:0;line-height:1.2}
@@ -31,9 +35,11 @@ const css=`
 #lobby>.lobby-card>.player-info{grid-column:2;grid-row:1;font-size:15px;padding:8px 0}
 #lobby>.lobby-card>.player-info small{font-size:12px;display:block;margin-top:2px;color:#7ec8c8}
 #lobby>.lobby-card>.roomcode{grid-column:2;grid-row:2;background:#14292f;border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:10px;margin:0}
-#lobby>.lobby-card>.roomcode>span{font-size:12px;display:block;margin-bottom:4px}
-#lobby>.lobby-card>.roomcode>strong{font-size:20px;display:block;margin-bottom:8px}
-#lobby>.lobby-card>.roomcode>button{font-size:13px;min-height:36px;padding:6px 10px}
+#lobby>.lobby-card>.roomcode-main>span{font-size:12px;display:block;margin-bottom:4px}
+#lobby>.lobby-card>.roomcode-main>strong{font-size:20px;display:block;margin-bottom:8px}
+#lobby>.lobby-card>.roomcode-main>button{font-size:13px;min-height:36px;padding:6px 10px}
+#lobby>.lobby-card>.roomqr{width:76px;padding:4px}
+#lobby>.lobby-card>.roomqr img,#lobby>.lobby-card>.roomqr canvas{width:68px;height:68px}
 #lobby>.lobby-card>.lobby-buttons{grid-column:1;grid-row:2;margin-top:8px;gap:8px;flex-wrap:wrap}
 #lobby>.lobby-card button{font-size:14px;min-height:44px;padding:9px 12px;border-radius:8px}
 #role>.brief-card{padding:12px 14px}
@@ -171,8 +177,11 @@ if(host.dataset.sig===sig)return;host.dataset.sig=sig;
 host.innerHTML='<h2>Команда на связи</h2>'
 +'<p class="note">'+(room?(ph==='result'?'Оборона завершена. Ждите, пока капитан запустит повтор.':(isCap?(full?'Все в сборе — можно начинать квест.':'Ожидание игроков: подключилось '+online+' из '+size+'.'):'Подключилось '+online+' из '+size+'. Ждём старта капитана…')):'Подключаемся…')+'</p>'
 +'<div class="player-info"><strong>'+esc(player)+'</strong><small>'+(isCap?'Капитан':'В команде')+(room&&!NET.captainOnline()?' · ⚠ капитан не на связи — выбираем нового':'')+'</small></div>'
-+'<div class="roomcode"><span>Сохраните код</span><strong id="room-code">'+(room?room.code.toLowerCase():'…')+'</strong><button class="secondary" id="room-copy" type="button">Копировать</button></div>'
-+'<div class="lobby-buttons">'+(isCap?'<button class="primary'+(ph==='lobby'?'':' hidden')+'" id="start-quest" type="button"'+(!full?' disabled':'')+'>Начать квест →</button>':'')+'<button class="secondary" id="leave-room" type="button">Назад</button></div>';}
++'<div class="roomcode"><div class="roomqr" id="room-qr"></div><div class="roomcode-main"><span>Сохраните код</span><strong id="room-code">'+(room?room.code.toLowerCase():'…')+'</strong><button class="secondary" id="room-copy" type="button">Копировать</button></div></div>'
++'<div class="lobby-buttons">'+(isCap?'<button class="primary'+(ph==='lobby'?'':' hidden')+'" id="start-quest" type="button"'+(!full?' disabled':'')+'>Начать квест →</button>':'')+'<button class="secondary" id="leave-room" type="button">Назад</button></div>';
+const qrEl=host.querySelector('#room-qr');
+if(qrEl&&room&&window.QRCode){const code=room.code.toLowerCase();if(qrEl.dataset.code!==code){qrEl.dataset.code=code;qrEl.innerHTML='';try{new QRCode(qrEl,{text:location.origin+location.pathname+'?room='+code,width:104,height:104,correctLevel:QRCode.CorrectLevel.M});}catch(e){}}}
+}
 $('lobby').addEventListener('click',e=>{
 const id=e.target&&e.target.id;const r=window.NET&&NET.room;const curSize=(r&&r.state&&r.state.teamSize)||2;
 if(id==='room-copy'){const el=$('room-code');const c=el?el.textContent:'';if(c&&navigator.clipboard)navigator.clipboard.writeText(c).then(()=>toast('Код скопирован: '+c));}

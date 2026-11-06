@@ -38,5 +38,7 @@
 #t2 .t2-status{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:12;font-size:13px;color:#9fd8d8;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:10px;max-width:80vw;text-align:center}
 #t2 .t2-nextwrap{position:absolute;inset:0;z-index:35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45)}
 #t2 .t2-nextwrap[hidden]{display:none}
+#t2 .t2-mediareq{position:absolute;inset:0;z-index:36;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.55);padding:20px;text-align:center}
+#t2 .t2-mediareq[hidden]{display:none}
 #t2 .t2-nextnote{font-size:14px;color:#9fd8d8;margin:0;text-align:center;max-width:80vw}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
