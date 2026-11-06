@@ -73,11 +73,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #t2 .t2-nextwrap[hidden]{display:none}
 #t2 .t2-mediareq{position:absolute;inset:0;z-index:36;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.55);padding:20px;text-align:center}
 #t2 .t2-mediareq[hidden]{display:none}
+#t2 .t2-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:41}
 #t2 .t2-nextnote{font-size:14px;color:#9fd8d8;margin:0;text-align:center;max-width:80vw}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311f">
+<body data-build="0311g">
 <div id="app">
 
 <header id="topbar">
@@ -224,9 +225,9 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311f"></script>
-<script src="task03.js?v=0311f"></script>
-<script src="app.js?v=0311f"></script>
+<script src="task02.js?v=0311g"></script>
+<script src="task03.js?v=0311g"></script>
+<script src="app.js?v=0311g"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -362,16 +363,19 @@ renderQr(document.getElementById('qr-popup-img'),code,210);
 popup.style.display='flex';
 }
 popup.addEventListener('click',function(){popup.style.display='none';});
-// --- виджет справа вверху на всех экранах, КРОМЕ Обороны (battle) и задания 2:
-// там экран занят игрой, а на невысоком ландшафтном экране телефона виджет перекрывал
-// кнопку «Запустить видео для всех» и съедал нажатия (z-index 650 выше слоя задания).
+// --- виджет: справа сверху на всех экранах; в Обороне — по центру вверху (возврат выбывших);
+// в задании 2 скрыт — там перекрывал кнопку старта. Нажатие раскрывает большой QR для сканирования.
 var widget=document.getElementById('qr-widget');
 widget.addEventListener('click',openPopup);
 function refreshWidget(){
 var code=roomCode();
 var scr=document.body.dataset.screen||'';
-var blocked=(scr==='battle'||scr==='task02');
+var blocked=(scr==='task02');
 widget.style.display=(code&&!blocked)?'flex':'none';
+var center=(scr==='battle');
+widget.style.left=center?'50%':'auto';
+widget.style.right=center?'auto':'6px';
+widget.style.transform=center?'translateX(-50%)':'none';
 if(code){
 document.getElementById('qr-widget-code').textContent=code;
 renderQr(document.getElementById('qr-widget-img'),code,44);

@@ -25,8 +25,8 @@ const css=`
 #role,#lobby{align-items:flex-start;overflow-y:auto;overflow-x:hidden}
 #role>.brief-card,#lobby>.lobby-card{flex-shrink:0;max-width:100%;min-width:0;margin:0 auto;width:min(760px,100%)}
 #lobby .roomqr{background:#fff;padding:6px;border-radius:10px;line-height:0;flex:0 0 auto}
-#lobby .roomqr img,#lobby .roomqr canvas{display:block;width:104px;height:104px}
-#lobby .roomcode{display:flex;align-items:center;gap:14px}
+#lobby .roomqr img,#lobby .roomqr canvas{display:block;width:84px;height:84px}
+#lobby .roomcode{display:flex;align-items:center;gap:14px;flex-wrap:nowrap}
 #lobby .roomcode-main{display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;min-width:0}
 @media(max-height:600px),(pointer:coarse) and (max-width:1100px){
 #lobby>.lobby-card{display:grid;grid-template-columns:1.2fr 1fr;gap:12px 20px;padding:12px 14px}
@@ -34,13 +34,13 @@ const css=`
 #lobby>.lobby-card>p.note{grid-column:1;font-size:14px;margin:6px 0}
 #lobby>.lobby-card>.player-info{grid-column:2;grid-row:1;font-size:15px;padding:8px 0}
 #lobby>.lobby-card>.player-info small{font-size:12px;display:block;margin-top:2px;color:#7ec8c8}
-#lobby>.lobby-card>.roomcode{grid-column:2;grid-row:2;background:#14292f;border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:10px;margin:0}
+#lobby>.lobby-card>.roomcode{grid-column:1/-1;grid-row:auto;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between}
 #lobby>.lobby-card>.roomcode-main>span{font-size:12px;display:block;margin-bottom:4px}
 #lobby>.lobby-card>.roomcode-main>strong{font-size:20px;display:block;margin-bottom:8px}
 #lobby>.lobby-card>.roomcode-main>button{font-size:13px;min-height:36px;padding:6px 10px}
-#lobby>.lobby-card>.roomqr{width:76px;padding:4px}
-#lobby>.lobby-card>.roomqr img,#lobby>.lobby-card>.roomqr canvas{width:68px;height:68px}
-#lobby>.lobby-card>.lobby-buttons{grid-column:1;grid-row:2;margin-top:8px;gap:8px;flex-wrap:wrap}
+#lobby>.lobby-card>.roomqr{width:64px;padding:4px}
+#lobby>.lobby-card>.roomqr img,#lobby>.lobby-card>.roomqr canvas{width:56px;height:56px}
+#lobby>.lobby-card>.lobby-buttons{grid-column:1/-1;grid-row:auto;margin-top:8px;gap:8px;flex-wrap:wrap;align-items:flex-start}
 #lobby>.lobby-card button{font-size:14px;min-height:44px;padding:9px 12px;border-radius:8px}
 #role>.brief-card{padding:12px 14px}
 #role>.brief-card h2{font-size:18px;margin:6px 0}
@@ -156,7 +156,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 if(!$('result-team')){const rt=document.createElement('p');rt.className='note';rt.id='result-team';$('result').querySelector('.result-stats').after(rt);}
 (function probeStreet(){const v=$('street');if(v.getAttribute('src'))return;const cand=['defense_street.mp4','street_loop.webm','street.webm','street_loop.mp4','street.mp4'];let i=0;const tryNext=()=>{if(i>=cand.length)return;v.src=asset(cand[i++]);v.onerror=tryNext;v.onloadeddata=()=>{v.onerror=null;};v.load();};tryNext();})();
 const roleSec=document.createElement('section');roleSec.className='screen';roleSec.id='role';
-roleSec.innerHTML='<div class="glass brief-card" id="role-card"><p class="eyebrow">ВЫБОР РОЛИ</p><h2>Кто вы в команде?</h2><p class="note" id="role-name"></p><p class="note" id="role-hint">Нажмите ⛶ вверху справа для полноэкранного режима.</p><div class="lobby-buttons" id="role-buttons"><button class="primary" id="role-captain" type="button">Я капитан — создать код</button><button class="secondary" id="role-join" type="button">Я игрок — ввести код</button></div><div id="create-box" class="hidden"><label>Сколько игроков в команде (включая вас)? Нажмите цифру:</label><div id="size-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<button type="button" class="secondary size-pick" data-n="'+n+'">'+n+'</button>').join('')+'</div><div class="lobby-buttons"><button class="primary" id="create-go" type="button">Создать комнату →</button><button class="secondary" id="create-cancel" type="button">← Назад</button></div><p class="note" id="create-error"></p></div><div id="join-box" class="hidden"><label for="room-input">Код команды</label><input id="room-input" placeholder="например a1b2c3" autocomplete="off" enterkeyhint="go"><div class="lobby-buttons"><button class="primary" id="join-go" type="button">Войти в команду →</button><button class="secondary" id="join-cancel" type="button">← Назад</button></div><p class="note" id="join-error"></p></div><p class="note" id="role-status"></p><p class="note" style="opacity:.4;font-size:11px;margin:4px 0 0">Сборка 0311f</p><div class="lobby-buttons"><button class="secondary hidden" id="role-solo" type="button">Продолжить одному</button><button class="secondary" id="role-back" type="button">← Назад</button></div></div>';
+roleSec.innerHTML='<div class="glass brief-card" id="role-card"><p class="eyebrow">ВЫБОР РОЛИ</p><h2>Кто вы в команде?</h2><p class="note" id="role-name"></p><p class="note" id="role-hint">Нажмите ⛶ вверху справа для полноэкранного режима.</p><div class="lobby-buttons" id="role-buttons"><button class="primary" id="role-captain" type="button">Я капитан — создать код</button><button class="secondary" id="role-join" type="button">Я игрок — ввести код</button></div><div id="create-box" class="hidden"><label>Сколько игроков в команде (включая вас)? Нажмите цифру:</label><div id="size-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<button type="button" class="secondary size-pick" data-n="'+n+'">'+n+'</button>').join('')+'</div><div class="lobby-buttons"><button class="primary" id="create-go" type="button">Создать комнату →</button><button class="secondary" id="create-cancel" type="button">← Назад</button></div><p class="note" id="create-error"></p></div><div id="join-box" class="hidden"><label for="room-input">Код команды</label><input id="room-input" placeholder="например a1b2c3" autocomplete="off" enterkeyhint="go"><div class="lobby-buttons"><button class="primary" id="join-go" type="button">Войти в команду →</button><button class="secondary" id="join-cancel" type="button">← Назад</button></div><p class="note" id="join-error"></p></div><p class="note" id="role-status"></p><p class="note" style="opacity:.4;font-size:11px;margin:4px 0 0">Сборка 0311g</p><div class="lobby-buttons"><button class="secondary hidden" id="role-solo" type="button">Продолжить одному</button><button class="secondary" id="role-back" type="button">← Назад</button></div></div>';
 $('app').append(roleSec);
 function pickSize(n){selectedSize=n;roleSec.querySelectorAll('.size-pick').forEach(b=>{const on=+b.dataset.n===n;b.classList.toggle('primary',on);b.classList.toggle('secondary',!on);});}
 roleSec.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('.size-pick'):null;if(b)pickSize(+b.dataset.n);});
