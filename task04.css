@@ -1,0 +1,51 @@
+#task04-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
+#task04-mount.active{display:block}
+#t4{position:fixed;inset:0;overflow:hidden;background:#000;color:#fff;font-family:QuestSans,Arial,sans-serif}
+#t4 [hidden]{display:none!important}
+#t4 .t4-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1}
+#t4 .t4-screen{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box;background:radial-gradient(900px 500px at 50% 20%,#1b3a3f,#0d161a 75%)}
+#t4 h1,#t4 h2,#t4 p{margin:0 0 12px}
+#t4 h1{font-size:30px}#t4 h2{font-size:24px}
+#t4 .t4-eyebrow{color:#30e5dc;font-size:14px;font-weight:700;letter-spacing:1px}
+#t4 .t4-note{color:#b9d9d9;line-height:1.4;max-width:680px}
+#t4 .t4-primary{min-height:52px;padding:12px 26px;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:17px;font-weight:700;cursor:pointer}
+#t4 .t4-primary:disabled{opacity:.5;cursor:wait}
+#t4 .t4-secondary{min-height:44px;padding:9px 16px;border:1px solid rgba(190,245,245,.35);border-radius:10px;background:#20383e;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+#t4 .t4-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6}
+/* Плашка: номер химеры и заряд — на свободном краю, не закрывает центр */
+#t4 .t4-hud{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:5;display:flex;gap:8px;align-items:center;background:rgba(15,32,37,.82);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:6px 12px}
+#t4 .t4-hud small{display:block;font-size:11px;color:#9fd8d8;line-height:1.1}
+#t4 .t4-hud strong{font-size:19px;color:#30e5dc;line-height:1.15}
+/* Панель ввода — сверху, с запасом справа под QR-виджет (≈120px), над видимой границей клавиатуры */
+#t4 .t4-panel{position:absolute;top:0;left:0;right:118px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:rgba(13,22,26,.92);border-bottom:1px solid rgba(190,245,245,.25);padding:calc(6px + env(safe-area-inset-top)) 10px 8px;box-sizing:border-box}
+#t4 .t4-field{display:flex;flex-direction:column;gap:3px;flex:1 1 150px;min-width:130px}
+#t4 .t4-field label{font-size:12px;color:#9fd8d8;font-weight:700}
+#t4 .t4-field .t4-wrap{position:relative;display:flex;align-items:center}
+#t4 .t4-field input{width:100%;height:44px;box-sizing:border-box;padding:0 34px 0 10px;border:1px solid rgba(190,245,245,.4);border-radius:10px;background:#14292f;color:#fff;font-size:16px;font-family:inherit}
+#t4 .t4-field input:disabled{opacity:.75;border-color:#30e5dc}
+#t4 .t4-ok{position:absolute;right:6px;color:#30e5dc;font-size:20px;font-weight:800}
+#t4 .t4-hintline{flex-basis:100%;font-size:13px;line-height:1.3;color:#ffcf9f;margin:0}
+#t4 .t4-hintline b{color:#fff}
+#t4 .t4-time{font-size:13px;color:#9fd8d8;min-width:44px;text-align:center}
+#t4 .t4-reqnote{flex-basis:100%;font-size:13px;color:#9fd8d8;margin:0}
+/* Экран «остальные» */
+#t4 .t4-watch{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 12px calc(14px + env(safe-area-inset-bottom));box-sizing:border-box;pointer-events:none;gap:8px}
+#t4 .t4-watch .t4-caption{background:rgba(13,22,26,.85);border:1px solid rgba(190,245,245,.3);border-radius:12px;padding:8px 14px;font-size:14px;color:#b9d9d9;text-align:center;max-width:92vw}
+#t4 .t4-watch button{pointer-events:auto}
+#t4 .t4-status{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;max-width:88vw;padding:7px 12px;border-radius:9px;background:rgba(0,0,0,.82);color:#ffcf9f;font-size:13px;text-align:center}
+#t4 .t4-build{position:absolute;bottom:6px;right:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}
+/* Короткий результат раунда */
+#t4 .t4-gain{font-size:40px;font-weight:800;color:#30e5dc;margin:6px 0}
+#t4 .t4-names{font-size:20px;font-weight:700}
+@media(max-height:560px){
+#t4 .t4-screen{padding:12px}
+#t4 h1{font-size:25px}#t4 h2{font-size:20px;margin-bottom:6px}
+#t4 .t4-field input{height:38px;font-size:15px}
+#t4 .t4-primary{min-height:44px;padding:9px 18px;font-size:15px}
+#t4 .t4-secondary{min-height:38px;padding:7px 12px;font-size:13px}
+#t4 .t4-gain{font-size:30px}
+}
+@media(max-width:760px){
+#t4 .t4-panel{right:104px;gap:6px}
+#t4 .t4-hud strong{font-size:16px}
+}

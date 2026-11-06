@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
+<link rel="stylesheet" href="task04.css?v=0311h">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -78,7 +79,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311g">
+<body data-build="0311h">
 <div id="app">
 
 <header id="topbar">
@@ -209,6 +210,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 
 <div id="task02-mount"></div>
 <div id="task03-mount"></div>
+<div id="task04-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -217,6 +219,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
 <button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
 <button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
+<button class="sk" data-act="t4a" type="button">⏭ 4: пропустить инструкцию</button>
+<button class="sk" data-act="t4b" type="button">⏭ 4: клип → ввод</button>
 </div>
 
 </div>
@@ -227,11 +231,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="net.js?v=0311b"></script>
 <script src="task02.js?v=0311g"></script>
 <script src="task03.js?v=0311g"></script>
-<script src="app.js?v=0311g"></script>
+<script src="task04.js?v=0311h"></script>
+<script src="app.js?v=0311h"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false;
+var mounted=false,mounted03=false,mounted04=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -262,6 +267,18 @@ mounted03=false;
 var el3=document.getElementById('task03-mount');if(el3)el3.classList.remove('active');
 if(window.Task03){try{Task03.unmount();}catch(e){}}
 }
+if(r.state.phase==='task04'&&!mounted04){
+var el4=document.getElementById('task04-mount');
+if(!el4){toastMsg('Контейнер задания 4 не найден');return;}
+if(!window.Task04){toastMsg('Модуль задания 4 не загружен (task04.js)');return;}
+mounted04=true;el4.classList.add('active');document.body.dataset.screen='task04';
+try{Task04.mount(el4);toastMsg('Задание 4 запущено');}catch(e){mounted04=false;el4.classList.remove('active');toastMsg('Ошибка монтажа задания 4: '+(e&&e.message||e));}
+}
+if(r.state.phase!=='task04'&&mounted04){
+mounted04=false;
+var el4b=document.getElementById('task04-mount');if(el4b)el4b.classList.remove('active');
+if(window.Task04){try{Task04.unmount();}catch(e){}}
+}
 }
 function addContinueButton(){
 if(!ready())return;
@@ -277,6 +294,31 @@ NET.setPhase('task02',Date.now()+1500).then(function(){
 setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){b.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 };
+}
+// Переход 3 → 4: кнопка «Продолжить квест» на экране завершения задания 3.
+// task03.js не изменяется: мост вставляет кнопку в .t3-done (как result → task02).
+function task03Done(){try{var r=NET.room;return !!(r&&r.state&&r.state.phase==='task03'&&r.tasks&&r.tasks.task03&&r.tasks.task03.stage==='done');}catch(e){return false;}}
+function wire4(){
+if(!ready()||!task03Done())return;
+var done=document.querySelector('#t3 .t3-done');if(!done)return;
+if(!cap()){
+if(!done.querySelector('#t3-waitnext')){var p=document.createElement('p');p.id='t3-waitnext';p.className='t3-note';p.textContent='Капитан переведёт команду к заданию 4…';done.appendChild(p);}
+return;
+}
+var old=done.querySelector('#t3-waitnext');if(old)old.parentNode.removeChild(old);
+var btn=document.getElementById('t3-continue');
+if(!btn){
+btn=document.createElement('button');btn.id='t3-continue';btn.className='t3-primary';btn.type='button';btn.textContent='Продолжить квест →';btn.style.marginTop='10px';
+btn.addEventListener('click',function(){
+if(!cap()||btn.disabled)return;
+btn.disabled=true;
+toastMsg('Переводим команду в задание 4…');
+NET.setPhase('task04',Date.now()+1500).then(function(){
+setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
+}).catch(function(e){btn.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
+});
+done.appendChild(btn);
+}
 }
 // Переход 2 → 3 по аналогии с 1 → 2: мост добавляет обработчик капитанской кнопке
 // «Продолжить квест» задания 2 (task02.js не изменяется) и переводит фазу на task03.
@@ -296,7 +338,7 @@ setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){btn.disabled=false;btn.hidden=false;if(note)note.hidden=true;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 });
 }
-setInterval(function(){addContinueButton();wire3();tryMount();},500);
+setInterval(function(){addContinueButton();wire3();wire4();tryMount();},500);
 })();
 </script>
 <script>
@@ -313,6 +355,7 @@ if(!inRoom()){panel.style.display='none';return;}
 panel.style.display='flex';
 var r=NET.room||{};var st=r.state||{};var ph=st.phase||'';
 var t2=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
+var t4=(r.tasks&&r.tasks.task04&&r.tasks.task04.stage)||'';
 var btns=panel.querySelectorAll('.sk'),i;
 for(i=0;i<btns.length;i++)btns[i].style.display='none';
 function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.display='block';}
@@ -320,6 +363,7 @@ if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
+if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
 }
 if(ph==='battle')on('bs');
 var ts=st.testSkip||0;
@@ -335,6 +379,9 @@ if(a==='bs'){if(window.__testSkipBattle)window.__testSkipBattle();if(cap())fireb
 if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);}
 if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).catch(err);}
 if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).catch(err);}
+var t4ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task04');};
+if(a==='t4a'&&cap()){t4ref().update({stage:'clip',startsAt:now+600,round:0,clipViewed:false,replays:0,confirmed:{a:false,b:false},attempts:{a:0,b:0},hintLevel:{a:0,b:0},fields:{a:'',b:''}}).catch(err);}
+if(a==='t4b'&&cap()){t4ref().update({clipViewed:true,stage:'answer',startedAt:now}).catch(err);}
 });
 setInterval(refresh,500);
 })();
