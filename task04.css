@@ -15,6 +15,10 @@
 /* Плашка: номер химеры и заряд — на свободном краю, не закрывает центр */
 #t4 .t4-hud{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:5;display:flex;gap:8px;align-items:center;background:rgba(15,32,37,.82);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:6px 12px}
 #t4 .t4-hud small{display:block;font-size:11px;color:#9fd8d8;line-height:1.1}
+#t4 .t4-hud-cap{position:relative;width:24px;flex:0 0 24px}
+#t4 .t4-hud-cap img{width:100%;display:block;border-radius:5px}
+#t4 .t4-hud-fill{position:absolute;left:0;right:0;bottom:0;overflow:hidden;height:0}
+#t4 .t4-hud-fill img{position:absolute;left:0;bottom:0;width:100%}
 #t4 .t4-hud strong{font-size:19px;color:#30e5dc;line-height:1.15}
 /* Панель ввода — сверху, с запасом справа под QR-виджет (≈120px), над видимой границей клавиатуры */
 #t4 .t4-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));width:min(96vw,560px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;background:rgba(13,22,26,.94);border:1px solid rgba(190,245,245,.25);border-radius:16px;padding:10px 12px;box-sizing:border-box}

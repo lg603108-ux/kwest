@@ -16,6 +16,7 @@ let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=nu
 let startTimer=null,watchdogTimer=null,tickTimer=null,mediaKey='',mediaRetries=0,starting=false;
 let t4Music=null,resSfxKey='',finalSfxDone=false;
 let resultKey='',advanceKey='',sfxCfKey='',sfxAtKey='',stageKey='';
+let answerRound=-1;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
 function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task04');}
@@ -26,14 +27,14 @@ function norm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(
 function matches(v,sp){return sp.words.some(function(w){return norm(w)===v;});}
 function round(){return ROUNDS[Math.min(9,Math.max(0,task&&typeof task.round==='number'?task.round:0))];}
 function playSfx(file,volume){try{var a=new Audio('assets/'+file);a.volume=volume;a.play().catch(function(){});}catch(e){}}
-function startMusic(){if(t4Music)return;try{t4Music=new Audio('assets/music_defense_loop.mp3');t4Music.loop=true;t4Music.volume=.06;t4Music.play().catch(function(){});}catch(e){t4Music=null;}}
+function startMusic(){if(t4Music){if(t4Music.paused)t4Music.play().catch(function(){});return;}try{t4Music=new Audio('assets/music_defense_loop.mp3');t4Music.loop=true;t4Music.volume=.06;t4Music.play().catch(function(){});}catch(e){t4Music=null;}}
 function stopMusic(){if(t4Music){try{t4Music.pause();}catch(e){}t4Music=null;}}
 function mount(container){
 if(root)unmount();
-active=true;mediaKey='';mediaRetries=0;starting=false;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';resSfxKey='';finalSfxDone=false;stopMusic();
+active=true;mediaKey='';mediaRetries=0;starting=false;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';resSfxKey='';finalSfxDone=false;answerRound=-1;stopMusic();
 root=document.createElement('div');root.id='t4';root.innerHTML=
 '<video class="t4-video" playsinline preload="auto"></video>'+
-'<div class="t4-hud" id="t4-hud" hidden><div><small id="t4-hud-round">ХИМЕРА 1 ИЗ 10</small><strong id="t4-hud-energy">⚡ 0</strong></div></div>'+
+'<div class="t4-hud" id="t4-hud" hidden><div class="t4-hud-cap"><img src="assets/capsule_healthy1.jpg" alt=""><div class="t4-hud-fill" id="t4-hud-fill"><img src="assets/capsule_healthy.jpg" alt=""></div></div><div><small id="t4-hud-round">ХИМЕРА 1 ИЗ 10</small><strong id="t4-hud-energy">0%</strong></div></div>'+
 '<section class="t4-screen t4-wait"><p class="t4-eyebrow">ЗАДАНИЕ 4</p><h1>Химеры</h1><p class="t4-note">В секторе появились химеры — существа из двух разных видов. Посмотрите короткое видео, обсудите и определите обоих животных. Капитан введёт названия в два поля. Если ответ не подойдёт, система поможет разобраться. Чем быстрее распознаете химеру, тем больше энергии получит капсула.</p><button id="t4-start" class="t4-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t4-note" id="t4-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<form class="t4-panel" id="t4-panel" hidden autocomplete="off">'+
 '<div class="t4-field"><label for="t4-fa">Животное 1</label><div class="t4-wrap"><input id="t4-fa" autocomplete="off" autocapitalize="off" enterkeyhint="go"><span class="t4-ok" id="t4-oka" hidden>✓</span></div></div>'+
@@ -51,7 +52,7 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><div class="t4-capsule"><img src="assets/capsule_healthy1.jpg" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.jpg" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
-'<p class="t4-build">Сборка 0311j</p>';
+'<p class="t4-build">Сборка 0311k</p>';
 container.appendChild(root);video=root.querySelector('.t4-video');
 els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media')};
 els.start.addEventListener('click',startIntro);
@@ -77,7 +78,7 @@ function onRoom(room){if(!active||!room)return;roomState=room;task=room.tasks&&r
 // --- инструкция и раунды ---
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait'||starting)return;
-starting=true;els.start.disabled=true;resSfxKey='';finalSfxDone=false;
+starting=true;els.start.disabled=true;resSfxKey='';finalSfxDone=false;answerRound=-1;
 write({stage:'intro',startsAt:Date.now(),round:0,energy:0,replays:0,clipViewed:false,completed:false})
 .catch(error).finally(function(){starting=false;if(els.start)els.start.disabled=false;});
 }
@@ -129,14 +130,10 @@ const key=(task.round||0)+':'+at;if(advanceKey===key)return;
 if(Date.now()<at+3500)return;
 advanceKey=key;
 if((task.round||0)>=9){
-const upd={};upd['rooms/'+NET.room.code+'/tasks/task04']={stage:'done',startsAt:Date.now(),completed:true};
-db().ref().update(upd).catch(function(e){advanceKey='';error(e);});
+write({stage:'done',startsAt:Date.now(),completed:true,requests:null}).catch(function(e){advanceKey='';});
 }else{
 const n=(task.round||0)+1;
-const upd={};
-upd['rooms/'+NET.room.code+'/tasks/task04']={stage:'clip',startsAt:Date.now()+600,round:n,clipViewed:false,replays:0,confirmed:{a:false,b:false},attempts:{a:0,b:0},hintLevel:{a:0,b:0},fields:{a:'',b:''}};
-upd['rooms/'+NET.room.code+'/tasks/task04/requests']=null;
-db().ref().update(upd).catch(function(e){advanceKey='';error(e);});
+write({stage:'clip',startsAt:Date.now()+600,round:n,clipViewed:false,replays:0,confirmed:{a:false,b:false},attempts:{a:0,b:0},hintLevel:{a:0,b:0},fields:{a:'',b:''},requests:null}).catch(function(e){advanceKey='';});
 }
 }
 function tick(){if(!active||!task)return;if(task.stage==='answer')renderTime();coordinate();
@@ -154,12 +151,12 @@ function render(){
 if(!root||!task)return;
 const stage=task.stage||'wait';
 els.wait.hidden=stage!=='wait';
-els.result.hidden=stage!=='result';
+els.result.hidden=true;
 els.done.hidden=stage!=='done';
 els.start.hidden=!cap();els.waitnote.hidden=cap();
 const inRound=(stage==='clip'||stage==='answer'||stage==='result');
 els.hud.hidden=!inRound;
-if(inRound){els.hudRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10';els.hudEnergy.textContent='⚡ '+(task.energy||0);}
+if(inRound){els.hudRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10';const ch=Math.max(0,Math.min(100,task.energy||0));els.hudEnergy.textContent=ch+'%';const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=ch+'%';}
 els.panel.hidden=!(stage==='answer'&&cap());
 els.watch.hidden=!(stage==='answer'&&!cap());
 if(stage==='answer'){renderAnswer();renderTime();}
@@ -186,8 +183,12 @@ if(stage==='clip'||stage==='answer'||stage==='result')startMusic();else stopMusi
 }
 function renderAnswer(){
 const R=round(),cf=task.confirmed||{},hl=task.hintLevel||{},fl=task.fields||{};
-if(document.activeElement!==els.fa&&els.fa.value!==(fl.a||''))els.fa.value=fl.a||'';
-if(document.activeElement!==els.fb&&els.fb.value!==(fl.b||''))els.fb.value=fl.b||'';
+const r=task.round||0;
+if(r!==answerRound){answerRound=r;els.fa.value=fl.a||'';els.fb.value=fl.b||'';}
+else{
+if(document.activeElement!==els.fa&&!els.fa.value&&fl.a)els.fa.value=fl.a;
+if(document.activeElement!==els.fb&&!els.fb.value&&fl.b)els.fb.value=fl.b;
+}
 els.fa.disabled=!!cf.a;els.fb.disabled=!!cf.b;
 els.oka.hidden=!cf.a;els.okb.hidden=!cf.b;
 renderHint(els.hintA,R.a,'Животное 1',hl.a||0);
@@ -207,12 +208,10 @@ el.innerHTML='<b>'+label+' ('+sp.name+'):</b> '+(level>=2?sp.h2:sp.h1);
 }
 function renderResult(){
 const R=round();
-els.resRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10 УГАДАНА';
 const charge=Math.max(0,Math.min(100,task.energy||0));
-const fill=document.getElementById('t4-res-fill');if(fill)fill.style.height=charge+'%';
-els.resNames.textContent=R.a.name+' + '+R.b.name;
-els.resGain.textContent='Заряд капсулы растёт…';
-els.resNote.textContent=(task.round||0)>=9?'Это была последняя химера.':'Следующая химера…';
+const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=charge+'%';
+els.hudEnergy.textContent=charge+'%';
+status('Химера угадана: '+R.a.name+' + '+R.b.name+'. Заряд капсулы '+charge+' %.');
 const rk=(task.round||0)+':'+(task.resultAt||0);if(rk!==resSfxKey){resSfxKey=rk;playSfx('sfx_capsule_charge.mp3',.6);}
 }
 // --- медиа ---

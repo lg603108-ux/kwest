@@ -1,6 +1,6 @@
 // task02.js — модуль задания 2 «Кристальный шифр» для командной интеграции (сборка 9).
 window.Task02=(function(){
-const MEDIA={intro:['assets/v02_intro.mp4','v02_intro.mp4'],sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],reveal:['assets/door_open_lum.mp4','door_open_lum.mp4']};
+const MEDIA={intro:['assets/v02_intro_light.mp4','assets/v02_intro.mp4','v02_intro.mp4'],sequence:['assets/crystal_sequence.mp4','crystal_sequence.mp4'],reveal:['assets/door_open_lum.mp4','door_open_lum.mp4']};
 const W='#ffffff';
 const SHAPES={
 diamond:'<svg viewBox="0 0 24 24"><path d="M12 2 L22 12 L12 22 L2 12 Z" fill="'+W+'"/></svg>',
@@ -92,7 +92,7 @@ function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
 S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
-if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';video.src=MEDIA.intro+'?v=9';video.load();}catch(e){}}
+if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';video.src=MEDIA.intro[0]+'?v=9';video.load();}catch(e){}}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
