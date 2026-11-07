@@ -45,7 +45,7 @@ root.innerHTML=
 '</div></div>'+
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
-'<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p><button class="t2-btn" id="t2-skip" type="button" hidden>Продолжить без видео →</button></div>'+
+'<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
 '<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311n</p></div>';
 video=root.querySelector('.t2-video');
 // Как в исходной версии октября: ролик начинает загружаться и играть сразу при входе в задание,
@@ -53,7 +53,7 @@ video=root.querySelector('.t2-video');
 // кнопки ролик уже загружен, поэтому запуск мгновенный.
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 try{video.preload='auto';lastSrc=MEDIA.intro[0]+'?v=9';video.src=lastSrc;video.muted=true;video.play().catch(function(){});}catch(e){}
-els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn'),skip:root.querySelector('#t2-skip')};
+els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
@@ -68,16 +68,8 @@ els.mediareqBtn.addEventListener('click',function(){
   video.play().then(function(){els.mediareq.hidden=true;},function(){});
 });
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
-// Ролик пошёл — убираем аварийные кнопки.
-video.addEventListener('playing',function(){clearTimeout(stallTimer);if(els.mediareq)els.mediareq.hidden=true;if(els.skip)els.skip.hidden=true;status('');});
-// Аварийный выход капитана: если ролик не идёт, квест не должен вставать намертво.
-els.skip.addEventListener('click',function(){
-if(!cap())return;
-clearTimeout(stallTimer);els.mediareq.hidden=true;els.skip.hidden=true;
-if(curStage==='intro')put({stage:'sequence',startsAt:Date.now()});
-else if(curStage==='sequence')put({stage:'swap',startsAt:Date.now()});
-else if(curStage==='reveal')put({stage:'done',startsAt:Date.now()});
-});
+// Ролик пошёл — убираем аварийную кнопку.
+video.addEventListener('playing',function(){clearTimeout(stallTimer);if(els.mediareq)els.mediareq.hidden=true;status('');});
 els.startBtn.addEventListener('click',function(){
 if(!cap())return;
 S.soundOn=true;video.muted=false;els.sound.textContent='♪';
@@ -158,15 +150,20 @@ video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
 video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
-// Если через 6 секунд картинки нет — показываем кнопку запуска и выход для капитана,
-// чтобы задание не висело молча.
+// Если через 6 секунд картинки нет — один раз перезагружаем файл и пробуем снова.
+// Если и это не помогло, показываем кнопку ручного запуска (без пропуска видео).
 clearTimeout(stallTimer);
 stallTimer=setTimeout(function(){
 if(!active||!video)return;
 if(!video.paused&&video.readyState>=2)return;
+status('Видео не начинается — перезагружаем…');
+try{video.src=src;video.load();video.play().catch(function(){});}catch(e){}
+stallTimer=setTimeout(function(){
+if(!active||!video)return;
+if(!video.paused&&video.readyState>=2)return;
 els.mediareq.hidden=false;
-if(cap())els.skip.hidden=false;
 status('Видео не начинается. Проверьте связь.');
+},8000);
 },6000);
 })();
 }
