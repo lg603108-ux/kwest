@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
-<link rel="stylesheet" href="task04.css?v=0311l">
+<link rel="stylesheet" href="task04.css?v=0311m">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -31,6 +31,16 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #home .home-right .primary{width:100%}
 @media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
 #skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
+/* Лобби: код, QR и кнопка старта — одной строкой */
+#lobby .roomcode{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:10px}
+#lobby .roomcode-main{display:flex;align-items:center;gap:10px;min-width:0}
+#lobby .roomcode-main span{font-size:13px;color:#9fd8d8;white-space:nowrap}
+#lobby .roomcode-main strong{font-size:22px;letter-spacing:1px;line-height:1}
+#lobby .roomcode-main button{min-height:36px;padding:6px 10px;font-size:12px;white-space:nowrap}
+#lobby .roomqr{flex:0 0 auto;line-height:0}
+#lobby .roomqr img,#lobby .roomqr canvas{width:64px;height:64px;display:block;border-radius:6px;background:#fff}
+#lobby .roomcode .lobby-start{flex:0 0 auto;min-height:44px;padding:8px 14px;font-size:14px;white-space:nowrap}
+@media(max-width:430px){#lobby .roomcode-main span{display:none}#lobby .roomcode-main strong{font-size:18px}#lobby .roomqr img,#lobby .roomqr canvas{width:52px;height:52px}#lobby .roomcode .lobby-start{padding:8px 10px;font-size:13px}}
 #task02-mount{position:fixed;inset:0;z-index:300;display:none;background:#000}
 #task02-mount.active{display:block}
 #t2 .t2-sound{display:none!important}
@@ -79,7 +89,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311l">
+<body data-build="0311m">
 <div id="app">
 
 <header id="topbar">
@@ -229,10 +239,10 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311k"></script>
+<script src="task02.js?v=0311m"></script>
 <script src="task03.js?v=0311g"></script>
-<script src="task04.js?v=0311l"></script>
-<script src="app.js?v=0311i"></script>
+<script src="task04.js?v=0311m"></script>
+<script src="app.js?v=0311m"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -503,22 +513,17 @@ t2root.appendChild(b);
 }
 }
 // --- тихий сторож видео задания 2 ---
-var wd={last:-1,stuck:0};
+// Только «дожать» воспроизведение, если оно не началось.
+// Перезагрузку файла (v.load()) здесь делать нельзя: пока ролик буферизуется, currentTime
+// стоит на нуле, сторож решал, что видео зависло, и запускал скачивание заново — так ролик
+// не мог догрузиться минутами. Загрузку и повторы теперь ведёт сам task02.js.
 function watchdog(){
 if(!inRoom())return;
 var r=NET.room;var st=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
 var v=document.querySelector('#t2 .t2-video');
-if(!v||!(st==='intro'||st==='sequence'||st==='reveal')){wd.last=-1;wd.stuck=0;return;}
+if(!v||!(st==='intro'||st==='sequence'||st==='reveal'))return;
 var at=(r.tasks.task02.startsAt)||0;
-if(v.paused){
-if(at&&Date.now()>at+1500){v.play().catch(function(){});}
-wd.last=-1;wd.stuck=0;return;
-}
-// Пока браузер активно загружает ролик, не обрываем загрузку: повторный load() мог держать игроков на пустом экране.
-if(v.readyState===0&&v.networkState===2){wd.last=v.currentTime;wd.stuck=0;return;}
-if(Math.abs(v.currentTime-wd.last)<0.01&&v.readyState<3){wd.stuck++;}else{wd.stuck=0;}
-wd.last=v.currentTime;
-if(wd.stuck>=4){wd.stuck=0;try{v.load();setTimeout(function(){v.play().catch(function(){});},300);}catch(e){}}
+if(v.paused&&at&&Date.now()>at+1500){v.play().catch(function(){});}
 }
 // --- код из QR подставляется в поле ввода ---
 var m=location.search.match(/[?&]room=([a-zA-Z0-9]+)/);

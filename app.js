@@ -178,8 +178,7 @@ if(host.dataset.sig===sig)return;host.dataset.sig=sig;
 host.innerHTML='<h2>Команда на связи</h2>'
 +'<p class="note">'+(room?(ph==='result'?'Оборона завершена. Ждите, пока капитан запустит повтор.':(isCap?(full?'Все в сборе — можно начинать квест.':'Ожидание игроков: подключилось '+online+' из '+size+'.'):'Подключилось '+online+' из '+size+'. Ждём старта капитана…')):'Подключаемся…')+'</p>'
 +'<div class="player-info"><strong>'+esc(player)+'</strong><small>'+(isCap?'Капитан':'В команде')+(room&&!NET.captainOnline()?' · ⚠ капитан не на связи — выбираем нового':'')+'</small></div>'
-+'<div class="roomcode"><div class="roomcode-main"><span>Сохраните код</span><strong id="room-code">'+(room?room.code.toLowerCase():'…')+'</strong><button class="secondary" id="room-copy" type="button">Копировать</button></div><div class="roomqr" id="room-qr"></div></div>'
-+'<div class="lobby-buttons">'+(isCap?'<button class="primary'+(ph==='lobby'?'':' hidden')+'" id="start-quest" type="button"'+(!full?' disabled':'')+'>Начать квест →</button>':'')+'<button class="secondary" id="leave-room" type="button">Назад</button></div>';
++'<div class="roomcode"><div class="roomcode-main"><span>Код команды</span><strong id="room-code">'+(room?room.code.toLowerCase():'…')+'</strong><button class="secondary" id="room-copy" type="button">Копировать</button></div><div class="roomqr" id="room-qr"></div>'+(isCap?'<button class="primary lobby-start'+(ph==='lobby'?'':' hidden')+'" id="start-quest" type="button"'+(!full?' disabled':'')+'>Начать квест →</button>':'')+'</div>';
 const qrEl=host.querySelector('#room-qr');
 if(qrEl&&room&&window.QRCode){const code=room.code.toLowerCase();if(qrEl.dataset.code!==code){qrEl.dataset.code=code;qrEl.innerHTML='';try{new QRCode(qrEl,{text:location.origin+location.pathname+'?room='+code,width:104,height:104,correctLevel:QRCode.CorrectLevel.M});}catch(e){}}}
 }

@@ -59,3 +59,12 @@
 #t4 .t4-capsule-fill{position:absolute;left:0;right:0;bottom:0;overflow:hidden;height:0}
 #t4 .t4-capsule-fill img{position:absolute;left:0;bottom:0;width:100%;border-radius:12px}
 #t4 .t4-gain{font-size:16px;font-weight:700;color:#30e5dc;margin:8px 0 0}
+/* Окно ввода: одно животное за раз, у верхнего края — в полосе над клавиатурой */
+#t4 .t4-kbwin{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;flex-direction:column;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 12px 10px;background:rgba(13,22,26,.98);border-bottom:1px solid rgba(190,245,245,.3);box-sizing:border-box}
+#t4 .t4-kbwin-label{font-size:13px;color:#9fd8d8;font-weight:700;margin:0}
+#t4 .t4-kbwin-input{width:100%;height:46px;box-sizing:border-box;padding:0 12px;border:1px solid #30e5dc;border-radius:10px;background:#14292f;color:#fff;font-size:18px;font-family:inherit}
+#t4 .t4-kbwin-hint{font-size:12px;line-height:1.3;color:#ffcf9f;margin:0;max-height:4.2em;overflow:auto}
+#t4 .t4-kbwin-hint span{display:block}
+#t4 .t4-kbwin-btns{display:flex;gap:8px}
+#t4 .t4-kbwin-btns button{flex:1}
+#t4 .t4-field input[readonly]{cursor:pointer}

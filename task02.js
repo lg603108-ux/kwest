@@ -19,7 +19,7 @@ const RIGHT=[{id:'oval',digit:1},{id:'infinity',digit:3},{id:'arc',digit:2},{id:
 const CODE=[1,2,3,5,8,9];
 const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
 const HINT_PLAYER='Расстановку выполняет капитан. Следите за ячейками и подсказывайте голосом.';
-let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait';
+let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait',lastSrc='';
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
 function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
@@ -46,7 +46,7 @@ root.innerHTML=
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
 '<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
-'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311g</p></div>';
+'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311m</p></div>';
 video=root.querySelector('.t2-video');
 els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
@@ -70,7 +70,7 @@ render(window.NET.room);
 window.NET.onRoom(function(room){if(active)render(room);});
 }
 function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+SHAPES[it.id]+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
-function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';}
+function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';lastSrc='';}
 function status(t){if(!els.status)return;els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){if(!els.hint)return;els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){if((curStage==='intro'||curStage==='wait')&&!cap()){S.soundOn=false;video.muted=true;els.sound.textContent='×';return;}S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
@@ -92,7 +92,7 @@ function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
 S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
-if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';video.src=MEDIA.intro[0]+'?v=9';video.load();}catch(e){}}
+if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';lastSrc=MEDIA.intro[0]+'?v=9';video.src=lastSrc;video.load();}catch(e){}}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
@@ -113,10 +113,14 @@ let i=0;
 if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
 els.mediareq.hidden=true;
 const src=list[i++]+'?v=9';
-video.src=src;video.muted=!S.soundOn;
+// Ролик уже предзагружен на экране ожидания: повторная установка того же src обрывала
+// загрузку и начинала скачивать файл заново — отсюда «кнопка думает минутами».
+if(lastSrc===src&&!video.error){try{video.currentTime=0;}catch(e){}}
+else{lastSrc=src;video.src=src;}
+video.muted=!S.soundOn;
 let settled=false;let seeked=false;
 const doSeek=function(){if(seeked||offset<=0.5)return;seeked=true;try{const d=video.duration||0;video.currentTime=d>0?Math.min(offset,Math.max(0,d-0.5)):offset;}catch(e){}};
-const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;tryOne();}},15000);
+const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;tryOne();}},30000);
 video.onloadedmetadata=function(){settled=true;clearTimeout(to);doSeek();};
 video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};

@@ -7,8 +7,8 @@ const ROUNDS=[
 {file:'chimera_04_lisa_gluhar.mp4',a:{name:'лиса',words:['лиса'],h1:'Рыжий хищник, известный в сказках хитростью.',h2:'Пушистый рыжий хвост с белым кончиком и острая мордочка.'},b:{name:'глухарь',words:['глухарь'],h1:'Крупная лесная птица, весной издаёт характерные щёлкающие звуки.',h2:'Во время части токовой песни хуже слышит; с этим связано её название.'}},
 {file:'chimera_05_los_mahaon.mp4',a:{name:'лось',words:['лось'],h1:'Самый крупный современный представитель семейства оленевых.',h2:'Длинные ноги, крупная вытянутая морда; у самцов широкие лопатообразные рога.'},b:{name:'махаон',words:['махаон','бабочка'],h1:'Крупная дневная бабочка с узорчатыми крыльями.',h2:'Жёлто-чёрные крылья с синими участками и хвостиками; можно ответить «бабочка».'}},
 {file:'chimera_06_medved_shchuka.mp4',a:{name:'медведь',words:['медведь'],h1:'Крупный лесной зверь, хозяин тайги; зимой спит в берлоге.',h2:'Косолапый зверь с бурой шерстью, мощными лапами и когтями.'},b:{name:'щука',words:['щука'],h1:'Пресноводная хищная рыба с длинным телом.',h2:'Зубастая речная охотница, атакующая добычу из засады.'}},
-{file:'chimera_07_rys_zhuk_olen.mp4',a:{name:'рысь',words:['рысь'],h1:'Дикая кошка с кисточками на ушах.',h2:'Пятнистая лесная кошка с коротким хвостом и широкими лапами.'},b:{name:'жук-олень',words:['жук олень'],h1:'Крупный жук, самцы которого выглядят рогатыми.',h2:'Его большие челюсти похожи на оленьи рога; нужен вид жука, а не слово «жук».'}},
-{file:'chimera_08_strekoza_zubr.mp4',a:{name:'стрекоза',words:['стрекоза'],h1:'Хищное насекомое, умеет зависать и быстро менять направление.',h2:'Четыре прозрачных крыла с сеткой жилок, длинное брюшко; часто летает над водой.'},b:{name:'зубр',words:['зубр'],h1:'Очень крупное дикое копытное европейских лесов.',h2:'Массивный лесной бык с высокой холкой, короткими рогами и густой шерстью спереди.'}},
+{file:'chimera_07_rys_zhuk_olen.mp4',a:{name:'рысь',words:['рысь'],h1:'Дикая кошка с кисточками на ушах.',h2:'Пятнистая лесная кошка с коротким хвостом и широкими лапами.'},b:{name:'жук-олень',words:['жук олень','жук','жуколень','жук олень'],h1:'Крупный жук, самцы которого выглядят рогатыми.',h2:'Его большие челюсти похожи на оленьи рога. Принимается и просто «жук».'}},
+{file:'chimera_08_strekoza_zubr.mp4',a:{name:'стрекоза',words:['стрекоза'],h1:'Хищное насекомое, умеет зависать и быстро менять направление.',h2:'Четыре прозрачных крыла с сеткой жилок, длинное брюшко; часто летает над водой.'},b:{name:'бобр',words:['бобр','бобер','бобёр'],h1:'Грызун, который живёт у воды и строит плотины.',h2:'Валит деревья острыми зубами и строит хатку; хвост плоский, похож на лопату.'}},
 {file:'chimera_09_svetlyachok_vydra.mp4',a:{name:'светлячок',words:['светлячок'],h1:'Маленькое насекомое, светящееся летними ночами.',h2:'Это жук со светящимся брюшком; свет помогает находить партнёра.'},b:{name:'выдра',words:['выдра'],h1:'Ловкий водный хищник, живёт у рек и озёр.',h2:'Длинное гибкое тело, короткие лапы с перепонками и сильный хвост; ловит рыбу.'}},
 {file:'chimera_10_utka_zayats.mp4',a:{name:'утка',words:['утка'],h1:'Водоплавающая птица рек и озёр.',h2:'Широкий уплощённый клюв и лапы с перепонками; характерно крякает.'},b:{name:'заяц',words:['заяц'],h1:'Травоядный зверёк, очень быстро бегает.',h2:'Длинные уши, короткие передние и сильные длинные задние лапы для прыжков.'}}
 ];
@@ -16,7 +16,7 @@ let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=nu
 let startTimer=null,watchdogTimer=null,tickTimer=null,mediaKey='',mediaRetries=0,starting=false;
 let t4Music=null,resSfxKey='',finalSfxDone=false;
 let resultKey='',advanceKey='',sfxCfKey='',sfxAtKey='',stageKey='';
-let answerRound=-1;
+let answerRound=-1,kbField=null;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
 function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task04');}
@@ -37,8 +37,8 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<div class="t4-hud" id="t4-hud" hidden><div class="t4-hud-cap"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-hud-fill" id="t4-hud-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><div><small id="t4-hud-round">ХИМЕРА 1 ИЗ 10</small><strong id="t4-hud-energy">0%</strong></div></div>'+
 '<section class="t4-screen t4-wait"><p class="t4-eyebrow">ЗАДАНИЕ 4</p><h1>Химеры</h1><p class="t4-note">В секторе появились химеры — существа из двух разных видов. Посмотрите короткое видео, обсудите и определите обоих животных. Капитан введёт названия в два поля. Если ответ не подойдёт, система поможет разобраться. Чем быстрее распознаете химеру, тем больше энергии получит капсула.</p><button id="t4-start" class="t4-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t4-note" id="t4-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<form class="t4-panel" id="t4-panel" hidden autocomplete="off">'+
-'<div class="t4-field"><label for="t4-fa">Животное 1</label><div class="t4-wrap"><input id="t4-fa" autocomplete="off" autocapitalize="off" enterkeyhint="go"><span class="t4-ok" id="t4-oka" hidden>✓</span></div></div>'+
-'<div class="t4-field"><label for="t4-fb">Животное 2</label><div class="t4-wrap"><input id="t4-fb" autocomplete="off" autocapitalize="off" enterkeyhint="go"><span class="t4-ok" id="t4-okb" hidden>✓</span></div></div>'+
+'<div class="t4-field"><label for="t4-fa">Животное 1</label><div class="t4-wrap"><input id="t4-fa" readonly inputmode="none" autocomplete="off" autocapitalize="off"><span class="t4-ok" id="t4-oka" hidden>✓</span></div></div>'+
+'<div class="t4-field"><label for="t4-fb">Животное 2</label><div class="t4-wrap"><input id="t4-fb" readonly inputmode="none" autocomplete="off" autocapitalize="off"><span class="t4-ok" id="t4-okb" hidden>✓</span></div></div>'+
 '<button class="t4-primary" type="submit" id="t4-check">Проверить</button>'+
 '<button class="t4-secondary" type="button" id="t4-replay">↻ Посмотреть ещё раз</button>'+
 '<button class="t4-secondary" type="button" id="t4-kb">Скрыть клавиатуру</button>'+
@@ -47,18 +47,26 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<p class="t4-hintline" id="t4-hintb" hidden></p>'+
 '<p class="t4-reqnote" id="t4-req" hidden></p>'+
 '</form>'+
+'<div class="t4-kbwin" id="t4-kbwin" hidden><p class="t4-kbwin-label" id="t4-kbwin-label">Животное 1</p><input class="t4-kbwin-input" id="t4-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><p class="t4-kbwin-hint" id="t4-kbwin-hint" hidden></p><div class="t4-kbwin-btns"><button class="t4-primary" type="button" id="t4-kbwin-ok">Далее</button><button class="t4-secondary" type="button" id="t4-kbwin-cancel">Отмена</button></div></div>'+
 '<div class="t4-watch" id="t4-watch" hidden><p class="t4-caption">Назовите капитану оба животных</p><button class="t4-secondary" type="button" id="t4-reqbtn">Попросить повтор</button></div>'+
 '<section class="t4-screen t4-result" id="t4-result" hidden><p class="t4-eyebrow" id="t4-res-round">ХИМЕРА УГАДАНА</p><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-res-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-names" id="t4-res-names"></p><p class="t4-gain" id="t4-res-gain"></p><p class="t4-note" id="t4-res-note"></p></section>'+
 '<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
-'<p class="t4-build">Сборка 0311l</p>';
+'<p class="t4-build">Сборка 0311m</p>';
 container.appendChild(root);video=root.querySelector('.t4-video');
-els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media')};
+els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
 els.start.addEventListener('click',startIntro);
 els.panel.addEventListener('submit',function(e){e.preventDefault();submitAnswers();});
 els.replay.addEventListener('click',requestReplayByCaptain);
-els.kb.addEventListener('click',function(){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();});
+els.kb.addEventListener('click',function(){closeKb();});
+// Поля в панели только показывают введённое. Ввод идёт в отдельном окне у верхнего края:
+// на телефоне клавиатура занимает почти весь экран, и поле внизу оказывается под ней.
+els.fa.addEventListener('click',function(){openKb('a');});
+els.fb.addEventListener('click',function(){openKb('b');});
+els.kbOk.addEventListener('click',kbNext);
+els.kbCancel.addEventListener('click',function(){kbSave();closeKb();});
+els.kbInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();kbNext();}});
 els.reqbtn.addEventListener('click',requestReplayByPlayer);
 roomOff=NET.onRoom(onRoom);
 tickTimer=setInterval(tick,500);
@@ -69,7 +77,7 @@ startTimer=null;
 if(typeof roomOff==='function')roomOff();roomOff=null;
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;els={};roomState=null;task=null;mediaKey='';mediaRetries=0;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';
+root=null;video=null;els={};roomState=null;task=null;mediaKey='';mediaRetries=0;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';kbField=null;
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
@@ -102,16 +110,77 @@ db().ref('rooms/'+NET.room.code+'/tasks/task04/requests/'+NET.uid).set({round:ta
 .then(function(){status('Капитан видит вашу просьбу показать клип ещё раз.');})
 .catch(function(e){status('Не удалось отправить просьбу: '+(e&&e.message||e));});
 }
+// --- окно ввода: одно животное за раз, у верхнего края экрана ---
+// На телефоне клавиатура занимает почти весь экран, поэтому поле ввода держим в верхней
+// видимой полосе, а не в панели у нижнего края.
+function hintHtml(){
+const R=round(),hl=(task&&task.hintLevel)||{},cf=(task&&task.confirmed)||{};
+let out='';
+if(!cf.a&&(hl.a||0))out+='<span><b>Подсказка 1:</b> '+((hl.a||0)>=2?R.a.h2:R.a.h1)+'</span>';
+if(!cf.b&&(hl.b||0))out+='<span><b>Подсказка 2:</b> '+((hl.b||0)>=2?R.b.h2:R.b.h1)+'</span>';
+return out;
+}
+function openKb(which){
+if(!cap()||!task||task.stage!=='answer')return;
+const cf=task.confirmed||{};
+if(which==='a'&&cf.a)return;
+if(which==='b'&&cf.b)return;
+kbField=which;
+els.kbLabel.textContent=which==='a'?'Животное 1':'Животное 2';
+els.kbInput.value=which==='a'?els.fa.value:els.fb.value;
+const h=hintHtml();
+els.kbHint.hidden=!h;els.kbHint.innerHTML=h;
+els.kbOk.textContent=which==='a'?'Далее':'Проверить';
+els.kbwin.hidden=false;
+setTimeout(function(){if(!active||!els.kbInput)return;try{els.kbInput.focus();}catch(e){}},60);
+}
+function kbSave(){
+if(!kbField)return;
+if(kbField==='a')els.fa.value=els.kbInput.value;else els.fb.value=els.kbInput.value;
+}
+function closeKb(){
+kbField=null;
+if(els.kbInput&&els.kbInput.blur)els.kbInput.blur();
+if(els.kbwin)els.kbwin.hidden=true;
+}
+function kbNext(){
+if(!kbField)return;
+const was=kbField;
+kbSave();
+const cf=(task&&task.confirmed)||{};
+if(was==='a'&&!cf.b){openKb('b');return;}
+closeKb();
+submitAnswers();
+}
 // --- проверка ответов (капитан) ---
 function submitAnswers(){
 if(!cap()||!task||task.stage!=='answer')return;
 const R=round(),cf=task.confirmed||{},at=task.attempts||{},hl=task.hintLevel||{};
 const va=norm(els.fa.value),vb=norm(els.fb.value);
 const upd={'fields/a':els.fa.value,'fields/b':els.fb.value};
-let anyInput=false,wrong=false;
-if(!cf.a&&va){anyInput=true;if(matches(va,R.a))upd['confirmed/a']=true;else{upd['attempts/a']=(at.a||0)+1;if((hl.a||0)<2)upd['hintLevel/a']=(hl.a||0)+1;wrong=true;}}
-if(!cf.b&&vb){anyInput=true;if(matches(vb,R.b))upd['confirmed/b']=true;else{upd['attempts/b']=(at.b||0)+1;if((hl.b||0)<2)upd['hintLevel/b']=(hl.b||0)+1;wrong=true;}}
-if(!anyInput){status('Введите хотя бы одно название.');return;}
+const pending=[];
+if(!cf.a&&va)pending.push({key:'a',v:va});
+if(!cf.b&&vb)pending.push({key:'b',v:vb});
+if(!pending.length){status('Введите хотя бы одно название.');return;}
+let wrongCount=0;
+// Порядок животных любой: каждое введённое название сверяем с обоими животными химеры.
+pending.forEach(function(p){
+const other=p.key==='a'?'b':'a';
+const otherDone=!!(cf[other]||upd['confirmed/'+other]);
+if(!otherDone&&matches(p.v,R[other])){upd['confirmed/'+other]=true;return;}
+if(matches(p.v,R[p.key])){upd['confirmed/'+p.key]=true;return;}
+upd['attempts/'+p.key]=(at[p.key]||0)+1;
+wrongCount++;
+});
+// Подсказки привязаны к животным, а не к полям: повышаем уровень первого неотгаданного.
+const bumped={};
+for(let i=0;i<wrongCount;i++){
+const t=!(cf.a||upd['confirmed/a'])&&!bumped.a?'a':(!(cf.b||upd['confirmed/b'])&&!bumped.b?'b':null);
+if(!t)break;
+bumped[t]=true;
+const cur=upd['hintLevel/'+t]!==undefined?upd['hintLevel/'+t]:(hl[t]||0);
+if(cur<2)upd['hintLevel/'+t]=cur+1;
+}
 const both=!!(upd['confirmed/a']||(cf.a))&&!!(upd['confirmed/b']||(cf.b));
 if(both){
 const elapsed=Date.now()-(task.startedAt||Date.now());
@@ -119,7 +188,7 @@ const gain=elapsed<30000?10:elapsed<45000?7:elapsed<60000?3:0;
 upd.stage='result';upd.resultAt=Date.now();upd.gained=gain;upd.energy=(task.energy||0)+gain;
 }
 write(upd).catch(function(){});
-if(wrong)status('Не подходит. Смотрите подсказку под полем.');
+if(wrongCount)status('Не подходит. Смотрите подсказку под полем.');
 else status('');
 }
 // --- координация: авто-переход после короткого результата (~5 с), только капитан ---
@@ -159,6 +228,7 @@ els.hud.hidden=!inRound;
 if(inRound){els.hudRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10';const ch=Math.max(0,Math.min(100,task.energy||0));els.hudEnergy.textContent=ch+'%';const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=ch+'%';}
 els.panel.hidden=!(stage==='answer'&&cap());
 els.watch.hidden=!(stage==='answer'&&!cap());
+if(stage!=='answer'&&kbField)closeKb();
 if(stage==='answer'){renderAnswer();renderTime();}
 if(stage==='result')renderResult();
 if(stage==='done'){const df=document.getElementById('t4-done-fill');if(df)df.style.height='100%';if(!finalSfxDone){finalSfxDone=true;playSfx('sfx_crystal_ready.mp3',.6);}}
@@ -191,8 +261,8 @@ if(document.activeElement!==els.fb&&!els.fb.value&&fl.b)els.fb.value=fl.b;
 }
 els.fa.disabled=!!cf.a;els.fb.disabled=!!cf.b;
 els.oka.hidden=!cf.a;els.okb.hidden=!cf.b;
-renderHint(els.hintA,R.a,'Животное 1',hl.a||0);
-renderHint(els.hintB,R.b,'Животное 2',hl.b||0);
+renderHint(els.hintA,R.a,'Подсказка 1',hl.a||0);
+renderHint(els.hintB,R.b,'Подсказка 2',hl.b||0);
 // Просьбы о повторе — видит капитан.
 const reqs=task.requests||{};const names=[];
 Object.keys(reqs).forEach(function(uid){
@@ -201,10 +271,11 @@ if(reqs[uid]&&reqs[uid].round===(task.round||0)){const p=roomState&&roomState.pl
 if(names.length){els.req.hidden=false;els.req.textContent='Просят повтор: '+names.join(', ')+' — кнопка «Посмотреть ещё раз» покажет клип всем.';}
 else els.req.hidden=true;
 }
+// В подсказке НЕ должно быть названия животного: иначе ответ виден сразу.
 function renderHint(el,sp,label,level){
 if(!level){el.hidden=true;return;}
 el.hidden=false;
-el.innerHTML='<b>'+label+' ('+sp.name+'):</b> '+(level>=2?sp.h2:sp.h1);
+el.innerHTML='<b>'+label+':</b> '+(level>=2?sp.h2:sp.h1);
 }
 function renderResult(){
 const R=round();
