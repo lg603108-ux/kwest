@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
-<link rel="stylesheet" href="task04.css?v=0311m">
+<link rel="stylesheet" href="task04.css?v=0311n">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -89,7 +89,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311m">
+<body data-build="0311n">
 <div id="app">
 
 <header id="topbar">
@@ -239,10 +239,10 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311m"></script>
+<script src="task02.js?v=0311n"></script>
 <script src="task03.js?v=0311g"></script>
-<script src="task04.js?v=0311m"></script>
-<script src="app.js?v=0311m"></script>
+<script src="task04.js?v=0311n"></script>
+<script src="app.js?v=0311n"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -430,7 +430,9 @@ var code=roomCode();
 var scr=document.body.dataset.screen||'';
 var blocked=false;
 widget.style.display=(code&&!blocked)?'flex':'none';
-var center=(scr==='battle');
+// В задании 2 на этапе ввода цифр QR уводим вверх по центру: справа он перекрывал цифры.
+var t2st='';try{t2st=(NET.room&&NET.room.tasks&&NET.room.tasks.task02&&NET.room.tasks.task02.stage)||'';}catch(e){}
+var center=(scr==='battle')||(scr==='task02'&&t2st==='swap');
 widget.style.left=center?'50%':'auto';
 widget.style.right=center?'auto':'6px';
 widget.style.transform=center?'translateX(-50%)':'none';

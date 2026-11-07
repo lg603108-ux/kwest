@@ -19,7 +19,7 @@ const RIGHT=[{id:'oval',digit:1},{id:'infinity',digit:3},{id:'arc',digit:2},{id:
 const CODE=[1,2,3,5,8,9];
 const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
 const HINT_PLAYER='Расстановку выполняет капитан. Следите за ячейками и подсказывайте голосом.';
-let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait',lastSrc='';
+let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait',lastSrc='',stallTimer=null;
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
 function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
@@ -45,10 +45,15 @@ root.innerHTML=
 '</div></div>'+
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
-'<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
-'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311m</p></div>';
+'<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p><button class="t2-btn" id="t2-skip" type="button" hidden>Продолжить без видео →</button></div>'+
+'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311n</p></div>';
 video=root.querySelector('.t2-video');
-els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn')};
+// Как в исходной версии октября: ролик начинает загружаться и играть сразу при входе в задание,
+// без ожидания нажатия. Звук выключен, картинка закрыта экраном описания. К моменту нажатия
+// кнопки ролик уже загружен, поэтому запуск мгновенный.
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+try{video.preload='auto';lastSrc=MEDIA.intro[0]+'?v=9';video.src=lastSrc;video.muted=true;video.play().catch(function(){});}catch(e){}
+els={left:root.querySelector('#t2-left'),right:root.querySelector('#t2-right'),status:root.querySelector('#t2-status'),sound:root.querySelector('#t2-sound'),bottom:root.querySelector('#t2-bottom'),hint:root.querySelector('#t2-hint'),cells:root.querySelector('#t2-cells'),buttons:root.querySelector('#t2-buttons'),remove:root.querySelector('#t2-remove'),repeat:root.querySelector('#t2-repeat'),check:root.querySelector('#t2-check'),nextwrap:root.querySelector('#t2-nextwrap'),continueBtn:root.querySelector('#t2-continue'),playernote:root.querySelector('#t2-playernote'),donenote:root.querySelector('#t2-donenote'),start:root.querySelector('#t2-start'),startBtn:root.querySelector('#t2-start-btn'),waitnote:root.querySelector('#t2-waitnote'),mediareq:root.querySelector('#t2-mediareq'),mediareqBtn:root.querySelector('#t2-mediareq-btn'),skip:root.querySelector('#t2-skip')};
 LEFT.forEach(function(it){els.left.appendChild(makeRow(it));});
 RIGHT.forEach(function(it){els.right.appendChild(makeRow(it));});
 els.cells.addEventListener('click',function(e){const c=e.target.closest('.t2-cell');if(c)onCell(+c.dataset.i);});
@@ -63,14 +68,34 @@ els.mediareqBtn.addEventListener('click',function(){
   video.play().then(function(){els.mediareq.hidden=true;},function(){});
 });
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
-els.startBtn.addEventListener('click',function(){if(!cap())return;S.soundOn=true;video.muted=false;els.sound.textContent='♪';goFullscreen();els.startBtn.disabled=true;status('Запускаем видео для всех…');put({stage:'intro',startsAt:Date.now()+1200,rev:1});});
+// Ролик пошёл — убираем аварийные кнопки.
+video.addEventListener('playing',function(){clearTimeout(stallTimer);if(els.mediareq)els.mediareq.hidden=true;if(els.skip)els.skip.hidden=true;status('');});
+// Аварийный выход капитана: если ролик не идёт, квест не должен вставать намертво.
+els.skip.addEventListener('click',function(){
+if(!cap())return;
+clearTimeout(stallTimer);els.mediareq.hidden=true;els.skip.hidden=true;
+if(curStage==='intro')put({stage:'sequence',startsAt:Date.now()});
+else if(curStage==='sequence')put({stage:'swap',startsAt:Date.now()});
+else if(curStage==='reveal')put({stage:'done',startsAt:Date.now()});
+});
+els.startBtn.addEventListener('click',function(){
+if(!cap())return;
+S.soundOn=true;video.muted=false;els.sound.textContent='♪';
+goFullscreen();els.startBtn.disabled=true;
+// Запуск прямо в обработчике нажатия (жест пользователя) — как в версии октября.
+// Раньше play() вызывался через 1.2 с по таймеру, и браузер мог отклонить запуск.
+els.start.hidden=true;status('');
+try{video.currentTime=0;}catch(e){}
+video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
+put({stage:'intro',startsAt:Date.now(),rev:1});
+});
 root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
 renderCells();
 render(window.NET.room);
 window.NET.onRoom(function(room){if(active)render(room);});
 }
 function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+SHAPES[it.id]+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
-function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';lastSrc='';}
+function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);clearTimeout(stallTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';lastSrc='';}
 function status(t){if(!els.status)return;els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){if(!els.hint)return;els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){if((curStage==='intro'||curStage==='wait')&&!cap()){S.soundOn=false;video.muted=true;els.sound.textContent='×';return;}S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
@@ -92,8 +117,15 @@ function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);
 S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
-if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');try{video.preload='auto';lastSrc=MEDIA.intro[0]+'?v=9';video.src=lastSrc;video.load();}catch(e){}}
-else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.intro,at,'intro');}
+if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');
+// На экране описания ролик идёт без звука у всех, включая капитана: иначе его музыка
+// слышна ещё до нажатия кнопки. Звук включается только по нажатию.
+S.soundOn=false;video.muted=true;els.sound.textContent='×';
+if(video&&video.paused&&!video.error){video.play().catch(function(){});}}
+else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;
+// У капитана ролик уже запущен нажатием кнопки — не перезапускаем его и не трогаем src.
+if(cap()&&!video.paused&&lastSrc===MEDIA.intro[0]+'?v=9'){status('');}
+else{schedulePlay(MEDIA.intro,at,'intro');}}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
 if(cap()){els.buttons.hidden=false;els.hint.style.display='';hint(HINT_SWAP);els.cells.style.pointerEvents='auto';els.left.style.pointerEvents='auto';els.right.style.pointerEvents='auto';}
@@ -126,6 +158,16 @@ video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
 video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
+// Если через 6 секунд картинки нет — показываем кнопку запуска и выход для капитана,
+// чтобы задание не висело молча.
+clearTimeout(stallTimer);
+stallTimer=setTimeout(function(){
+if(!active||!video)return;
+if(!video.paused&&video.readyState>=2)return;
+els.mediareq.hidden=false;
+if(cap())els.skip.hidden=false;
+status('Видео не начинается. Проверьте связь.');
+},6000);
 })();
 }
 function onRow(d){
