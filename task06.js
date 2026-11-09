@@ -74,7 +74,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311z</p>';
+'<p class="t6-build">Сборка 0311aa</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -368,7 +368,7 @@ if(!video)return;
 stopMedia();
 const src=stage==='intro'?'assets/v06_intro.mp4':'assets/lum_dance.mp4';
 mediaStage=stage;mediaKey=stage;pbKey='';
-video.muted=(stage==='intro')?!cap():false;
+video.muted=false;
 video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
@@ -385,14 +385,19 @@ video.load();
 }
 function playWhenReady(){
 if(!video||!active)return;
+status('Загружаем видео…');
 const p=video.play();
 if(!p||!p.then){hideMediaBtn();return;}
 p.then(function(){if(!active)return;hideMediaBtn();status('');},function(){
+// Звук обязателен: без него ролик не запускаем, а просим одно касание.
 if(!active||!video)return;
-video.muted=true;
-video.play().catch(function(){});
-status(mediaStage==='dance'?'Коснитесь экрана, чтобы включить звук.':'');
-if(cap()&&mediaStage==='intro')showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){if(video)video.muted=false;});
+status('');
+showMediaBtn('▶ Смотреть со звуком',function(){
+if(!video)return;
+video.muted=false;
+const q=video.play();
+if(q&&q.catch)q.catch(function(){status('Не удалось запустить. Коснитесь ещё раз.');});
+});
 });
 }
 function coordinate(){
@@ -416,7 +421,15 @@ const target=playing?base+Math.max(0,(Date.now()-(+task.startsAt||Date.now()))/1
 const dur=video.duration||0;
 const clamped=dur>0?Math.min(target,Math.max(0,dur-0.15)):target;
 if(playing){
-if(video.paused)try{video.play().catch(function(){});}catch(e){}
+if(video.paused){
+try{
+const pr=video.play();
+if(pr&&pr.catch)pr.catch(function(){
+if(!active||!video)return;
+if(els.media&&els.media.hidden)showMediaBtn('▶ Смотреть со звуком',function(){if(video){video.muted=false;video.play().catch(function(){});}});
+});
+}catch(e){}
+}
 if(Math.abs((video.currentTime||0)-clamped)>1.2)try{video.currentTime=clamped;}catch(e){}
 }else{
 if(!video.paused)try{video.pause();}catch(e){}
@@ -429,7 +442,7 @@ els.toggle.textContent=video.paused?'▶ Играть':'⏸ Пауза';
 }
 if(stage==='intro'&&c&&+task.startsAt&&Date.now()-(+task.startsAt)>120000)introDone();
 // Звук: если звук ролика браузер не дал — играет тихая музыка; на игре музыка фоном всегда.
-if(stage==='dance'){if(video&&video.muted)startMusic();else stopMusic();}
+if(stage==='dance')stopMusic();
 else if(stage==='order'||stage==='word'||stage==='done')startMusic();
 else if(stage!=='wait')stopMusic();
 }
