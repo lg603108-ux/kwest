@@ -22,7 +22,7 @@ const WORD='портал';
 const HINT_ORDER=['','Вспомните, какие движения появлялись в танце первыми.','Пересмотрите танец и обратите внимание на первое появление каждого движения.','Проверьте начало: первым идёт прыжок, вторым — оборот.'];
 const HINT_WORD=['','Посмотрите на названия выбранных движений.','Используйте первые буквы названий движений.','Первая буква — П, последняя — Л.'];
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
-let tickTimer=null,mediaTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
+let tickTimer=null,mediaTimer=null,wdTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
 let picked=-1,kbOpen=false,localHintOrder=0,localHintWord=0,localOrderAt=0,localFailWordAt=0,lastSubmit=0,cardKey='',slotKey='',shuffling=false;
 // Тихая фоновая музыка (тот же трек, что в заданиях 4 и 5): на танце, если звук ролика браузер не дал,
 // и на самой игре — сборка порядка, ввод слова, финал.
@@ -107,7 +107,7 @@ if(!active||!task)return;
 const st=task.stage||'';
 if(st==='order'||st==='word'||st==='done')startMusic();
 else if(st==='dance'){
-if(video&&video.muted){video.muted=false;try{video.play().catch(function(){});}catch(e){}}
+if(video&&video.muted){video.muted=!cap();try{video.play().catch(function(){});}catch(e){}}
 if(video&&video.muted)startMusic();
 }
 },true);
@@ -353,7 +353,9 @@ els.cards.innerHTML=h;
 }
 }
 // --- видео: инструкция и танец ---
+function clearWd(){if(wdTimer){clearTimeout(wdTimer);wdTimer=null;}}
 function stopMedia(){
+clearWd();
 if(!video)return;
 mediaKey='';
 video.onloadeddata=null;video.onerror=null;video.onended=null;
@@ -368,36 +370,54 @@ if(!video)return;
 stopMedia();
 const src=stage==='intro'?'assets/v06_intro.mp4':'assets/lum_dance.mp4';
 mediaStage=stage;mediaKey=stage;pbKey='';
-video.muted=false;
+video.muted=!cap();
 video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
+clearWd();mediaRetries=0;
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
 playWhenReady();
 };
-video.onerror=function(){if(!active||mediaKey!==stage)return;
-if((+mediaRetries||0)<2){mediaRetries=(+mediaRetries||0)+1;status('Повторная загрузка видео…');clearMedia();mediaTimer=setTimeout(function(){mediaTimer=null;if(!active||mediaKey!==stage)return;try{video.src=src;video.load();}catch(e){}},1500);return;}
-status('Не удалось загрузить видео. Проверьте соединение.');
-if(cap()&&stage==='intro')showMediaBtn('Продолжить →',introDone);
-if(cap()&&stage==='dance')showMediaBtn('К сборке движений →',function(){write({stage:'order',watched:true,playing:false});});
+video.onerror=function(){
+if(!active||mediaKey!==stage||!video)return;
+clearMedia();
+if((+mediaRetries||0)<6){
+mediaRetries=(+mediaRetries||0)+1;
+status('Видео не загрузилось, пробуем ещё раз… (попытка '+mediaRetries+')');
+mediaTimer=setTimeout(function(){mediaTimer=null;if(!active||mediaKey!==stage||!video)return;try{video.src=src;video.load();}catch(e){}},1500);
+return;
+}
+status('');
+if(cap())showMediaBtn('▶ Запустить видео',function(){mediaRetries=0;try{video.src=src;video.load();}catch(e){}});
+else status('Ждём капитана: он запустит видео.');
 };
 video.onended=onVideoEnded;
 video.load();
+// Сторож: если первый кадр не появился за 10 секунд — сообщаем и пробуем заново.
+clearWd();
+wdTimer=setTimeout(function(){
+wdTimer=null;
+if(!active||mediaKey!==stage||!video)return;
+if(video.readyState>=2)return;
+if((+mediaRetries||0)<6){
+mediaRetries=(+mediaRetries||0)+1;
+status('Видео не загрузилось, пробуем ещё раз… (попытка '+mediaRetries+')');
+try{video.src=src;video.load();}catch(e){}
+}else{
+status('');
+if(cap())showMediaBtn('▶ Запустить видео',function(){mediaRetries=0;try{video.src=src;video.load();}catch(e){}});
+else status('Ждём капитана: он запустит видео.');
+}
+},10000);
 }
 function playWhenReady(){
 if(!video||!active)return;
-status('Загружаем видео…');
 const p=video.play();
 if(!p||!p.then){hideMediaBtn();return;}
 p.then(function(){if(!active)return;hideMediaBtn();status('');},function(){
-// Звук обязателен: без него ролик не запускаем, а просим одно касание.
 if(!active||!video)return;
+video.muted=true;
+video.play().catch(function(){});
 status('');
-showMediaBtn('▶ Смотреть со звуком',function(){
-if(!video)return;
-video.muted=false;
-const q=video.play();
-if(q&&q.catch)q.catch(function(){status('Не удалось запустить. Коснитесь ещё раз.');});
-});
 });
 }
 function coordinate(){
@@ -422,13 +442,7 @@ const dur=video.duration||0;
 const clamped=dur>0?Math.min(target,Math.max(0,dur-0.15)):target;
 if(playing){
 if(video.paused){
-try{
-const pr=video.play();
-if(pr&&pr.catch)pr.catch(function(){
-if(!active||!video)return;
-if(els.media&&els.media.hidden)showMediaBtn('▶ Смотреть со звуком',function(){if(video){video.muted=false;video.play().catch(function(){});}});
-});
-}catch(e){}
+try{video.play().catch(function(){});}catch(e){}
 }
 if(Math.abs((video.currentTime||0)-clamped)>1.2)try{video.currentTime=clamped;}catch(e){}
 }else{
@@ -442,7 +456,7 @@ els.toggle.textContent=video.paused?'▶ Играть':'⏸ Пауза';
 }
 if(stage==='intro'&&c&&+task.startsAt&&Date.now()-(+task.startsAt)>120000)introDone();
 // Звук: если звук ролика браузер не дал — играет тихая музыка; на игре музыка фоном всегда.
-if(stage==='dance')stopMusic();
+if(stage==='dance'){if(!cap())startMusic();else stopMusic();}
 else if(stage==='order'||stage==='word'||stage==='done')startMusic();
 else if(stage!=='wait')stopMusic();
 }
