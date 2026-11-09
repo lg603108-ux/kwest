@@ -61,10 +61,10 @@ root=document.createElement('div');root.id='t5';root.innerHTML=
 '<form class="t5-panel" id="t5-panel" hidden autocomplete="off"><label for="t5-answer">Фраза</label><input id="t5-answer" readonly inputmode="none" autocomplete="off" autocapitalize="off" placeholder="Введите услышанную фразу"><button class="t5-primary" type="submit" id="t5-check">Проверить</button></form>'+
 '<div class="t5-kbwin" id="t5-kbwin" hidden><p class="t5-kbwin-label">Введите услышанную фразу</p><div class="t5-kbrow"><input class="t5-kbwin-input" id="t5-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t5-primary t5-kbok" type="button" id="t5-kbwin-ok">Проверить</button></div><button class="t5-kblink" type="button" id="t5-kbwin-cancel">Отмена</button></div>'+
 '<div class="t5-result" id="t5-result" hidden><p class="t5-res-title">ФРАЗА РАЗГАДАНА</p><p class="t5-res-phrase" id="t5-res-phrase"></p></div>'+
-'<section class="t5-screen t5-done" hidden><p class="t5-eyebrow">ЗАДАНИЕ 5 ЗАВЕРШЕНО</p><h1>Сообщение собрано</h1><p class="t5-full" id="t5-full"></p><p class="t5-note">Танец откроет путь. Следующее задание появится в следующем обновлении.</p></section>'+
+'<section class="t5-screen t5-done" hidden><p class="t5-eyebrow">ЗАДАНИЕ 5 ЗАВЕРШЕНО</p><h1>Сообщение собрано</h1><ol class="t5-full" id="t5-full"></ol><p class="t5-note">Танец откроет путь. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t5-status" id="t5-status" role="status" hidden></div>'+
 '<button class="t5-primary t5-mediabtn" id="t5-media" type="button" hidden></button>'+
-'<p class="t5-build">Сборка 0311s</p>';
+'<p class="t5-build">Сборка 0311t</p>';
 container.appendChild(root);
 video=root.querySelector('.t5-video');bg=root.querySelector('.t5-bg');
 els={wait:root.querySelector('.t5-wait'),start:root.querySelector('#t5-start'),waitnote:root.querySelector('#t5-waitnote'),top:root.querySelector('#t5-top'),frag:root.querySelector('#t5-frag'),dots:root.querySelectorAll('.t5-dot'),play:root.querySelector('#t5-play'),center:root.querySelector('#t5-center'),wave:root.querySelector('#t5-wave'),pstatus:root.querySelector('#t5-pstatus'),panel:root.querySelector('#t5-panel'),answer:root.querySelector('#t5-answer'),check:root.querySelector('#t5-check'),hint:root.querySelector('#t5-hint'),hintLabel:root.querySelector('#t5-hint-label'),hintText:root.querySelector('#t5-hint-text'),clean:root.querySelector('#t5-clean'),kbwin:root.querySelector('#t5-kbwin'),kbInput:root.querySelector('#t5-kbwin-input'),kbOk:root.querySelector('#t5-kbwin-ok'),kbCancel:root.querySelector('#t5-kbwin-cancel'),result:root.querySelector('#t5-result'),resPhrase:root.querySelector('#t5-res-phrase'),done:root.querySelector('.t5-done'),full:root.querySelector('#t5-full'),status:root.querySelector('#t5-status'),media:root.querySelector('#t5-media')};
@@ -219,7 +219,9 @@ els.play.hidden=!c;
 els.play.disabled=listening;
 els.play.textContent=listening?'ИДЁТ ЗАПИСЬ…':'▶ СЛУШАТЬ';
 els.wave.hidden=!listening;
-els.pstatus.innerHTML=c?(listening?'<b>Слушайте запись</b>':'Нажмите «Слушать», затем обсудите услышанное'):(listening?'<b>Слушайте запись на телефоне капитана</b>':'<b>Обсудите услышанное</b>');
+els.pstatus.innerHTML=c?(listening?'<b>Слушайте запись</b>':(task.playingAt?'':'Слушайте, потом обсудите')):(listening?'<b>Слушайте запись на телефоне капитана</b>':'<b>Обсудите услышанное</b>');
+// Подсказка-инструкция капитану показывается только в начале задания, пока он ещё ни разу не слушал.
+if(c&&!listening&&task.playingAt)els.pstatus.hidden=true;else els.pstatus.hidden=false;
 if(c){
 if(answerFrag!==i){answerFrag=i;els.answer.value='';}
 els.answer.disabled=listening;
@@ -246,7 +248,9 @@ if(rk!==resultKey){resultKey=rk;playSfx('sfx_ui_confirm.mp3',.55);}
 els.wave.hidden=true;
 }
 if(stage==='done'){
-if(els.full)els.full.textContent=FULL;
+if(els.full&&els.full.childElementCount!==FRAGS.length){
+els.full.innerHTML=FRAGS.map(function(f){return '<li>'+escapeHtml(f.phrase)+'</li>';}).join('');
+}
 const dk='done';if(sfxKey!==dk){sfxKey=dk;playSfx('sfx_crystal_ready.mp3',.6);}
 }
 // Медиа инструкции по смене этапа.
