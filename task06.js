@@ -34,7 +34,7 @@ const MOVES=[
 ];
 const ORDER=['jump','turn','hands','stomp','clap','elbows'];
 const WORD='портал';
-const HINT_ORDER=['','Вспомните, какие движения появлялись в танце первыми.','Пересмотрите танец и обратите внимание на первое появление каждого движения.'];
+const HINT_ORDER=['','Вспомните, какие движения появлялись в танце первыми.','Пересмотрите танец и обратите внимание на первое появление каждого движения.','Проверьте начало: первым идёт прыжок, вторым — оборот.'];
 const HINT_WORD=['','Посмотрите на названия выбранных движений.','Используйте первые буквы названий движений.','Первая буква — П, последняя — Л.'];
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
 let tickTimer=null,mediaTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
@@ -81,7 +81,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<div class="t6-slots" id="t6-slots"></div>'+
 '<div class="t6-cards" id="t6-cards"></div>'+
 '<div class="t6-actions" id="t6-actions"><button class="t6-primary" id="t6-check-order" type="button">Проверить порядок</button><button class="t6-replay-inline" id="t6-rewatch" type="button">↺ Пересмотреть танец</button></div>'+
-'<div class="t6-hint" id="t6-hint-order" hidden><b>Подсказка</b><span id="t6-hint-order-text"></span></div>'+
+'<div class="t6-hint" id="t6-hint-order" hidden><b id="t6-hint-order-label">Подсказка</b><span id="t6-hint-order-text"></span></div>'+
 '</div>'+
 '<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
 '<div class="t6-kbwin" id="t6-kbwin" hidden><p class="t6-kbwin-label">Введите слово</p><div class="t6-kbrow"><input class="t6-kbwin-input" id="t6-kbwin-input" type="text" autocomplete="off" autocapitalize="characters" enterkeyhint="go"><button class="t6-primary t6-kbok" type="button" id="t6-kbwin-ok">Проверить</button></div><button class="t6-kblink" type="button" id="t6-kbwin-cancel">Отмена</button></div>'+
@@ -89,7 +89,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311w</p>';
+'<p class="t6-build">Сборка 0311x</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -97,7 +97,7 @@ controls:root.querySelector('#t6-controls'),toggle:root.querySelector('#t6-toggl
 replay:root.querySelector('#t6-replay'),order:root.querySelector('#t6-order'),orderTitle:root.querySelector('#t6-order-title'),
 slots:root.querySelector('#t6-slots'),cards:root.querySelector('#t6-cards'),actions:root.querySelector('#t6-actions'),
 checkOrder:root.querySelector('#t6-check-order'),rewatch:root.querySelector('#t6-rewatch'),
-hintOrder:root.querySelector('#t6-hint-order'),hintOrderText:root.querySelector('#t6-hint-order-text'),
+hintOrder:root.querySelector('#t6-hint-order'),hintOrderText:root.querySelector('#t6-hint-order-text'),hintOrderLabel:root.querySelector('#t6-hint-order-label'),
 word:root.querySelector('#t6-word'),wordShow:root.querySelector('#t6-word-show'),wordCheck:root.querySelector('#t6-word-check'),
 wordHide:root.querySelector('#t6-word-hide'),hintWord:root.querySelector('#t6-hint-word'),hintWordText:root.querySelector('#t6-hint-word-text'),
 kbwin:root.querySelector('#t6-kbwin'),kbInput:root.querySelector('#t6-kbwin-input'),kbOk:root.querySelector('#t6-kbwin-ok'),kbCancel:root.querySelector('#t6-kbwin-cancel'),
@@ -205,10 +205,13 @@ const b=e.target&&e.target.closest?e.target.closest('.t6-card'):null;
 if(!b||!cap()||!task||task.stage!=='order')return;
 const id=b.getAttribute('data-id');if(!id)return;
 const sel=selected();
-if(sel.indexOf(id)>=0)return; // выбранная карточка не дублируется
-const i=sel.indexOf('');
+if(sel.indexOf(id)>=0)return; // одна и та же карточка не дублируется
+// Если ячейка выбрана — карточка встаёт в неё и заменяет прежнюю; иначе в первую пустую.
+let i=(picked>=0&&picked<6)?picked:sel.indexOf('');
 if(i<0)return;
-sel[i]=id;picked=-1;
+if(sel[i]===id)return;
+sel[i]=id;
+if(picked>=0)picked=-1;
 write({selected:sel}).catch(function(){});
 }
 function onSlotClick(e){
@@ -219,10 +222,9 @@ const i=parseInt(slot.getAttribute('data-i'),10);if(isNaN(i))return;
 const del=e.target&&e.target.classList&&e.target.classList.contains('t6-del');
 const sel=selected();
 if(del){if(!sel[i])return;sel[i]='';picked=-1;write({selected:sel}).catch(function(){});return;}
-if(!sel[i]){picked=-1;return;}
-if(picked===i){picked=-1;render();return;}
-if(picked>=0&&picked<6){const t=sel[i];sel[i]=sel[picked];sel[picked]=t;picked=-1;write({selected:sel}).catch(function(){});return;}
-picked=i;render();
+// Касание ячейки только выделяет её: следующая карточка встанет сюда (с заменой).
+picked=(picked===i)?-1:i;
+render();
 }
 function submitOrder(){
 if(!cap()||!task||task.stage!=='order')return;
@@ -238,7 +240,7 @@ playSfx('sfx_ui_confirm.mp3',.55);
 }else{
 localHintOrder=1;localOrderAt=Date.now();
 setTimeout(function(){if(active)localHintOrder=0;},6000);
-write({attemptsOrder:(+task.attemptsOrder||0)+1,hintOrder:Math.min(2,(+task.hintOrder||0)+1)}).catch(function(){});
+write({attemptsOrder:(+task.attemptsOrder||0)+1,hintOrder:Math.min(3,(+task.hintOrder||0)+1)}).catch(function(){});
 playSfx('sfx_ui_error.mp3',.5);
 }
 }
@@ -301,9 +303,12 @@ els.hintWord.hidden=!(lvl>0);
 if(lvl>0)els.hintWordText.textContent=HINT_WORD[Math.min(3,lvl)];
 }else els.hintWord.hidden=true;
 if(inOrder){
-const lvl=Math.max(+task.hintOrder||0,localHintOrder);
+const lvl=Math.min(3,Math.max(+task.hintOrder||0,localHintOrder));
 els.hintOrder.hidden=!(c&&lvl>0);
-if(lvl>0)els.hintOrderText.textContent=HINT_ORDER[Math.min(2,lvl)];
+if(lvl>0){
+els.hintOrderLabel.textContent='Подсказка '+lvl;
+els.hintOrderText.textContent=HINT_ORDER[lvl];
+}
 }
 const sel=selected();
 els.checkOrder.disabled=!(c&&sel.indexOf('')<0);
@@ -339,7 +344,11 @@ els.cards.hidden=true;els.actions.hidden=true;
 if(els.orderTitle)els.orderTitle.textContent='Подтверждённый порядок движений';
 }else{
 els.cards.hidden=false;els.actions.hidden=!c;
-if(els.orderTitle)els.orderTitle.textContent=c?'Расставьте движения в порядке первого появления':'Капитан собирает порядок движений. Обсуждайте вместе.';
+if(els.orderTitle){
+if(!c)els.orderTitle.textContent='Капитан собирает порядок движений. Обсуждайте вместе.';
+else if(picked>=0)els.orderTitle.textContent='Выберите карточку для ячейки '+(picked+1)+' — прежнее движение заменится';
+else els.orderTitle.textContent='Расставьте движения в порядке первого появления';
+}
 renderCards(c);
 }
 }
