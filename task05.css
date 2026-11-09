@@ -1,0 +1,79 @@
+#task05-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
+#task05-mount.active{display:block}
+#t5{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%);color:#fff;font-family:QuestSans,Arial,sans-serif}
+#t5 [hidden]{display:none!important}
+#t5 .t5-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;z-index:0;pointer-events:none}
+#t5 .t5-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(closest-side at 50% 50%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)}
+#t5 .t5-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2}
+#t5 .t5-screen{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;padding:24px;box-sizing:border-box;overflow-y:auto;background:radial-gradient(900px 500px at 50% 20%,rgba(27,58,63,.96),rgba(13,22,26,.98) 75%)}
+#t5 h1,#t5 h2,#t5 p{margin:0 0 12px}
+#t5 h1{font-size:24px}
+#t5 .t5-eyebrow{color:#30e5dc;font-size:14px;font-weight:700;letter-spacing:1px}
+#t5 .t5-note{color:#b9d9d9;line-height:1.45;max-width:680px;font-size:14px}
+#t5 .t5-primary{min-height:52px;padding:12px 26px;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+#t5 .t5-primary:disabled{opacity:.5;cursor:wait}
+#t5 .t5-secondary{min-height:44px;padding:9px 16px;border:1px solid rgba(190,245,245,.35);border-radius:10px;background:#20383e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+/* Верхняя полоса: четыре индикатора и номер фрагмента — по центру, чтобы не спорить с QR справа */
+#t5 .t5-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;background:rgba(15,32,37,.86);border:1px solid rgba(190,245,245,.3);border-radius:12px;padding:6px 14px}
+#t5 .t5-dots{display:flex;gap:8px;align-items:center}
+#t5 .t5-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(190,245,245,.55);box-sizing:border-box;background:transparent}
+#t5 .t5-dot.on{background:#30e5dc;border-color:#30e5dc;box-shadow:0 0 10px rgba(48,229,220,.6)}
+#t5 .t5-dot.cur{border-color:#30e5dc}
+#t5 .t5-frag{font-size:13px;color:#9fd8d8;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+/* Левая колонка капитана: большая кнопка «Слушать» */
+#t5 .t5-listen{position:absolute;left:max(10px,env(safe-area-inset-left));top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(30vw,170px)}
+#t5 .t5-listen button{width:100%;min-height:74px;border:0;border-radius:16px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:19px;font-weight:800;font-family:inherit;cursor:pointer;line-height:1.15;padding:10px}
+#t5 .t5-listen button:disabled{opacity:.5;cursor:default;background:#20383e;color:#9fd8d8;border:1px solid rgba(190,245,245,.3)}
+#t5 .t5-listen small{font-size:12px;color:#9fd8d8}
+/* Центр: волна и текст статуса */
+#t5 .t5-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none;width:min(52vw,520px);text-align:center}
+#t5 .t5-wave{display:flex;align-items:center;justify-content:center;gap:5px;height:74px}
+#t5 .t5-wave i{display:block;width:6px;height:14px;border-radius:3px;background:#30e5dc;opacity:.85;animation:t5wave 1s ease-in-out infinite}
+#t5 .t5-wave i:nth-child(2){animation-delay:.1s}#t5 .t5-wave i:nth-child(3){animation-delay:.2s}
+#t5 .t5-wave i:nth-child(4){animation-delay:.3s}#t5 .t5-wave i:nth-child(5){animation-delay:.4s}
+#t5 .t5-wave i:nth-child(6){animation-delay:.5s}#t5 .t5-wave i:nth-child(7){animation-delay:.6s}
+#t5 .t5-wave i:nth-child(8){animation-delay:.7s}#t5 .t5-wave i:nth-child(9){animation-delay:.8s}
+@keyframes t5wave{0%,100%{height:12px;opacity:.5}50%{height:60px;opacity:1}}
+#t5 .t5-pstatus{font-size:clamp(16px,3.4vw,22px);font-weight:700;color:#9fd8d8;line-height:1.35;max-width:100%;margin:0}
+#t5 .t5-pstatus b{color:#30e5dc}
+/* Панель капитана: поле только показывает ввод, клавиатура открывается сверху */
+#t5 .t5-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));width:min(96vw,560px);z-index:6;display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(13,22,26,.94);border:1px solid rgba(190,245,245,.25);border-radius:16px;padding:10px 12px;box-sizing:border-box}
+#t5 .t5-panel label{font-size:12px;color:#9fd8d8;font-weight:700;white-space:nowrap}
+#t5 .t5-panel input{flex:1 1 auto;min-width:0;height:46px;box-sizing:border-box;padding:0 12px;border:1px solid rgba(190,245,245,.4);border-radius:10px;background:#14292f;color:#fff;font-size:17px;font-family:inherit;cursor:pointer}
+#t5 .t5-panel .t5-primary{flex:0 0 auto;min-height:46px;padding:0 18px;font-size:15px;border-radius:10px}
+/* Помощь: справа, только после ошибки */
+#t5 .t5-hint{position:absolute;right:max(8px,env(safe-area-inset-right));top:76px;z-index:6;width:min(30vw,300px);background:rgba(13,22,26,.9);border:1px solid rgba(48,229,220,.45);border-radius:12px;padding:10px 12px;box-sizing:border-box;color:#30e5dc;font-size:13px;line-height:1.4;text-align:left}
+#t5 .t5-hint b{display:block;color:#30e5dc;font-size:12px;letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase}
+#t5 .t5-hint .t5-clean{margin-top:8px;width:100%;min-height:40px;border:0;border-radius:10px;background:#30e5dc;color:#001718;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer}
+/* Окно ввода у верхнего края: полоса над клавиатурой */
+#t5 .t5-kbwin{position:fixed;left:0;right:0;top:0;z-index:25;display:flex;flex-direction:column;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:rgba(13,22,26,.98);border-bottom:1px solid rgba(190,245,245,.3);box-sizing:border-box}
+#t5 .t5-kbwin-label{font-size:13px;color:#9fd8d8;font-weight:700;margin:0}
+#t5 .t5-kbrow{display:flex;align-items:center;gap:8px}
+#t5 .t5-kbwin-input{flex:0 1 auto;width:min(58vw,320px);height:46px;box-sizing:border-box;padding:0 10px;border:1px solid #30e5dc;border-radius:10px;background:#14292f;color:#fff;font-size:18px;font-family:inherit}
+#t5 .t5-kbwin .t5-kbok{flex:0 0 auto;min-height:46px;padding:0 18px;font-size:15px;border-radius:10px}
+#t5 .t5-kblink{align-self:flex-start;min-height:30px;padding:0 6px;border:0;background:transparent;color:#9fd8d8;font-size:13px;font-family:inherit;cursor:pointer}
+/* Результат фрагмента и финал */
+#t5 .t5-result{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;text-align:center;padding:20px;box-sizing:border-box}
+#t5 .t5-res-title{font-size:clamp(18px,4.6vw,30px);font-weight:800;letter-spacing:3px;color:#30e5dc;margin:0 0 12px;text-transform:uppercase}
+#t5 .t5-res-phrase{font-size:clamp(24px,7vw,52px);font-weight:800;color:#30e5dc;margin:0;line-height:1.15}
+#t5 .t5-screen.t5-done{background:#000}
+#t5 .t5-full{font-size:clamp(18px,4.4vw,30px);font-weight:800;color:#30e5dc;line-height:1.45;margin:0 0 14px;max-width:900px}
+#t5 .t5-status{position:absolute;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:7px 12px;border-radius:9px;background:rgba(0,0,0,.82);color:#ffcf9f;font-size:13px;text-align:center}
+#t5 .t5-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10}
+#t5 .t5-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}
+@media(max-height:560px){
+#t5 .t5-screen{padding:12px}
+#t5 h1{font-size:20px}
+#t5 .t5-listen{width:min(26vw,140px)}
+#t5 .t5-listen button{min-height:60px;font-size:16px}
+#t5 .t5-wave{height:52px}
+#t5 .t5-wave i{width:5px}
+#t5 .t5-panel input{height:40px;font-size:16px}
+#t5 .t5-panel .t5-primary{min-height:40px;font-size:14px}
+#t5 .t5-hint{top:62px;font-size:12px;padding:8px 10px}
+#t5 .t5-hint .t5-clean{min-height:34px}
+}
+@media(max-width:760px){
+#t5 .t5-frag{font-size:12px}
+#t5 .t5-hint{width:min(34vw,260px)}
+}
