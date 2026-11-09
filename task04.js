@@ -14,7 +14,7 @@ const ROUNDS=[
 ];
 let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
 let startTimer=null,watchdogTimer=null,tickTimer=null,mediaKey='',mediaRetries=0,starting=false;
-let t4Music=null,resSfxKey='',finalSfxDone=false;
+let t4Music=null,resSfxKey='',finalSfxDone=false,warmEl=null;
 let resultKey='',advanceKey='',sfxCfKey='',sfxAtKey='',stageKey='';
 let answerRound=-1,kbField=null;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
@@ -29,6 +29,14 @@ function round(){return ROUNDS[Math.min(9,Math.max(0,task&&typeof task.round==='
 function playSfx(file,volume){try{var a=new Audio('assets/'+file);a.volume=volume;a.play().catch(function(){});}catch(e){}}
 function startMusic(){if(t4Music){if(t4Music.paused)t4Music.play().catch(function(){});return;}try{t4Music=new Audio('assets/music_defense_loop.mp3');t4Music.loop=true;t4Music.volume=.06;t4Music.play().catch(function(){});}catch(e){t4Music=null;}}
 function stopMusic(){if(t4Music){try{t4Music.pause();}catch(e){}t4Music=null;}}
+// Тихая предзагрузка роликов: клип показывается сразу, а не чёрным экраном во время загрузки.
+function warm(src){
+if(!root||!src)return;
+if(!warmEl){warmEl=document.createElement('video');warmEl.muted=true;warmEl.playsInline=true;warmEl.preload='auto';warmEl.setAttribute('aria-hidden','true');warmEl.style.cssText='position:absolute;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';root.appendChild(warmEl);}
+if(warmEl.getAttribute('data-src')===src)return;
+warmEl.setAttribute('data-src',src);
+try{warmEl.src=src;warmEl.load();}catch(e){}
+}
 function mount(container){
 if(root)unmount();
 active=true;mediaKey='';mediaRetries=0;starting=false;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';resSfxKey='';finalSfxDone=false;answerRound=-1;stopMusic();
@@ -55,8 +63,9 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
-'<p class="t4-build">Сборка 0311p</p>';
+'<p class="t4-build">Сборка 0311r</p>';
 container.appendChild(root);video=root.querySelector('.t4-video');
+warm('assets/v04_intro.mp4');warm('assets/'+ROUNDS[0].file);
 els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
 els.start.addEventListener('click',startIntro);
 els.panel.addEventListener('submit',function(e){e.preventDefault();submitAnswers();});
@@ -261,6 +270,8 @@ if(stage==='intro')scheduleMedia('assets/v04_intro.mp4',task.startsAt||0,key,{in
 else if(stage==='clip')scheduleMedia('assets/'+round().file,task.startsAt||0,key,{intro:false});
 else stopMedia();
 }
+// Клип следующей химеры качаем заранее — тогда он появляется сразу.
+if(stage==='clip'){const nf=ROUNDS[Math.min(9,(task.round||0)+1)].file;warm('assets/'+nf);}
 if(stage==='clip'||stage==='answer'||stage==='result')startMusic();else stopMusic();
 }
 function renderAnswer(){
@@ -315,7 +326,12 @@ if((task.stage||'')==='clip')captainClipEnded(true);
 function scheduleMedia(src,at,key,opts){
 stopMedia();mediaKey=key;mediaRetries=0;video.src=src;
 video.muted=!!(opts&&opts.intro)&&!cap();
-video.onloadedmetadata=function(){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}if(!(opts&&opts.intro))scheduleWatchdog(at,key);};
+video.onloadedmetadata=function(){
+// Перемотку к общему времени делаем только для длинной инструкции. Короткий клип
+// химеры всегда начинается с первого кадра — иначе он «прыгает» в конец.
+if(opts&&opts.intro){const offset=Math.max(0,(Date.now()-at)/1000);if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}}
+if(!(opts&&opts.intro))scheduleWatchdog(at,key);
+};
 video.onerror=function(){
 if(!active||mediaKey!==key||!video)return;
 if(mediaRetries<2){mediaRetries++;status('Повторная загрузка видео…');setTimeout(function(){if(!active||mediaKey!==key||!video)return;try{video.src=src;video.load();}catch(e){}beginPlay();},1500);return;}
@@ -328,14 +344,22 @@ else{clearWatchdog();watchdogTimer=setTimeout(function(){watchdogTimer=null;if(!
 video.onended=function(){if(!active||mediaKey!==key||!cap()||!task)return;const st=task.stage||'';if(opts&&opts.intro){if(st==='intro')beginRound(0);}else if(st==='clip')captainClipEnded(false);};
 const beginPlay=function(){
 if(!active||mediaKey!==key||!video)return;
+const go=function(){
+if(!active||mediaKey!==key||!video)return;
 const p=video.play();
 if(!p||!p.then){status('');hideMediaBtn();return;}
 p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
 if(!active||mediaKey!==key)return;
 video.muted=true;video.play().catch(function(){});
 status('');
-showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){video.muted=false;});
 });
+};
+// Ждём первый кадр: без этого телефон показывает чёрный экран, пока клип догружается.
+if(video.readyState>=2){go();return;}
+let fired=false;
+const once=function(){if(fired)return;fired=true;video.removeEventListener('loadeddata',once);go();};
+video.addEventListener('loadeddata',once);
+setTimeout(function(){if(fired)return;fired=true;video.removeEventListener('loadeddata',once);go();},4000);
 };
 video.onclick=function(){beginPlay();};
 const begin=function(){beginPlay();};

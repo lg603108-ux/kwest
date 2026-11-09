@@ -2,7 +2,7 @@
 #task05-mount.active{display:block}
 #t5{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%);color:#fff;font-family:QuestSans,Arial,sans-serif}
 #t5 [hidden]{display:none!important}
-#t5 .t5-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;z-index:0;pointer-events:none}
+#t5 .t5-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;z-index:0;pointer-events:none}
 #t5 .t5-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(closest-side at 50% 50%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)}
 #t5 .t5-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2}
 #t5 .t5-screen{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;padding:24px;box-sizing:border-box;overflow-y:auto;background:radial-gradient(900px 500px at 50% 20%,rgba(27,58,63,.96),rgba(13,22,26,.98) 75%)}
@@ -20,13 +20,10 @@
 #t5 .t5-dot.on{background:#30e5dc;border-color:#30e5dc;box-shadow:0 0 10px rgba(48,229,220,.6)}
 #t5 .t5-dot.cur{border-color:#30e5dc}
 #t5 .t5-frag{font-size:13px;color:#9fd8d8;font-weight:700;letter-spacing:.5px;white-space:nowrap}
-/* Левая колонка капитана: большая кнопка «Слушать» */
-#t5 .t5-listen{position:absolute;left:max(10px,env(safe-area-inset-left));top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(30vw,170px)}
-#t5 .t5-listen button{width:100%;min-height:74px;border:0;border-radius:16px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:19px;font-weight:800;font-family:inherit;cursor:pointer;line-height:1.15;padding:10px}
-#t5 .t5-listen button:disabled{opacity:.5;cursor:default;background:#20383e;color:#9fd8d8;border:1px solid rgba(190,245,245,.3)}
-#t5 .t5-listen small{font-size:12px;color:#9fd8d8}
-/* Центр: волна и текст статуса */
-#t5 .t5-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none;width:min(52vw,520px);text-align:center}
+/* Центр: большая кнопка «Слушать», под ней волны во время звучания */
+#t5 .t5-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(86vw,720px);text-align:center}
+#t5 .t5-listen-big{min-height:112px;min-width:min(70vw,420px);padding:18px 44px;border:0;border-radius:24px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:clamp(22px,4.6vw,34px);font-weight:800;letter-spacing:2px;font-family:inherit;cursor:pointer;box-shadow:0 10px 34px rgba(48,229,220,.35)}
+#t5 .t5-listen-big:disabled{background:#20383e;color:#30e5dc;border:2px solid rgba(48,229,220,.5);box-shadow:none;cursor:default}
 #t5 .t5-wave{display:flex;align-items:center;justify-content:center;gap:5px;height:74px}
 #t5 .t5-wave i{display:block;width:6px;height:14px;border-radius:3px;background:#30e5dc;opacity:.85;animation:t5wave 1s ease-in-out infinite}
 #t5 .t5-wave i:nth-child(2){animation-delay:.1s}#t5 .t5-wave i:nth-child(3){animation-delay:.2s}
@@ -58,14 +55,13 @@
 #t5 .t5-res-phrase{font-size:clamp(24px,7vw,52px);font-weight:800;color:#30e5dc;margin:0;line-height:1.15}
 #t5 .t5-screen.t5-done{background:#000}
 #t5 .t5-full{font-size:clamp(18px,4.4vw,30px);font-weight:800;color:#30e5dc;line-height:1.45;margin:0 0 14px;max-width:900px}
-#t5 .t5-status{position:absolute;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:7px 12px;border-radius:9px;background:rgba(0,0,0,.82);color:#ffcf9f;font-size:13px;text-align:center}
+#t5 .t5-status{position:absolute;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:10px 16px;border-radius:10px;background:rgba(0,0,0,.9);border:1px solid rgba(48,229,220,.45);color:#ffd0a0;font-size:14px;text-align:center}
 #t5 .t5-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10}
 #t5 .t5-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}
 @media(max-height:560px){
 #t5 .t5-screen{padding:12px}
 #t5 h1{font-size:20px}
-#t5 .t5-listen{width:min(26vw,140px)}
-#t5 .t5-listen button{min-height:60px;font-size:16px}
+#t5 .t5-listen-big{min-height:84px;min-width:min(60vw,340px);font-size:20px;padding:12px 28px}
 #t5 .t5-wave{height:52px}
 #t5 .t5-wave i{width:5px}
 #t5 .t5-panel input{height:40px;font-size:16px}

@@ -16,7 +16,7 @@ let active=false,root=null,video=null,els={},roomState=null,task=null;
 let roomOff=null,deckSub=null,secretSub=null,deckOrder=null,secret=null;
 let startTimer=null,wrongTimer=null,watchdogTimer=null,stageKey='',mediaKey='',roleKey='',deckPromise=null,mediaRetries=0;
 let starting=false,reactionKey='',verdictKey='',mediaActionKey='',wrongKey='';
-let reactionMusic=null,lastSfxVerdictKey='';
+let reactionMusic=null,lastSfxVerdictKey='',warmEl=null;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function db(){return firebase.database();}
 function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task03');}
@@ -54,6 +54,7 @@ root=document.createElement('div');root.id='t3';root.innerHTML=
 container.appendChild(root);video=root.querySelector('.t3-video');
 els={wait:root.querySelector('.t3-wait'),play:root.querySelector('.t3-play'),done:root.querySelector('.t3-done'),start:root.querySelector('#t3-start'),waitnote:root.querySelector('#t3-waitnote'),actor:root.querySelector('#t3-actor'),judge:root.querySelector('#t3-judge'),viewer:root.querySelector('#t3-viewer'),status:root.querySelector('#t3-status'),media:root.querySelector('#t3-media')};
 els.start.addEventListener('click',startIntro);
+warm('assets/v03_intro.mp4');
 roomOff=NET.onRoom(onRoom);
 }
 function unmount(){
@@ -104,6 +105,8 @@ if(v&&gg&&v.round===task.round&&v.guessId===gg.id&&gg.round===task.round){
 }
 const key=stage+':'+(task.round||0)+':'+(task.reactionId||'')+':'+(task.startsAt||0);
 if(key!==stageKey){stageKey=key;mediaActionKey='';clearTimeout(startTimer);if(stage==='intro')scheduleMedia('assets/v03_intro.mp4',task.startsAt||0,key);else if(stage==='reaction'&&emotion(task.reactionId))scheduleMedia('assets/lum_'+task.reactionId+'.mp4',task.startsAt||0,key);else stopMedia();}
+// Следующий ролик качаем заранее: у капитана порядок чувств известен из колоды.
+if(cap()&&deckOrder){const ni=(stage==='reaction'?(task.round||0)+1:(task.round||0));const nid=deckOrder[ni];if(nid)warm('assets/lum_'+nid+'.mp4');}
 if(stage==='reaction')startReactionMusic();else stopReactionMusic();
 if(stage==='intro'||stage==='reaction'){video.hidden=false;}
 renderWrong();
@@ -134,6 +137,15 @@ function playSfx(file,volume){try{var a=new Audio('assets/'+file);a.volume=volum
 // Тихая музыка «Оборона» из задания 1 под видео реакции Лума.
 function startReactionMusic(){stopReactionMusic();try{reactionMusic=new Audio('assets/music_defense_loop.mp3');reactionMusic.loop=true;reactionMusic.volume=.07;reactionMusic.play().catch(function(){});}catch(e){reactionMusic=null;}}
 function stopReactionMusic(){if(reactionMusic){try{reactionMusic.pause();}catch(e){}reactionMusic=null;}}
+// Тихая предзагрузка следующего ролика: файл скачивается заранее, поэтому в нужный момент
+// видео показывается сразу, а не чёрным экраном, пока идёт загрузка.
+function warm(src){
+if(!root||!src)return;
+if(!warmEl){warmEl=document.createElement('video');warmEl.muted=true;warmEl.playsInline=true;warmEl.preload='auto';warmEl.setAttribute('aria-hidden','true');warmEl.style.cssText='position:absolute;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';root.appendChild(warmEl);}
+if(warmEl.getAttribute('data-src')===src)return;
+warmEl.setAttribute('data-src',src);
+try{warmEl.src=src;warmEl.load();}catch(e){}
+}
 // Голос роли («Ты Актёр» / «Ты Судья») звучит только у того, кому выпала роль.
 // Файлы: assets/volt_actor.mp3, assets/volt_judge.mp3 — подключаются при появлении.
 function playRoleVoice(file){try{var a=new Audio('assets/'+file);a.volume=.85;a.play().catch(function(){});}catch(e){}}
@@ -204,17 +216,25 @@ video.onerror=function(){
 video.onended=function(){if(!active||mediaKey!==key)return;finishMedia();};
 const beginPlay=function(){
   if(!active||mediaKey!==key||!video)return;
+  const go=function(){
+  if(!active||mediaKey!==key||!video)return;
   const p=video.play();
   if(!p||!p.then){status('');hideMediaBtn();return;}
   p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
     if(!active||mediaKey!==key)return;
-    // У капитана блокировка автозапуска: видео ждёт нажатия, команда не уходит вперёд.
-    // Сторожевой таймер отключён для intro — капитан сам нажимает «Продолжить» после просмотра.
+    // Звук у капитана обязателен; если браузер всё же не пустил со звуком — играем без него,
+    // но ролик обязательно показывается. Никаких кнопок поверх видео не выводим.
     video.muted=true;
     video.play().catch(function(){});
     status('');
-    showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){video.muted=false;});
   });
+  };
+  // Ждём первый кадр: иначе на телефоне остаётся чёрный экран, пока файл догружается.
+  if(video.readyState>=2){go();return;}
+  let fired=false;
+  const once=function(){if(fired)return;fired=true;video.removeEventListener('loadeddata',once);go();};
+  video.addEventListener('loadeddata',once);
+  setTimeout(function(){if(fired)return;fired=true;video.removeEventListener('loadeddata',once);go();},4000);
 };
 video.onclick=function(){beginPlay();};
 const begin=function(){beginPlay();};
