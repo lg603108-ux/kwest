@@ -60,14 +60,22 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<div class="t4-kbwin" id="t4-kbwin" hidden><p class="t4-kbwin-label" id="t4-kbwin-label">Животное 1</p><div class="t4-kbrow"><input class="t4-kbwin-input" id="t4-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t4-primary t4-kbok" type="button" id="t4-kbwin-ok">Далее</button></div><p class="t4-kbwin-hint" id="t4-kbwin-hint" hidden></p><button class="t4-kblink" type="button" id="t4-kbwin-cancel">Отмена</button></div>'+
 '<div class="t4-watch" id="t4-watch" hidden><p class="t4-caption">Назовите капитану оба животных</p><button class="t4-secondary" type="button" id="t4-reqbtn">Попросить повтор</button></div>'+
 '<section class="t4-screen t4-result" id="t4-result" hidden><p class="t4-res-title">ХИМЕРА УГАДАНА</p><p class="t4-res-names" id="t4-res-names"></p><p class="t4-res-charge" id="t4-res-gain"></p></section>'+
-'<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны. Следующее задание появится в следующем обновлении.</p></section>'+
+'<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><button id="t4-next" class="t4-primary" type="button" hidden>Продолжить квест →</button><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны.</p></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
-'<p class="t4-build">Сборка 0311r</p>';
+'<p class="t4-build">Сборка 0311s</p>';
 container.appendChild(root);video=root.querySelector('.t4-video');
 warm('assets/v04_intro.mp4');warm('assets/'+ROUNDS[0].file);
-els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
+els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),next:root.querySelector('#t4-next'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
 els.start.addEventListener('click',startIntro);
+// Переход к заданию 5 — внутри самого задания: кнопка уже отрисована вместе с экраном
+// завершения, поэтому не зависит от опроса страницы и появляется сразу с капсулой.
+els.next.addEventListener('click',function(){
+if(!cap()||els.next.disabled)return;
+els.next.disabled=true;els.next.hidden=false;
+try{NET.setPhase('task05',Date.now()+1500).catch(function(e){els.next.disabled=false;status('Ошибка перехода: '+(e&&e.message||e));});}
+catch(e){els.next.disabled=false;status('Ошибка перехода: '+e);}
+});
 els.panel.addEventListener('submit',function(e){e.preventDefault();submitAnswers();});
 els.replay.addEventListener('click',requestReplayByCaptain);
 els.kb.addEventListener('click',function(){closeKb();});
@@ -252,7 +260,7 @@ els.watch.hidden=!(stage==='answer'&&!cap());
 if(stage!=='answer'&&kbField)closeKb();
 if(stage==='answer'){renderAnswer();renderTime();}
 if(stage==='result')renderResult();
-if(stage==='done'){const df=document.getElementById('t4-done-fill');if(df)df.style.height='100%';if(!finalSfxDone){finalSfxDone=true;playSfx('sfx_crystal_ready.mp3',.6);}}
+if(stage==='done'){const df=document.getElementById('t4-done-fill');if(df)df.style.height='100%';if(els.next)els.next.hidden=!cap();if(!finalSfxDone){finalSfxDone=true;playSfx('sfx_crystal_ready.mp3',.6);}}
 // Звуки вердикта слышат все: верно — при фиксации вида, неверно — при росте попыток.
 const cf=task.confirmed||{},at=task.attempts||{};
 const cfCount=(cf.a?1:0)+(cf.b?1:0),atCount=(at.a||0)+(at.b||0);

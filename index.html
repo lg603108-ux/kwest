@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
 <link rel="stylesheet" href="task04.css?v=0311p">
-<link rel="stylesheet" href="task05.css?v=0311r">
+<link rel="stylesheet" href="task05.css?v=0311s">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -16,6 +16,8 @@
 #rotate{display:none;position:fixed;inset:0;z-index:999;background:#0d161a;color:#9fd8d8;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:18px}
 @media(orientation:portrait){#rotate{display:flex}}
 body[data-screen="cinema"] #movie-title{top:78px}
+/* Белая подпись поверх пролога, вступления и инструкции не нужна: видео смотрим без текста. */
+#movie-title{display:none!important}
 /* Бой: компактные плашки, центр свободен под QR */
 .battle-hud{top:max(10px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));gap:8px}
 .battle-hud .hud-panel{flex:0 1 auto;min-width:0;padding:6px 12px;border-radius:10px}
@@ -90,7 +92,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311r">
+<body data-build="0311s">
 <div id="app">
 
 <header id="topbar">
@@ -242,11 +244,11 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311p"></script>
+<script src="task02.js?v=0311s"></script>
 <script src="task03.js?v=0311r"></script>
-<script src="task04.js?v=0311r"></script>
-<script src="task05.js?v=0311r"></script>
-<script src="app.js?v=0311r"></script>
+<script src="task04.js?v=0311s"></script>
+<script src="task05.js?v=0311s"></script>
+<script src="app.js?v=0311s"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -351,8 +353,9 @@ done.appendChild(btn);
 function task04Done(){try{var r=NET.room;return !!(r&&r.state&&r.state.phase==='task04'&&r.tasks&&r.tasks.task04&&r.tasks.task04.stage==='done');}catch(e){return false;}}
 function wire5(){
 if(!ready())return;
-// Кнопку кладём в экран завершения сразу после монтажа задания 4, чтобы она появлялась
-// одновременно с капсулой, а не через отдельное ожидание.
+// Переход 4→5 теперь целиком внутри задания 4 (кнопка #t4-next): мост ничего не добавляет,
+// иначе на экране завершения появлялась бы вторая кнопка.
+if(document.getElementById('t4-next'))return;
 var done=document.querySelector('#t4 .t4-done');if(!done)return;
 var note=done.querySelector('.t4-note');
 if(note&&!note.getAttribute('data-bridge5')){note.setAttribute('data-bridge5','1');note.textContent='Сектор зачищен: все десять химер распознаны. Дальше — голос аномалии.';}

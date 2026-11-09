@@ -3,10 +3,10 @@
 window.Task05=(function(){
 // Тексты фраз и помощи — дословно из ТЗ (раздел 7). Нормализованный вариант — для сверки ответа.
 const FRAGS=[
-{phrase:'Я — это ты',file:'t05_phrase_01_ya_eto_ty.mp3',clean:'t05_phrase_01_clean.aac',h1:'Запись идёт задом наперёд; нужно восстановить направление.',h2:'Я — это …'},
-{phrase:'Повтори за мной',file:'t05_phrase_02_povtori_za_mnoy.MP3',clean:'t05_phrase_02_clean.aac',h1:'Голос замедлен и понижен; прислушайтесь к ритму слов.',h2:'… за мной.'},
-{phrase:'Не отставай',file:'t05_phrase_03_ne_otstavay.MP3',clean:'t05_phrase_03_clean.aac',h1:'Сквозь шум слышны отдельные звуки. Прислушайтесь к ритму и длине слов.',h2:'Не …'},
-{phrase:'Танец откроет путь',file:'t05_phrase_04_tanets_otkroet_put.MP3',clean:'t05_phrase_04_clean.aac',h1:'Проследите одну голосовую линию от начала до конца.',h2:'Танец … путь.'}
+{phrase:'Я — это ты',file:'t05_phrase_01_ya_eto_ty.mp3',clean:'t05_phrase_01_clean.mp3',h1:'Запись идёт задом наперёд; нужно восстановить направление.',h2:'Я — это …'},
+{phrase:'Повтори за мной',file:'t05_phrase_02_povtori_za_mnoy.MP3',clean:'t05_phrase_02_clean.mp3',h1:'Голос замедлен и понижен; прислушайтесь к ритму слов.',h2:'… за мной.'},
+{phrase:'Не отставай',file:'t05_phrase_03_ne_otstavay.MP3',clean:'t05_phrase_03_clean.mp3',h1:'Сквозь шум слышны отдельные звуки. Прислушайтесь к ритму и длине слов.',h2:'Не …'},
+{phrase:'Танец откроет путь',file:'t05_phrase_04_tanets_otkroet_put.MP3',clean:'t05_phrase_04_clean.mp3',h1:'Проследите одну голосовую линию от начала до конца.',h2:'Танец … путь.'}
 ];
 const FULL='Я — это ты. Повтори за мной. Не отставай. Танец откроет путь.';
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
@@ -57,15 +57,14 @@ root=document.createElement('div');root.id='t5';root.innerHTML=
 '<video class="t5-video" playsinline preload="auto"></video>'+
 '<section class="t5-screen t5-wait"><p class="t5-eyebrow">ЗАДАНИЕ 5</p><h1>Голос аномалии</h1><p class="t5-note">Аномалия передаёт сообщение по частям, и каждая часть искажена по-своему. Слушайте вместе и повторяйте вслух, что услышали. Капитан введёт фразу — четыре фразы, и сообщение собрано.</p><button id="t5-start" class="t5-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t5-note" id="t5-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t5-note">Запись слышит только капитан: остальные устройства показывают номер фрагмента и статус.</p></section>'+
 '<div class="t5-top" id="t5-top" hidden><div class="t5-dots"><span class="t5-dot" data-i="0"></span><span class="t5-dot" data-i="1"></span><span class="t5-dot" data-i="2"></span><span class="t5-dot" data-i="3"></span></div><span class="t5-frag" id="t5-frag">Фрагмент 1 из 4</span></div>'+
-'<div class="t5-center" id="t5-center" hidden><button class="t5-listen-big" id="t5-play" type="button">▶ СЛУШАТЬ</button><div class="t5-wave" id="t5-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="t5-pstatus" id="t5-pstatus">Обсудите услышанное</p></div>'+
+'<div class="t5-center" id="t5-center" hidden><div class="t5-hint" id="t5-hint" hidden><b id="t5-hint-label">Подсказка</b><span id="t5-hint-text"></span><button class="t5-clean" id="t5-clean" type="button" hidden>Помощь Вольта: чистая запись</button></div><p class="t5-pstatus" id="t5-pstatus">Обсудите услышанное</p><button class="t5-listen-big" id="t5-play" type="button">▶ СЛУШАТЬ</button><div class="t5-wave" id="t5-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>'+
 '<form class="t5-panel" id="t5-panel" hidden autocomplete="off"><label for="t5-answer">Фраза</label><input id="t5-answer" readonly inputmode="none" autocomplete="off" autocapitalize="off" placeholder="Введите услышанную фразу"><button class="t5-primary" type="submit" id="t5-check">Проверить</button></form>'+
-'<div class="t5-hint" id="t5-hint" hidden><b id="t5-hint-label">Подсказка</b><span id="t5-hint-text"></span><button class="t5-clean" id="t5-clean" type="button" hidden>Помощь Вольта: чистая запись</button></div>'+
 '<div class="t5-kbwin" id="t5-kbwin" hidden><p class="t5-kbwin-label">Введите услышанную фразу</p><div class="t5-kbrow"><input class="t5-kbwin-input" id="t5-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t5-primary t5-kbok" type="button" id="t5-kbwin-ok">Проверить</button></div><button class="t5-kblink" type="button" id="t5-kbwin-cancel">Отмена</button></div>'+
 '<div class="t5-result" id="t5-result" hidden><p class="t5-res-title">ФРАЗА РАЗГАДАНА</p><p class="t5-res-phrase" id="t5-res-phrase"></p></div>'+
 '<section class="t5-screen t5-done" hidden><p class="t5-eyebrow">ЗАДАНИЕ 5 ЗАВЕРШЕНО</p><h1>Сообщение собрано</h1><p class="t5-full" id="t5-full"></p><p class="t5-note">Танец откроет путь. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t5-status" id="t5-status" role="status" hidden></div>'+
 '<button class="t5-primary t5-mediabtn" id="t5-media" type="button" hidden></button>'+
-'<p class="t5-build">Сборка 0311r</p>';
+'<p class="t5-build">Сборка 0311s</p>';
 container.appendChild(root);
 video=root.querySelector('.t5-video');bg=root.querySelector('.t5-bg');
 els={wait:root.querySelector('.t5-wait'),start:root.querySelector('#t5-start'),waitnote:root.querySelector('#t5-waitnote'),top:root.querySelector('#t5-top'),frag:root.querySelector('#t5-frag'),dots:root.querySelectorAll('.t5-dot'),play:root.querySelector('#t5-play'),center:root.querySelector('#t5-center'),wave:root.querySelector('#t5-wave'),pstatus:root.querySelector('#t5-pstatus'),panel:root.querySelector('#t5-panel'),answer:root.querySelector('#t5-answer'),check:root.querySelector('#t5-check'),hint:root.querySelector('#t5-hint'),hintLabel:root.querySelector('#t5-hint-label'),hintText:root.querySelector('#t5-hint-text'),clean:root.querySelector('#t5-clean'),kbwin:root.querySelector('#t5-kbwin'),kbInput:root.querySelector('#t5-kbwin-input'),kbOk:root.querySelector('#t5-kbwin-ok'),kbCancel:root.querySelector('#t5-kbwin-cancel'),result:root.querySelector('#t5-result'),resPhrase:root.querySelector('#t5-res-phrase'),done:root.querySelector('.t5-done'),full:root.querySelector('#t5-full'),status:root.querySelector('#t5-status'),media:root.querySelector('#t5-media')};

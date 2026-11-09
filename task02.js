@@ -120,7 +120,13 @@ S.soundOn=false;video.muted=true;els.sound.textContent='×';
 if(video&&video.paused&&!video.error){video.play().catch(function(){});}}
 else if(stage==='intro'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;
 // У капитана ролик уже запущен нажатием кнопки — не перезапускаем его и не трогаем src.
-if(cap()&&!video.paused&&lastSrc===MEDIA.intro[0]+'?v=9'){status('');}
+if(cap()&&!video.paused&&lastSrc===MEDIA.intro[0]+'?v=9'){
+status('');
+// Единственная правка перехода: ролик уже играет, и обработчик окончания ему не назначен.
+// Без этого инструкция доигрывала и оставалась на экране, а задание не начиналось.
+video.onended=function(){if(cap())put({stage:'sequence',startsAt:Date.now()+2000});};
+}
+else if(cap()&&video.ended){put({stage:'sequence',startsAt:Date.now()+2000});}
 else{schedulePlay(MEDIA.intro,at,'intro');}}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
