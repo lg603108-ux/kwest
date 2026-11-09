@@ -46,7 +46,7 @@ root.innerHTML=
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
 '<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
-'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311n</p></div>';
+'<div class="t2-start" id="t2-start"><h1>Задание 2 · Кристальный шифр</h1><p>Лум за дверью. Вольт покажет инструкцию, затем осколки соберутся в фигуры. Капитан нажимает строки таблицы, после видео располагает цифры и открывает дверь. Остальные смотрят и подсказывают голосом.</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p><p class="t2-build">Сборка 0311o</p></div>';
 video=root.querySelector('.t2-video');
 // Как в исходной версии октября: ролик начинает загружаться и играть сразу при входе в задание,
 // без ожидания нажатия. Звук выключен, картинка закрыта экраном описания. К моменту нажатия
@@ -81,7 +81,8 @@ try{video.currentTime=0;}catch(e){}
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
 put({stage:'intro',startsAt:Date.now(),rev:1});
 });
-root.addEventListener('pointerdown',function once(){goFullscreen();root.removeEventListener('pointerdown',once);},{capture:true});
+// Полноэкранный режим здесь не запрашиваем: запрос во время нажатия по цифре прерывал
+// нажатие и блокировал ввод. Вход в полный экран делает общий обработчик страницы.
 renderCells();
 render(window.NET.room);
 window.NET.onRoom(function(room){if(active)render(room);});
@@ -106,7 +107,10 @@ els.continueBtn.hidden=!(cap()&&stage==='done');
 els.playernote.hidden=!(!cap()&&stage==='done');
 }
 function applyStage(stage,at){
-curStage=stage;clearTimeout(startTimer);
+curStage=stage;clearTimeout(startTimer);clearTimeout(stallTimer);
+// При смене этапа убираем аварийную плашку: иначе она оставалась поверх экрана
+// и перекрывала нажатия по цифрам.
+if(els.mediareq)els.mediareq.hidden=true;
 S.soundOn=(stage==='intro'||stage==='wait'||stage==='reveal')?cap():true;
 video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';
 if(stage==='wait'){els.start.hidden=false;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;status('');
@@ -155,11 +159,13 @@ video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textCon
 clearTimeout(stallTimer);
 stallTimer=setTimeout(function(){
 if(!active||!video)return;
+if(curStage!=='intro'&&curStage!=='sequence'&&curStage!=='reveal')return;
 if(!video.paused&&video.readyState>=2)return;
 status('Видео не начинается — перезагружаем…');
 try{video.src=src;video.load();video.play().catch(function(){});}catch(e){}
 stallTimer=setTimeout(function(){
 if(!active||!video)return;
+if(curStage!=='intro'&&curStage!=='sequence'&&curStage!=='reveal')return;
 if(!video.paused&&video.readyState>=2)return;
 els.mediareq.hidden=false;
 status('Видео не начинается. Проверьте связь.');

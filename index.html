@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-mobile08.css">
 <link rel="stylesheet" href="task03.css?v=0311b">
-<link rel="stylesheet" href="task04.css?v=0311n">
+<link rel="stylesheet" href="task04.css?v=0311o">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -89,7 +89,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311n">
+<body data-build="0311o">
 <div id="app">
 
 <header id="topbar">
@@ -239,10 +239,10 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0311n"></script>
+<script src="task02.js?v=0311o"></script>
 <script src="task03.js?v=0311g"></script>
-<script src="task04.js?v=0311n"></script>
-<script src="app.js?v=0311n"></script>
+<script src="task04.js?v=0311o"></script>
+<script src="app.js?v=0311o"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -406,6 +406,17 @@ function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textC
 function playVoice(name){try{var a=new Audio('assets/'+name);a.volume=0.9;a.play().catch(function(){});}catch(e){}}
 function roomCode(){return inRoom()?(NET.room.code||'').toLowerCase():'';}
 function qrUrl(code){return location.origin+location.pathname+'?room='+code;}
+// Полный экран: входим при каждом нажатии, если режим выпал. Обработчик на click (после
+// обработчика кнопки), чтобы нажатие по цифре успело сработать до смены режима.
+function fsEnter(){
+try{
+if(document.fullscreenElement||document.webkitFullscreenElement)return;
+var el=document.documentElement;
+if(el.requestFullscreen){var p=el.requestFullscreen();if(p&&p.catch)p.catch(function(){});}
+else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
+}catch(e){}
+}
+document.addEventListener('click',fsEnter,false);
 function renderQr(el,code,size){
 if(!el||!code)return;
 if(el.dataset.code===code&&el.childElementCount)return;
@@ -430,9 +441,8 @@ var code=roomCode();
 var scr=document.body.dataset.screen||'';
 var blocked=false;
 widget.style.display=(code&&!blocked)?'flex':'none';
-// В задании 2 на этапе ввода цифр QR уводим вверх по центру: справа он перекрывал цифры.
-var t2st='';try{t2st=(NET.room&&NET.room.tasks&&NET.room.tasks.task02&&NET.room.tasks.task02.stage)||'';}catch(e){}
-var center=(scr==='battle')||(scr==='task02'&&t2st==='swap');
+// В задании 2 QR держим по центру вверху: справа он перекрывал цифры.
+var center=(scr==='battle')||(scr==='task02');
 widget.style.left=center?'50%':'auto';
 widget.style.right=center?'auto':'6px';
 widget.style.transform=center?'translateX(-50%)':'none';
@@ -501,18 +511,9 @@ var r=NET.room;if(!r||!r.tasks||!r.tasks.task02)return;
 var t=r.tasks.task02;var st=t.stage||'wait';
 if(st==='sequence'&&cap()){var k1=r.code+'_seq_'+(t.startsAt||0);if(seqKey!==k1){seqKey=k1;playVoice('volt_task2.mp3');}}
 if(st==='swap'&&cap()){var k2=r.code+'_swap_'+(t.startsAt||0);if(swapKey!==k2){swapKey=k2;playVoice('volt_swap.mp3');}}
-var t2root=document.getElementById('t2');
+// Кнопка «Инструкция» и значки звука в задании 2 убраны по требованию автора.
 var oldBtn=document.getElementById('t2-instr-btn');
-if(oldBtn&&!cap()){oldBtn.remove();oldBtn=null;}
-if(t2root&&cap()&&!oldBtn){
-var b=document.createElement('button');b.id='t2-instr-btn';b.type='button';b.textContent='🔊 Инструкция';
-b.style.cssText='position:absolute;top:10px;right:10px;z-index:14;min-height:40px;padding:8px 12px;font-size:14px;font-weight:700;border:0;border-radius:10px;background:#20383e;color:#fff;cursor:pointer';
-b.onclick=function(){
-var rr=NET.room;var s=(rr&&rr.tasks&&rr.tasks.task02&&rr.tasks.task02.stage)||'';
-playVoice(s==='swap'?'volt_swap.mp3':'volt_task2.mp3');
-};
-t2root.appendChild(b);
-}
+if(oldBtn){oldBtn.remove();}
 }
 // --- тихий сторож видео задания 2 ---
 // Только «дожать» воспроизведение, если оно не началось.
