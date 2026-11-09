@@ -62,7 +62,7 @@ active=false;clearTimeout(startTimer);clearTimeout(wrongTimer);clearWatchdog();s
 if(typeof roomOff==='function')roomOff();roomOff=null;dropDeck();dropSecret();
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;els={};roomState=null;task=null;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';mediaRetries=0;
+root=null;video=null;els={};roomState=null;task=null;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';mediaActionKey='';wrongKey='';mediaRetries=0;warmEl=null;
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}

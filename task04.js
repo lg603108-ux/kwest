@@ -88,7 +88,7 @@ startTimer=null;
 if(typeof roomOff==='function')roomOff();roomOff=null;
 if(video){video.onended=null;video.onclick=null;video.onloadedmetadata=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;els={};roomState=null;task=null;mediaKey='';mediaRetries=0;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';kbField=null;
+root=null;video=null;els={};roomState=null;task=null;mediaKey='';mediaRetries=0;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';kbField=null;warmEl=null;
 }
 function status(text){if(!els.status)return;els.status.textContent=text||'';els.status.hidden=!text;}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
