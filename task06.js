@@ -3,21 +3,6 @@
 // 2) капитан ОТДЕЛЬНО вводит слово ПОРТАЛ. Слово не собирается из карточек автоматически.
 window.Task06=(function(){
 // Правильные движения в порядке первого появления (ТЗ, раздел 8). Лишние — не участвуют в ответе.
-// Значки — простые бирюзовые пиктограммы (линии), цвет задаётся в task06.css.
-const SIGNS={
-jump:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 8 6M13 10l5-4"/><path d="M13 15 9 21M13 15l4 6"/><path d="M20 7V3M18.5 4.5 20 3l1.5 1.5"/>',
-turn:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 9 14M13 10l4 4"/><path d="M13 15 10 21M13 15l3 6"/><path d="M20 9a8 8 0 1 0 2 5"/><path d="M20.4 5.6 20 9l-3.4-.4"/>',
-hands:'<circle cx="13" cy="6" r="2.6"/><path d="M13 9v6"/><path d="M13 11 10 3.5M13 11l3-7.5"/><path d="M13 15 10 21M13 15l3 6"/>',
-stomp:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 9 13M13 10l4 3"/><path d="M13 15 10 21"/><path d="M13 15l3 3"/><path d="M18 20h4M17.5 23h5"/>',
-clap:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 11 9 9M13 11l4-2"/><circle cx="7.6" cy="8.4" r="1.5"/><circle cx="18.4" cy="8.4" r="1.5"/><path d="M11.4 5.6 12 4M14.6 5.6 14 4"/><path d="M13 15 10 21M13 15l3 6"/>',
-elbows:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 8 12v5M13 10l5 2v5"/><path d="M13 15 10 21M13 15l3 6"/>',
-lean:'<circle cx="13" cy="6" r="2.6"/><path d="M13 9l4 6"/><path d="M13 9 10 13M13 9l4 3"/><path d="M17 15l3 6M17 15l-2 6"/>',
-squat:'<circle cx="13" cy="7" r="2.6"/><path d="M13 10v4"/><path d="M13 11l5 1M13 11l-4 2"/><path d="M13 14 9 17v4M13 14l4 3v4"/>',
-step:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 10 13M13 10l3 3"/><path d="M13 15 10 21M13 15l3 6"/><path d="M17 20h6M21 18l2 2-2 2"/>',
-wave:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 10 15M13 10l6-3"/><path d="M20 5q2 1 1 3"/><path d="M13 15 10 21M13 15l3 6"/>',
-nod:'<circle cx="13" cy="6" r="2.6"/><path d="M13 9v6"/><path d="M13 11 9 14M13 11l4 3"/><path d="M8 4q5 5 10 0"/><path d="M18 4v2"/><path d="M13 15 10 21M13 15l3 6"/>',
-hips:'<circle cx="13" cy="5" r="2.6"/><path d="M13 8v7"/><path d="M13 10 9 13l4 2M13 10l4 3-4 2"/><path d="M13 15 10 21M13 15l3 6"/>'
-};
 const MOVES=[
 {id:'jump',name:'Прыжок'},
 {id:'turn',name:'Оборот'},
@@ -25,12 +10,12 @@ const MOVES=[
 {id:'stomp',name:'Топот'},
 {id:'clap',name:'Аплодисменты'},
 {id:'elbows',name:'Локти'},
-{id:'lean',name:'Наклон'},
-{id:'squat',name:'Приседание'},
-{id:'step',name:'Шаг в сторону'},
-{id:'wave',name:'Взмах рукой'},
-{id:'nod',name:'Кивок'},
-{id:'hips',name:'Руки на пояс'}
+{id:'lie',name:'Лежит'},
+{id:'wave',name:'Взмах одной рукой'},
+{id:'lean',name:'Наклон в сторону'},
+{id:'roll',name:'Кувырок в воздухе'},
+{id:'sit',name:'Сидит на полу'},
+{id:'squat',name:'Приседание'}
 ];
 const ORDER=['jump','turn','hands','stomp','clap','elbows'];
 const WORD='портал';
@@ -52,7 +37,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&
 // Нормализация слова: регистр, ё/е, пробелы, дефисы и знаки препинания не мешают.
 function norm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[\s\-–—_.,!?;:«»"'()\[\]]+/g,'');}
 function moveById(id){for(let i=0;i<MOVES.length;i++)if(MOVES[i].id===id)return MOVES[i];return null;}
-function signSvg(id){return '<svg viewBox="0 0 26 26" aria-hidden="true" focusable="false">'+(SIGNS[id]||'')+'</svg>';}
+function pic(id){return 'assets/t6_'+id+'.png';}
 function playSfx(file,volume){try{var x=new Audio('assets/'+file);x.volume=volume;x.play().catch(function(){});}catch(e){}}
 function startMusic(){
 if(musicOn)return;
@@ -89,7 +74,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311x</p>';
+'<p class="t6-build">Сборка 0311y</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -362,7 +347,7 @@ let h='';
 for(let i=0;i<sh.length;i++){
 const m=moveById(sh[i]);if(!m)continue;
 const taken=sel.indexOf(m.id)>=0;
-h+='<button class="t6-card'+(taken?' taken':'')+'" type="button" data-id="'+m.id+'"'+(taken||!c?' disabled':'')+'><span class="t6-sign">'+signSvg(m.id)+'</span><span>'+escapeHtml(m.name)+'</span></button>';
+h+='<button class="t6-card'+(taken?' taken':'')+'" type="button" data-id="'+m.id+'"'+(taken||!c?' disabled':'')+'><img class="t6-pic" src="'+pic(m.id)+'" alt=""><span class="t6-name">'+escapeHtml(m.name)+'</span></button>';
 }
 els.cards.innerHTML=h;
 }
