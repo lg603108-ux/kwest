@@ -42,6 +42,8 @@ function emotion(id){return EMOTIONS.find(function(e){return e.id===id;});}
 function mount(container){
 if(root)unmount();
 active=true;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';roleKey='';starting=false;reactionKey='';verdictKey='';mediaActionKey='';wrongKey='';
+// Глушим звуки обороны: иначе инструкция боя звучит поверх задания.
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t3';root.innerHTML=
 '<video class="t3-video" playsinline preload="auto" hidden></video>'+
 '<section class="t3-screen t3-wait"><p class="t3-eyebrow">ЗАДАНИЕ 3</p><h1>Чувства Лума</h1><p>Верните Луму десять чувств через пантомиму. Актёр показывает чувство без слов, Судья выбирает его на экране.</p><button id="t3-start" class="t3-primary" type="button">▶ Запустить инструкцию для всех</button><p id="t3-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+

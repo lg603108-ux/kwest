@@ -32,6 +32,8 @@ function stopMusic(){if(t4Music){try{t4Music.pause();}catch(e){}t4Music=null;}}
 function mount(container){
 if(root)unmount();
 active=true;mediaKey='';mediaRetries=0;starting=false;resultKey='';advanceKey='';sfxCfKey='';sfxAtKey='';stageKey='';resSfxKey='';finalSfxDone=false;answerRound=-1;stopMusic();
+// Глушим звуки обороны: иначе инструкция боя звучит поверх задания.
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t4';root.innerHTML=
 '<video class="t4-video" playsinline preload="auto"></video>'+
 '<div class="t4-hud" id="t4-hud" hidden><div class="t4-hud-cap"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-hud-fill" id="t4-hud-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><div><small id="t4-hud-round">ХИМЕРА 1 ИЗ 10</small><strong id="t4-hud-energy">0%</strong></div></div>'+
@@ -47,13 +49,13 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<p class="t4-hintline" id="t4-hintb" hidden></p>'+
 '<p class="t4-reqnote" id="t4-req" hidden></p>'+
 '</form>'+
-'<div class="t4-kbwin" id="t4-kbwin" hidden><p class="t4-kbwin-label" id="t4-kbwin-label">Животное 1</p><input class="t4-kbwin-input" id="t4-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><p class="t4-kbwin-hint" id="t4-kbwin-hint" hidden></p><div class="t4-kbwin-btns"><button class="t4-primary" type="button" id="t4-kbwin-ok">Далее</button><button class="t4-secondary" type="button" id="t4-kbwin-cancel">Отмена</button></div></div>'+
+'<div class="t4-kbwin" id="t4-kbwin" hidden><p class="t4-kbwin-label" id="t4-kbwin-label">Животное 1</p><div class="t4-kbrow"><input class="t4-kbwin-input" id="t4-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t4-primary t4-kbok" type="button" id="t4-kbwin-ok">Далее</button></div><p class="t4-kbwin-hint" id="t4-kbwin-hint" hidden></p><button class="t4-kblink" type="button" id="t4-kbwin-cancel">Отмена</button></div>'+
 '<div class="t4-watch" id="t4-watch" hidden><p class="t4-caption">Назовите капитану оба животных</p><button class="t4-secondary" type="button" id="t4-reqbtn">Попросить повтор</button></div>'+
-'<section class="t4-screen t4-result" id="t4-result" hidden><p class="t4-eyebrow" id="t4-res-round">ХИМЕРА УГАДАНА</p><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-res-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-names" id="t4-res-names"></p><p class="t4-gain" id="t4-res-gain"></p><p class="t4-note" id="t4-res-note"></p></section>'+
+'<section class="t4-screen t4-result" id="t4-result" hidden><p class="t4-res-title">ХИМЕРА УГАДАНА</p><p class="t4-res-names" id="t4-res-names"></p><p class="t4-res-charge" id="t4-res-gain"></p></section>'+
 '<section class="t4-screen t4-done" hidden><p class="t4-eyebrow">ЗАДАНИЕ 4 ЗАВЕРШЕНО</p><h1>Капсула подготовлена. Продолжаем</h1><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-note">Сектор зачищен: все десять химер распознаны. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
-'<p class="t4-build">Сборка 0311o</p>';
+'<p class="t4-build">Сборка 0311p</p>';
 container.appendChild(root);video=root.querySelector('.t4-video');
 els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
 els.start.addEventListener('click',startIntro);
@@ -153,32 +155,42 @@ closeKb();
 submitAnswers();
 }
 // --- проверка ответов (капитан) ---
+// Галочка и блокировка ставятся тому ПОЛЮ, в котором стоит верное слово, а не «месту животного».
+// Раньше подтверждение привязывалось к животному: при вводе «дятел + лиса» галочка появлялась
+// у слова «дятел», и его нельзя было исправить.
 function submitAnswers(){
 if(!cap()||!task||task.stage!=='answer')return;
-const R=round(),cf=task.confirmed||{},at=task.attempts||{},hl=task.hintLevel||{};
+const R=round(),cf=task.confirmed||{},at=task.attempts||{},hl=task.hintLevel||{},fl=task.fields||{};
 const va=norm(els.fa.value),vb=norm(els.fb.value);
 const upd={'fields/a':els.fa.value,'fields/b':els.fb.value};
+// Какие животные уже заняты ранее подтверждёнными полями.
+const taken={};
+['a','b'].forEach(function(k){
+if(!cf[k])return;
+const v=norm(fl[k]||'');
+if(matches(v,R.a)&&!taken.a){taken.a=true;return;}
+if(matches(v,R.b)&&!taken.b){taken.b=true;}
+});
 const pending=[];
 if(!cf.a&&va)pending.push({key:'a',v:va});
 if(!cf.b&&vb)pending.push({key:'b',v:vb});
-if(!pending.length){status('Введите хотя бы одно название.');return;}
+if(!pending.length)return;
 let wrongCount=0;
-// Порядок животных любой: каждое введённое название сверяем с обоими животными химеры.
+// Порядок животных любой: каждое введённое название сверяем с обоими животными химеры
+// и подтверждаем именно то поле, где слово стоит.
 pending.forEach(function(p){
-const other=p.key==='a'?'b':'a';
-const otherDone=!!(cf[other]||upd['confirmed/'+other]);
-if(!otherDone&&matches(p.v,R[other])){upd['confirmed/'+other]=true;return;}
-if(matches(p.v,R[p.key])){upd['confirmed/'+p.key]=true;return;}
+if(!taken.a&&matches(p.v,R.a)){taken.a=true;upd['confirmed/'+p.key]=true;return;}
+if(!taken.b&&matches(p.v,R.b)){taken.b=true;upd['confirmed/'+p.key]=true;return;}
 upd['attempts/'+p.key]=(at[p.key]||0)+1;
 wrongCount++;
 });
-// Подсказки привязаны к животным, а не к полям: повышаем уровень первого неотгаданного.
+// Подсказки привязаны к животным: повышаем уровень первого ещё не отгаданного.
 const bumped={};
 for(let i=0;i<wrongCount;i++){
-const t=!(cf.a||upd['confirmed/a'])&&!bumped.a?'a':(!(cf.b||upd['confirmed/b'])&&!bumped.b?'b':null);
+const t=!taken.a&&!bumped.a?'a':(!taken.b&&!bumped.b?'b':null);
 if(!t)break;
 bumped[t]=true;
-const cur=upd['hintLevel/'+t]!==undefined?upd['hintLevel/'+t]:(hl[t]||0);
+const cur=(hl[t]||0);
 if(cur<2)upd['hintLevel/'+t]=cur+1;
 }
 const both=!!(upd['confirmed/a']||(cf.a))&&!!(upd['confirmed/b']||(cf.b));
@@ -188,15 +200,15 @@ const gain=elapsed<30000?10:elapsed<45000?7:elapsed<60000?3:0;
 upd.stage='result';upd.resultAt=Date.now();upd.gained=gain;upd.energy=(task.energy||0)+gain;
 }
 write(upd).catch(function(){});
-if(wrongCount)status('Не подходит. Смотрите подсказку под полем.');
-else status('');
+// Никаких слов «не подходит»: сигнал — сама подсказка под полем.
+status('');
 }
 // --- координация: авто-переход после короткого результата (~5 с), только капитан ---
 function coordinate(){
 if(!cap()||!task||task.stage!=='result')return;
 const at=task.resultAt||0;if(!at)return;
 const key=(task.round||0)+':'+at;if(advanceKey===key)return;
-if(Date.now()<at+3500)return;
+if(Date.now()<at+4200)return;
 advanceKey=key;
 if((task.round||0)>=9){
 write({stage:'done',startsAt:Date.now(),completed:true,requests:null}).catch(function(e){advanceKey='';});
@@ -220,10 +232,10 @@ function render(){
 if(!root||!task)return;
 const stage=task.stage||'wait';
 els.wait.hidden=stage!=='wait';
-els.result.hidden=true;
+els.result.hidden=stage!=='result';
 els.done.hidden=stage!=='done';
 els.start.hidden=!cap();els.waitnote.hidden=cap();
-const inRound=(stage==='clip'||stage==='answer'||stage==='result');
+const inRound=(stage==='clip'||stage==='answer');
 els.hud.hidden=!inRound;
 if(inRound){els.hudRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10';const ch=Math.max(0,Math.min(100,task.energy||0));els.hudEnergy.textContent=ch+'%';const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=ch+'%';}
 els.panel.hidden=!(stage==='answer'&&cap());
@@ -277,12 +289,12 @@ if(!level){el.hidden=true;return;}
 el.hidden=false;
 el.innerHTML='<b>'+label+':</b> '+(level>=2?sp.h2:sp.h1);
 }
+// Крупный результат: чёрный экран, бирюзовый текст — ответ и заряд капсулы.
 function renderResult(){
 const R=round();
 const charge=Math.max(0,Math.min(100,task.energy||0));
-const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=charge+'%';
-els.hudEnergy.textContent=charge+'%';
-status('Химера угадана: '+R.a.name+' + '+R.b.name+'. Заряд капсулы '+charge+' %.');
+if(els.resNames)els.resNames.textContent=R.a.name+' + '+R.b.name;
+if(els.resGain)els.resGain.textContent='Заряд капсулы '+charge+' %';
 const rk=(task.round||0)+':'+(task.resultAt||0);if(rk!==resSfxKey){resSfxKey=rk;playSfx('sfx_capsule_charge.mp3',.6);}
 }
 // --- медиа ---

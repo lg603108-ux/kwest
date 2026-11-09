@@ -28,8 +28,8 @@
 #t4 .t4-field input{width:100%;height:44px;box-sizing:border-box;padding:0 34px 0 10px;border:1px solid rgba(190,245,245,.4);border-radius:10px;background:#14292f;color:#fff;font-size:16px;font-family:inherit}
 #t4 .t4-field input:disabled{opacity:.75;border-color:#30e5dc}
 #t4 .t4-ok{position:absolute;right:6px;color:#30e5dc;font-size:20px;font-weight:800}
-#t4 .t4-hintline{flex-basis:100%;font-size:13px;line-height:1.3;color:#ffcf9f;margin:0}
-#t4 .t4-hintline b{color:#fff}
+#t4 .t4-hintline{flex-basis:100%;font-size:13px;line-height:1.35;color:#30e5dc;margin:0}
+#t4 .t4-hintline b{color:#30e5dc;font-weight:800}
 #t4 .t4-time{font-size:13px;color:#9fd8d8;min-width:44px;text-align:center}
 #t4 .t4-reqnote{flex-basis:100%;font-size:13px;color:#9fd8d8;margin:0}
 /* Экран «остальные» */
@@ -59,12 +59,20 @@
 #t4 .t4-capsule-fill{position:absolute;left:0;right:0;bottom:0;overflow:hidden;height:0}
 #t4 .t4-capsule-fill img{position:absolute;left:0;bottom:0;width:100%;border-radius:12px}
 #t4 .t4-gain{font-size:16px;font-weight:700;color:#30e5dc;margin:8px 0 0}
-/* Окно ввода: одно животное за раз, у верхнего края — в полосе над клавиатурой */
-#t4 .t4-kbwin{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;flex-direction:column;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 12px 10px;background:rgba(13,22,26,.98);border-bottom:1px solid rgba(190,245,245,.3);box-sizing:border-box}
+/* Окно ввода: одно животное за раз, у верхнего края — в полосе над клавиатурой.
+   Поле короче экрана, кнопка «Далее/Проверить» стоит рядом с полем. */
+#t4 .t4-kbwin{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;flex-direction:column;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:rgba(13,22,26,.98);border-bottom:1px solid rgba(190,245,245,.3);box-sizing:border-box}
 #t4 .t4-kbwin-label{font-size:13px;color:#9fd8d8;font-weight:700;margin:0}
-#t4 .t4-kbwin-input{width:100%;height:46px;box-sizing:border-box;padding:0 12px;border:1px solid #30e5dc;border-radius:10px;background:#14292f;color:#fff;font-size:18px;font-family:inherit}
-#t4 .t4-kbwin-hint{font-size:12px;line-height:1.3;color:#ffcf9f;margin:0;max-height:4.2em;overflow:auto}
+#t4 .t4-kbrow{display:flex;align-items:center;gap:8px}
+#t4 .t4-kbwin-input{flex:0 1 auto;width:min(58vw,300px);height:46px;box-sizing:border-box;padding:0 10px;border:1px solid #30e5dc;border-radius:10px;background:#14292f;color:#fff;font-size:18px;font-family:inherit}
+#t4 .t4-kbwin .t4-kbok{flex:0 0 auto;min-height:46px;padding:0 18px;font-size:15px;border-radius:10px}
+/* Подсказка — бирюзовым по чёрному, как кнопки */
+#t4 .t4-kbwin-hint{font-size:13px;line-height:1.3;color:#30e5dc;margin:0;max-height:4.6em;overflow:auto}
 #t4 .t4-kbwin-hint span{display:block}
-#t4 .t4-kbwin-btns{display:flex;gap:8px}
-#t4 .t4-kbwin-btns button{flex:1}
+#t4 .t4-kblink{align-self:flex-start;min-height:30px;padding:0 6px;border:0;background:transparent;color:#9fd8d8;font-size:13px;font-family:inherit;cursor:pointer}
 #t4 .t4-field input[readonly]{cursor:pointer}
+/* Результат отгадывания — крупно, бирюзовым по чёрному */
+#t4 .t4-screen.t4-result{background:#000;justify-content:center}
+#t4 .t4-res-title{font-size:clamp(20px,5.6vw,38px);font-weight:800;letter-spacing:3px;color:#30e5dc;margin:0 0 10px;text-transform:uppercase}
+#t4 .t4-res-names{font-size:clamp(28px,8.5vw,60px);font-weight:800;color:#30e5dc;margin:0;line-height:1.1}
+#t4 .t4-res-charge{font-size:clamp(16px,4.6vw,26px);color:#30e5dc;margin:14px 0 0;letter-spacing:1px}

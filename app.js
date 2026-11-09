@@ -17,7 +17,9 @@ function read(k){try{return localStorage.getItem(k);}catch{return null;}}
 $('name').value=read('anomaly-name')||'';
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>{$('toast').style.display='none';},6000);}
 function screen(id){if(current==='cinema')$('movie').pause();document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id));current=id;document.body.dataset.screen=id;}
-function stopAudio(){playing.forEach(a=>a.pause());playing=[];music.pause();}
+// Глушим и те звуки, что уже успели отзвучать: инструкция обороны оставалась в пуле и могла
+// снова зазвучать поверх задания 2, пока команда ждала загрузку видео.
+function stopAudio(){playing.forEach(a=>a.pause());playing=[];try{Object.values(pools).forEach(p=>p.forEach(a=>{try{a.pause();}catch(e){}}));}catch(e){}music.pause();}
 // Задания 2–4 могут попросить остановить музыку боя: иначе она продолжает играть поверх видео.
 window.__stopQuestAudio=stopAudio;
 function goFullscreen(){try{if(!document.fullscreenElement&&$('app').requestFullscreen){$('app').requestFullscreen().catch(()=>{});}}catch{}}
