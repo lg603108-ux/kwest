@@ -82,7 +82,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311ag</p>';
+'<p class="t6-build">Сборка 0311ah</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -143,9 +143,6 @@ function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait')return;
 els.start.disabled=true;
-// Своё видео включаем прямо в нажатии кнопки: только так браузер даёт звук,
-// и капитан не ждёт ответа базы (иначе чёрный экран и поздний старт).
-try{loadMedia('intro',true);}catch(e){}
 write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
 .catch(function(){if(els.start)els.start.disabled=false;});
 }
@@ -380,7 +377,7 @@ hideMediaBtn();
 function clearMedia(){if(mediaTimer){clearTimeout(mediaTimer);mediaTimer=null;}}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
 function showMediaBtn(text,fn){if(!els.media)return;els.media.hidden=false;els.media.textContent=text;els.media.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();hideMediaBtn();if(!active)return;fn();};}
-function loadMedia(stage,immediate){
+function loadMedia(stage){
 if(!video)return;
 stopMedia();
 const src=stage==='intro'?'assets/v06_intro.mp4':'assets/lum_dance.mp4';
@@ -393,7 +390,7 @@ else{video.defaultMuted=false;video.removeAttribute('muted');}
 if(reuse){
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
 video.onended=onVideoEnded;
-if(immediate)playNow();else playWhenReady();
+playWhenReady();
 return;
 }
 curSrc=src;
@@ -401,9 +398,8 @@ video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
 clearWd();mediaRetries=0;
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
-if(stage==='dance'&&!immediate)status('Загружаем танец…');
-// Капитан включает видео прямо по нажатию кнопки (это и даёт звук), остальные — по готовности.
-if(immediate)playNow();else playWhenReady();
+if(stage==='dance')status('Загружаем танец…');
+playWhenReady();
 };
 video.onerror=function(){
 if(!active||mediaKey!==stage||!video)return;
@@ -420,8 +416,6 @@ else status('Ждём капитана: он запустит видео.');
 };
 video.onended=onVideoEnded;
 video.load();
-// Капитан: запускаем сразу, в том же нажатии кнопки — так браузер разрешает звук.
-if(immediate)playNow();
 // Сторож: если первого кадра нет 20 секунд (медленная связь) — сообщаем и пробуем заново.
 clearWd();
 wdTimer=setTimeout(function(){
@@ -446,20 +440,15 @@ if(!at)return 0;
 const d=at-now();
 return (d>0&&d<15000)?d:0;
 }
-// Включаем не по первому кадру, а когда впереди набрано несколько секунд:
-// иначе на медленной связи видео замирает сразу после старта.
+// Включаем видео так же, как в заданиях 2–5 (это проверенно работает): play() сразу,
+// при отказе браузера — без звука. Задержку ждём только до общего момента старта.
 function playWhenReady(){
 if(!video||!active)return;
 hideMediaBtn();
-if(video.readyState<3){
-video.oncanplay=function(){video.oncanplay=null;if(active)schedulePlay();};
-return;
-}
 schedulePlay();
 }
 function schedulePlay(){
 if(!video||!active)return;
-if(cap()){playNow();return;} // у капитана есть нажатие кнопки — ждать общего момента ему незачем
 const d=sharedDelay();
 if(d>120){
 status('Танец начнётся одновременно у всех…');
@@ -475,11 +464,9 @@ const p=video.play();
 if(!p||!p.then){hideMediaBtn();status('');return;}
 p.then(function(){if(!active)return;hideMediaBtn();status('');},function(){
 if(!active||!video)return;
-// Браузер не дал звук: показываем картинку без звука и даём кнопку включения звука.
 video.muted=true;
 video.play().catch(function(){});
 status('');
-if(cap())showMediaBtn('🔊 Включить звук',function(){if(!video||!active)return;try{video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');video.play().catch(function(){});}catch(e){}});
 });
 }
 function coordinate(){
