@@ -24,8 +24,9 @@ const HINT_WORD=['','Посмотрите на названия выбранны
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
 let tickTimer=null,mediaTimer=null,wdTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
 let picked=-1,kbOpen=false,localHintOrder=0,localHintWord=0,localOrderAt=0,localFailWordAt=0,lastSubmit=0,cardKey='',slotKey='',shuffling=false;
-// Тихая фоновая музыка (тот же трек, что в заданиях 4 и 5): на танце, если звук ролика браузер не дал,
-// и на самой игре — сборка порядка, ввод слова, финал.
+// Тихая фоновая музыка (тот же трек, что в заданиях 4 и 5) — на сборке порядка, вводе слова и финале.
+// Правило автора (10.11): на этапах, где нет видео со звуком, играет тихая фоновая музыка; на самом
+// танце музыки НЕТ — либо звук танца (капитан), либо тишина (остальные).
 let music=null,musicOn=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function uid(){return (window.NET&&NET.uid)||'';}
@@ -55,6 +56,9 @@ if(root)unmount();
 active=true;mediaStage='';mediaKey='';mediaRetries=0;pbKey='';hintKey='';resKey='';advKey='';picked=-1;kbOpen=false;localHintOrder=0;localHintWord=0;localOrderAt=0;localFailWordAt=0;cardKey='';slotKey='';shuffling=false;
 stopMedia();
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+// Пролог и улица: при переходе в задание 6 их звук оставался у всех, кроме капитана
+// (технический переход глушил звук только на его устройстве). Глушим на каждом устройстве.
+['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
 root=document.createElement('div');root.id='t6';root.innerHTML=
 '<video class="t6-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
 '<video class="t6-video" playsinline preload="auto"></video>'+
@@ -74,7 +78,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311ab</p>';
+'<p class="t6-build">Сборка 0311ac</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -101,14 +105,14 @@ els.kbCancel.addEventListener('click',function(){kbSave();closeKb();});
 els.kbInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();submitWord();}});
 els.slots.addEventListener('click',onSlotClick);
 els.cards.addEventListener('click',onCardClick);
-// Браузер может запретить звук до первого касания — на касании пробуем снова.
+// Браузер может запретить звук до первого касания — на касании капитана пробуем снова.
 root.addEventListener('pointerdown',function(){
 if(!active||!task)return;
 const st=task.stage||'';
 if(st==='order'||st==='word'||st==='done')startMusic();
 else if(st==='dance'){
-if(video&&video.muted){video.muted=!cap();try{video.play().catch(function(){});}catch(e){}}
-if(video&&video.muted)startMusic();
+// На танце музыки нет: у капитана звук ролика, у остальных тишина.
+if(video&&video.muted&&cap()){video.muted=false;try{video.play().catch(function(){});}catch(e){}}
 }
 },true);
 try{bg.play().catch(function(){});}catch(e){}
@@ -371,6 +375,8 @@ stopMedia();
 const src=stage==='intro'?'assets/v06_intro.mp4':'assets/lum_dance.mp4';
 mediaStage=stage;mediaKey=stage;pbKey='';
 video.muted=!cap();
+if(video.muted){video.defaultMuted=true;video.setAttribute('muted','');}
+else{video.defaultMuted=false;video.removeAttribute('muted');}
 video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
 clearWd();mediaRetries=0;
@@ -455,10 +461,13 @@ els.toggle.textContent=video.paused?'▶ Играть':'⏸ Пауза';
 }
 }
 if(stage==='intro'&&c&&+task.startsAt&&Date.now()-(+task.startsAt)>120000)introDone();
-// Звук: если звук ролика браузер не дал — играет тихая музыка; на игре музыка фоном всегда.
-if(stage==='dance'){if(!cap())startMusic();else stopMusic();}
+// У всех, кроме капитана, видео задания всегда без звука (жёсткое правило автора).
+if(video&&!cap()&&!video.muted)video.muted=true;
+// Звук: на танце музыки нет — либо звук танца у капитана, либо тишина у остальных.
+// На этапах без видео со звуком (расстановка карточек, слово, финал) играет тихая фоновая музыка.
+if(stage==='dance')stopMusic();
 else if(stage==='order'||stage==='word'||stage==='done')startMusic();
-else if(stage!=='wait')stopMusic();
+else stopMusic();
 }
 function tick(){
 if(!active||!task)return;
