@@ -22,13 +22,17 @@ const WORD='портал';
 const HINT_ORDER=['','Вспомните, какие движения появлялись в танце первыми.','Пересмотрите танец и обратите внимание на первое появление каждого движения.','Проверьте начало: первым идёт прыжок, вторым — оборот.'];
 const HINT_WORD=['','Посмотрите на названия выбранных движений.','Используйте первые буквы названий движений.','Первая буква — П, последняя — Л.'];
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
-let tickTimer=null,mediaTimer=null,wdTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
+let tickTimer=null,mediaTimer=null,wdTimer=null,startTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
+// Поправка часов: время берём по серверу Firebase, иначе у телефонов оно расходится на секунды
+// и игроки не могут начать танец одновременно.
+let tOff=0,offRef=null,pre=null;
 let picked=-1,kbOpen=false,localHintOrder=0,localHintWord=0,localOrderAt=0,localFailWordAt=0,lastSubmit=0,cardKey='',slotKey='',shuffling=false;
 // Тихая фоновая музыка (тот же трек, что в заданиях 4 и 5) — на сборке порядка, вводе слова и финале.
 // Правило автора (10.11): на этапах, где нет видео со звуком, играет тихая фоновая музыка; на самом
 // танце музыки НЕТ — либо звук танца (капитан), либо тишина (остальные).
 let music=null,musicOn=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
+function now(){return Date.now()+(+tOff||0);}
 function uid(){return (window.NET&&NET.uid)||'';}
 function db(){return firebase.database();}
 function publicRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task06');}
@@ -62,6 +66,7 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t6';root.innerHTML=
 '<video class="t6-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
 '<video class="t6-video" playsinline preload="auto"></video>'+
+'<video class="t6-pre" playsinline muted preload="auto" aria-hidden="true"></video>'+
 '<section class="t6-screen t6-wait"><p class="t6-eyebrow">ЗАДАНИЕ 6</p><h1>Танец Лума</h1><p class="t6-note">Танец откроет путь. Лум покажет его вам. Запомните разные движения в порядке их первого появления. После просмотра выберите движения и расставьте их по порядку. В танце спрятано слово — его нужно разгадать отдельно. Капитан введёт ответ.</p><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t6-note">Видео показывается на всех устройствах. Звук инструкции слышит только капитан.</p></section>'+
 '<div class="t6-controls" id="t6-controls" hidden><button id="t6-toggle" type="button">⏸ Пауза</button><button id="t6-restart" type="button">↺ В начало</button></div>'+
 '<button class="t6-replay" id="t6-replay" type="button" hidden>↺ Повторить танец</button>'+
@@ -78,9 +83,10 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311ae</p>';
+'<p class="t6-build">Сборка 0311af</p>';
 container.appendChild(root);
-video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
+video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');pre=root.querySelector('.t6-pre');
+if(pre){pre.src='assets/lum_dance.mp4';try{pre.load();}catch(e){}}
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
 controls:root.querySelector('#t6-controls'),toggle:root.querySelector('#t6-toggle'),restart:root.querySelector('#t6-restart'),
 replay:root.querySelector('#t6-replay'),order:root.querySelector('#t6-order'),orderTitle:root.querySelector('#t6-order-title'),
@@ -117,11 +123,16 @@ if(video&&video.muted&&cap()){video.muted=false;try{video.play().catch(function(
 },true);
 try{bg.play().catch(function(){});}catch(e){}
 if(bg)bg.onerror=function(){if(bg)bg.style.display='none';};
+// Общее время команды: сколько наши часы отличаются от часов сервера.
+try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
 roomOff=NET.onRoom(onRoom);
 tickTimer=setInterval(tick,500);
 }
 function unmount(){
 active=false;clearMedia();stopMedia();stopMusic();
+if(startTimer){clearTimeout(startTimer);startTimer=null;}
+if(offRef){try{offRef.off();}catch(e){}offRef=null;}
+if(pre){try{pre.pause();pre.removeAttribute('src');pre.load();}catch(e){}pre=null;}
 if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
 if(typeof roomOff==='function')roomOff();roomOff=null;
 if(bg){try{bg.pause();}catch(e){}bg.removeAttribute('src');try{bg.load();}catch(e){}bg=null;}
@@ -138,30 +149,30 @@ function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait')return;
 els.start.disabled=true;
-write({stage:'intro',startsAt:Date.now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
+write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
 .catch(function(){if(els.start)els.start.disabled=false;});
 }
 function introDone(){
 if(!cap()||!task||task.stage!=='intro')return;
-write({stage:'dance',startsAt:Date.now(),playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,watched:false,replayClearedAt:Date.now()}).catch(function(){});
+write({stage:'dance',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,watched:false,replayClearedAt:Date.now()}).catch(function(){});
 }
 function togglePlay(){
 if(!cap()||!task||task.stage!=='dance'||!video)return;
-if(video.paused){video.play().catch(function(){});write({playing:true,startsAt:Date.now(),pausedAt:video.currentTime||0}).catch(function(){});}
+if(video.paused){video.play().catch(function(){});write({playing:true,startsAt:now(),pausedAt:video.currentTime||0}).catch(function(){});}
 else{video.pause();write({playing:false,pausedAt:video.currentTime||0}).catch(function(){});}
 }
 function restartDance(){
 if(!cap()||!task||task.stage!=='dance'||!video)return;
 try{video.currentTime=0;}catch(e){}
 video.play().catch(function(){});
-write({playing:true,startsAt:Date.now(),pausedAt:0,playbackId:(+task.playbackId||0)+1,replayClearedAt:Date.now()}).catch(function(){});
+write({playing:true,startsAt:now()+1200,pausedAt:0,playbackId:(+task.playbackId||0)+1,replayClearedAt:Date.now()}).catch(function(){});
 }
 // Пересмотр доступен сразу, ещё до первой ошибки (решение автора 09.11).
 function rewatch(){
 if(!cap()||!task)return;
 if(task.stage!=='order'&&task.stage!=='word')return;
 closeKb();
-write({stage:'dance',startsAt:Date.now(),playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
+write({stage:'dance',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
 }
 function requestReplay(){
 if(!task||cap())return;
@@ -360,9 +371,10 @@ els.cards.innerHTML=h;
 function clearWd(){if(wdTimer){clearTimeout(wdTimer);wdTimer=null;}}
 function stopMedia(){
 clearWd();
+if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(!video)return;
 mediaKey='';
-video.onloadeddata=null;video.onerror=null;video.onended=null;
+video.onloadeddata=null;video.oncanplay=null;video.onerror=null;video.onended=null;
 try{video.pause();}catch(e){}
 hideMediaBtn();
 }
@@ -381,6 +393,7 @@ video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
 clearWd();mediaRetries=0;
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
+if(stage==='dance')status('Загружаем танец…');
 playWhenReady();
 };
 video.onerror=function(){
@@ -398,7 +411,7 @@ else status('Ждём капитана: он запустит видео.');
 };
 video.onended=onVideoEnded;
 video.load();
-// Сторож: если первый кадр не появился за 10 секунд — сообщаем и пробуем заново.
+// Сторож: если первого кадра нет 20 секунд (медленная связь) — сообщаем и пробуем заново.
 clearWd();
 wdTimer=setTimeout(function(){
 wdTimer=null;
@@ -413,12 +426,41 @@ status('');
 if(cap())showMediaBtn('▶ Запустить видео',function(){mediaRetries=0;try{video.src=src;video.load();}catch(e){}});
 else status('Ждём капитана: он запустит видео.');
 }
-},10000);
+},20000);
 }
+// Общий момент старта: все ждут его по серверным часам и включаются одновременно.
+function sharedDelay(){
+const at=+task.startsAt||0;
+if(!at)return 0;
+const d=at-now();
+return (d>0&&d<15000)?d:0;
+}
+// Включаем не по первому кадру, а когда впереди набрано несколько секунд:
+// иначе на медленной связи видео замирает сразу после старта.
 function playWhenReady(){
 if(!video||!active)return;
+hideMediaBtn();
+if(video.readyState<3){
+video.oncanplay=function(){video.oncanplay=null;if(active)schedulePlay();};
+return;
+}
+schedulePlay();
+}
+function schedulePlay(){
+if(!video||!active)return;
+const d=sharedDelay();
+if(d>120){
+status('Танец начнётся одновременно у всех…');
+if(startTimer)clearTimeout(startTimer);
+startTimer=setTimeout(function(){startTimer=null;if(!active)return;status('');playNow();},d);
+return;
+}
+playNow();
+}
+function playNow(){
+if(!video||!active)return;
 const p=video.play();
-if(!p||!p.then){hideMediaBtn();return;}
+if(!p||!p.then){hideMediaBtn();status('');return;}
 p.then(function(){if(!active)return;hideMediaBtn();status('');},function(){
 if(!active||!video)return;
 video.muted=true;
@@ -436,31 +478,25 @@ const c=cap();
 if(stage==='dance'){
 const pb=String(+task.playbackId||0);
 if(pb!==pbKey){
-pbKey=pb;
+pbKey=pb; // новый показ (общий старт или просьба повторить) — все начинают сначала
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
-if(c&&task.playing)try{video.play().catch(function(){});}catch(e){}
+if(task.playing&&video.readyState>=3)schedulePlay();
 }
 if(!c){
-const playing=!!task.playing;
-const base=+task.pausedAt||0;
-const target=playing?base+Math.max(0,(Date.now()-(+task.startsAt||Date.now()))/1000):base;
-const dur=video.duration||0;
-const clamped=dur>0?Math.min(target,Math.max(0,dur-0.15)):target;
-if(playing){
-if(video.paused){
-try{video.play().catch(function(){});}catch(e){}
-}
-if(Math.abs((video.currentTime||0)-clamped)>1.2)try{video.currentTime=clamped;}catch(e){}
+// Время НЕ подгоняем (решение автора 10.11): подгонка заставляла видео замирать
+// и перескакивать, из-за чего движения не разглядеть. Только пауза и продолжение,
+// без перемотки — каждый смотрит танец целиком со своего места.
+if(task.playing){
+if(video.paused&&video.readyState>=2)video.play().catch(function(){});
 }else{
 if(!video.paused)try{video.pause();}catch(e){}
-if(Math.abs((video.currentTime||0)-base)>0.4)try{video.currentTime=base;}catch(e){}
 }
 }
 if(c){
 els.toggle.textContent=video.paused?'▶ Играть':'⏸ Пауза';
 }
 }
-if(stage==='intro'&&c&&+task.startsAt&&Date.now()-(+task.startsAt)>120000)introDone();
+if(stage==='intro'&&c&&+task.startsAt&&(now()-(+task.startsAt))>120000)introDone();
 // У всех, кроме капитана, видео задания всегда без звука (жёсткое правило автора).
 if(video&&!cap()&&!video.muted)video.muted=true;
 // Звук: на танце музыки нет — либо звук танца у капитана, либо тишина у остальных.
