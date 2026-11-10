@@ -42,6 +42,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0d161a;colo
 .t7-btn:active,.t7-btn.on{background:rgba(48,229,220,.28);transform:scale(.97);border-color:#30e5dc}
 .t7-ico{font-size:13px;opacity:.85}
 
+/* ——— затемнение при провале ——— */
+#t7-dark{position:absolute;inset:0;pointer-events:none;z-index:4;background:#04080a;opacity:0}
+
 /* ——— вспышка урона / удачи ——— */
 #t7-flash{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .25s}
 #t7-flash.hit{opacity:1;background:radial-gradient(ellipse at center,rgba(255,60,60,0) 40%,rgba(255,50,50,.55) 100%)}
