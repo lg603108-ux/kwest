@@ -25,7 +25,7 @@ let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,ro
 let tickTimer=null,mediaTimer=null,wdTimer=null,startTimer=null,mediaStage='',mediaKey='',mediaRetries=0,pbKey='',hintKey='',resKey='',advKey='';
 // Поправка часов: время берём по серверу Firebase, иначе у телефонов оно расходится на секунды
 // и игроки не могут начать танец одновременно.
-let tOff=0,offRef=null,pre=null;
+let tOff=0,offRef=null;let curSrc='';
 let picked=-1,kbOpen=false,localHintOrder=0,localHintWord=0,localOrderAt=0,localFailWordAt=0,lastSubmit=0,cardKey='',slotKey='',shuffling=false;
 // Тихая фоновая музыка (тот же трек, что в заданиях 4 и 5) — на сборке порядка, вводе слова и финале.
 // Правило автора (10.11): на этапах, где нет видео со звуком, играет тихая фоновая музыка; на самом
@@ -66,7 +66,6 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t6';root.innerHTML=
 '<video class="t6-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
 '<video class="t6-video" playsinline preload="auto"></video>'+
-'<video class="t6-pre" playsinline muted preload="auto" aria-hidden="true"></video>'+
 '<section class="t6-screen t6-wait"><p class="t6-eyebrow">ЗАДАНИЕ 6</p><h1>Танец Лума</h1><p class="t6-note">Танец откроет путь. Лум покажет его вам. Запомните разные движения в порядке их первого появления. После просмотра выберите движения и расставьте их по порядку. В танце спрятано слово — его нужно разгадать отдельно. Капитан введёт ответ.</p><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t6-note">Видео показывается на всех устройствах. Звук инструкции слышит только капитан.</p></section>'+
 '<div class="t6-controls" id="t6-controls" hidden><button id="t6-toggle" type="button">⏸ Пауза</button><button id="t6-restart" type="button">↺ В начало</button></div>'+
 '<button class="t6-replay" id="t6-replay" type="button" hidden>↺ Повторить танец</button>'+
@@ -83,10 +82,9 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311af</p>';
+'<p class="t6-build">Сборка 0311ag</p>';
 container.appendChild(root);
-video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');pre=root.querySelector('.t6-pre');
-if(pre){pre.src='assets/lum_dance.mp4';try{pre.load();}catch(e){}}
+video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
 controls:root.querySelector('#t6-controls'),toggle:root.querySelector('#t6-toggle'),restart:root.querySelector('#t6-restart'),
 replay:root.querySelector('#t6-replay'),order:root.querySelector('#t6-order'),orderTitle:root.querySelector('#t6-order-title'),
@@ -111,15 +109,12 @@ els.kbCancel.addEventListener('click',function(){kbSave();closeKb();});
 els.kbInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();submitWord();}});
 els.slots.addEventListener('click',onSlotClick);
 els.cards.addEventListener('click',onCardClick);
-// Браузер может запретить звук до первого касания — на касании капитана пробуем снова.
+// Касание экрана — не разрешение на звук (правило автора 10.11): звук включает только кнопка.
+// Здесь лишь продолжение фоновой музыки на этапах без видео.
 root.addEventListener('pointerdown',function(){
 if(!active||!task)return;
 const st=task.stage||'';
 if(st==='order'||st==='word'||st==='done')startMusic();
-else if(st==='dance'){
-// На танце музыки нет: у капитана звук ролика, у остальных тишина.
-if(video&&video.muted&&cap()){video.muted=false;try{video.play().catch(function(){});}catch(e){}}
-}
 },true);
 try{bg.play().catch(function(){});}catch(e){}
 if(bg)bg.onerror=function(){if(bg)bg.style.display='none';};
@@ -132,7 +127,6 @@ function unmount(){
 active=false;clearMedia();stopMedia();stopMusic();
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(offRef){try{offRef.off();}catch(e){}offRef=null;}
-if(pre){try{pre.pause();pre.removeAttribute('src');pre.load();}catch(e){}pre=null;}
 if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
 if(typeof roomOff==='function')roomOff();roomOff=null;
 if(bg){try{bg.pause();}catch(e){}bg.removeAttribute('src');try{bg.load();}catch(e){}bg=null;}
@@ -149,6 +143,9 @@ function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait')return;
 els.start.disabled=true;
+// Своё видео включаем прямо в нажатии кнопки: только так браузер даёт звук,
+// и капитан не ждёт ответа базы (иначе чёрный экран и поздний старт).
+try{loadMedia('intro',true);}catch(e){}
 write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
 .catch(function(){if(els.start)els.start.disabled=false;});
 }
@@ -172,6 +169,8 @@ function rewatch(){
 if(!cap()||!task)return;
 if(task.stage!=='order'&&task.stage!=='word')return;
 closeKb();
+// Повтор — из уже загруженного файла, без перезакачки (иначе у капитана стоп-кадр).
+try{if(video){video.currentTime=0;video.play().catch(function(){});}}catch(e){}
 write({stage:'dance',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
 }
 function requestReplay(){
@@ -381,20 +380,30 @@ hideMediaBtn();
 function clearMedia(){if(mediaTimer){clearTimeout(mediaTimer);mediaTimer=null;}}
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
 function showMediaBtn(text,fn){if(!els.media)return;els.media.hidden=false;els.media.textContent=text;els.media.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();hideMediaBtn();if(!active)return;fn();};}
-function loadMedia(stage){
+function loadMedia(stage,immediate){
 if(!video)return;
 stopMedia();
 const src=stage==='intro'?'assets/v06_intro.mp4':'assets/lum_dance.mp4';
+// Тот же файл уже загружен — заново не качаем: иначе на повторе вместо видео остаётся стоп-кадр.
+const reuse=(curSrc===src&&video.readyState>=1&&!video.error);
 mediaStage=stage;mediaKey=stage;pbKey='';
 video.muted=!cap();
 if(video.muted){video.defaultMuted=true;video.setAttribute('muted','');}
 else{video.defaultMuted=false;video.removeAttribute('muted');}
+if(reuse){
+try{video.currentTime=(+task.pausedAt||0);}catch(e){}
+video.onended=onVideoEnded;
+if(immediate)playNow();else playWhenReady();
+return;
+}
+curSrc=src;
 video.src=src;
 video.onloadeddata=function(){if(!active||mediaKey!==stage)return;
 clearWd();mediaRetries=0;
 try{video.currentTime=(+task.pausedAt||0);}catch(e){}
-if(stage==='dance')status('Загружаем танец…');
-playWhenReady();
+if(stage==='dance'&&!immediate)status('Загружаем танец…');
+// Капитан включает видео прямо по нажатию кнопки (это и даёт звук), остальные — по готовности.
+if(immediate)playNow();else playWhenReady();
 };
 video.onerror=function(){
 if(!active||mediaKey!==stage||!video)return;
@@ -411,6 +420,8 @@ else status('Ждём капитана: он запустит видео.');
 };
 video.onended=onVideoEnded;
 video.load();
+// Капитан: запускаем сразу, в том же нажатии кнопки — так браузер разрешает звук.
+if(immediate)playNow();
 // Сторож: если первого кадра нет 20 секунд (медленная связь) — сообщаем и пробуем заново.
 clearWd();
 wdTimer=setTimeout(function(){
@@ -448,6 +459,7 @@ schedulePlay();
 }
 function schedulePlay(){
 if(!video||!active)return;
+if(cap()){playNow();return;} // у капитана есть нажатие кнопки — ждать общего момента ему незачем
 const d=sharedDelay();
 if(d>120){
 status('Танец начнётся одновременно у всех…');
@@ -463,9 +475,11 @@ const p=video.play();
 if(!p||!p.then){hideMediaBtn();status('');return;}
 p.then(function(){if(!active)return;hideMediaBtn();status('');},function(){
 if(!active||!video)return;
+// Браузер не дал звук: показываем картинку без звука и даём кнопку включения звука.
 video.muted=true;
 video.play().catch(function(){});
 status('');
+if(cap())showMediaBtn('🔊 Включить звук',function(){if(!video||!active)return;try{video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');video.play().catch(function(){});}catch(e){}});
 });
 }
 function coordinate(){
