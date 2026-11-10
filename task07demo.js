@@ -18,7 +18,7 @@ var DURATION=60;        // длительность пробного участ�
 var ROAD_W=9;           // ширина дороги, метров
 var EYE=1.62;           // высота камеры
 var LANE_SHIFT=4.4;     // боковое смещение при манёвре, метров — заметнее, чем было
-var WARN_AHEAD=26;      // за сколько метров до препятствия показать предупреждение
+var WARN_AHEAD=40;      // за сколько метров до препятствия показать предупреждение
 var HIT_DAMAGE=15;      // урон корпусу за ошибку
 var REACT_WINDOW=1.5;   // сколько секунд после нажатия действие считается своевременным
 
@@ -140,11 +140,12 @@ function build(){
   scene.add(new THREE.AmbientLight(0x8fa6ae,0.45));
   var sun=new THREE.DirectionalLight(0xd6ecf2,0.65); sun.position.set(-40,80,-30); scene.add(sun);
 
-  // маршрут: длинная улица с плавным поворотом и вторым отрезком
+  // маршрут: улица с плавным поворотом, а в конце — поворот на другую улицу
   curve=new THREE.CatmullRomCurve3([
     new THREE.Vector3(0,0,10), new THREE.Vector3(0,0,-90), new THREE.Vector3(3,0,-180),
     new THREE.Vector3(14,0,-270), new THREE.Vector3(25,0,-360), new THREE.Vector3(22,0,-450),
-    new THREE.Vector3(17,0,-505)
+    new THREE.Vector3(17,0,-505), new THREE.Vector3(28,0,-540),
+    new THREE.Vector3(58,0,-556), new THREE.Vector3(100,0,-562), new THREE.Vector3(150,0,-566)
   ],false,'catmullrom',0.4);
   pathLen=curve.getLength();
 
@@ -296,15 +297,19 @@ function buildEvents(){
   var defs=[
     {d:45,  type:'pit',    need:'jump',  text:'Провал! Прыжок'},
     {d:90,  type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:135, type:'beam',   need:'duck',  text:'Низкая балка!'},
-    {d:180, type:'debris', need:'right', text:'Обломки падают слева!'},
-    {d:225, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:268, type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:310, type:'beam',   need:'duck',  text:'Низкая балка!'},
-    {d:350, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:390, type:'debris', need:'right', text:'Обломки падают слева!'},
-    {d:430, type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:465, type:'pit',    need:'jump',  text:'Провал! Прыжок'}
+    {d:132, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:176, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:218, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:258, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:300, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:342, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:384, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:426, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:468, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:510, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:552, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:592, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:630, type:'pit',    need:'jump',  text:'Провал! Прыжок'}
   ];
   var up=new THREE.Vector3(0,1,0);
 
