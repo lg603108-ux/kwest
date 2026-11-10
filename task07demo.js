@@ -17,7 +17,7 @@ if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-би
 var DURATION=60;        // длительность пробного участка, секунд (решение автора 10.11.2026)
 var ROAD_W=9;           // ширина дороги, метров
 var EYE=1.62;           // высота камеры
-var LANE_SHIFT=3.6;     // боковое смещение при манёвре, метров — заметнее, чем было
+var LANE_SHIFT=4.4;     // боковое смещение при манёвре, метров — заметнее, чем было
 var WARN_AHEAD=26;      // за сколько метров до препятствия показать предупреждение
 var HIT_DAMAGE=15;      // урон корпусу за ошибку
 var REACT_WINDOW=1.5;   // сколько секунд после нажатия действие считается своевременным
@@ -45,6 +45,7 @@ var facadeTex=[],dust=[];
 var el={prog:document.getElementById('t7-progress'),time:document.getElementById('t7-time'),
         energy:document.getElementById('t7-energy'),integrity:document.getElementById('t7-integrity'),
         alert:document.getElementById('t7-alert'),flash:document.getElementById('t7-flash'),
+        judge:document.getElementById('t7-judge'),
         dark:document.getElementById('t7-dark'),
         start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
         endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
@@ -166,30 +167,43 @@ function build(){
     sideMat.map=rt; sideMat.needsUpdate=true;
   });
 
-  // фасады из фотографии улицы
-  A.facades.forEach(function(url){
-    loader.load(url,function(tx){ facadeTex.push(tx); },undefined,function(){});
-  });
-
-  var r=rnd(555);
-  var fallback=new THREE.MeshLambertMaterial({color:0x55605f});
-  for(var d=18; d<pathLen-16; d+=26){
-    var t2=d/pathLen, fr2=frame(t2);
-    var ang=Math.atan2(fr2.f.x,fr2.f.z);
-    [-1,1].forEach(function(side){
-      var h=12+r()*24, w=12+r()*8, dep=10+r()*6;
-      var geo=new THREE.BoxGeometry(dep,h,w);
-      var mTop=new THREE.MeshLambertMaterial({color:0x39434a});
-      var tex=facadeTex.length?facadeTex[Math.floor(r()*facadeTex.length)]:null;
-      var mSide=tex?new THREE.MeshLambertMaterial({map:tex}):fallback;
-      var b=new THREE.Mesh(geo,[mSide,mSide,mTop,mTop,mSide,mSide]);
-      var off=(ROAD_W/2+3.6+dep/2);
-      b.position.copy(fr2.p).addScaledVector(fr2.right, side*off);
-      b.position.y=h/2;
-      b.rotation.y=ang;
-      scene.add(b);
-    });
+  // фасады из фотографии улицы. ВАЖНО: здания строим ТОЛЬКО после загрузки картинок,
+  // иначе материал берётся пустым и дома остаются серыми параллелепипедами.
+  var needF=A.facades.length, buildingsDone=false;
+  function buildBuildings(){
+    if(buildingsDone)return;
+    buildingsDone=true;
+    var r=rnd(555);
+    var fallback=new THREE.MeshLambertMaterial({color:0x55605f});
+    for(var d=18; d<pathLen-16; d+=26){
+      var t2=d/pathLen, fr2=frame(t2);
+      var ang=Math.atan2(fr2.f.x,fr2.f.z);
+      [-1,1].forEach(function(side){
+        var h=12+r()*24, w=12+r()*8, dep=10+r()*6;
+        var geo=new THREE.BoxGeometry(dep,h,w);
+        // окна нужного размера: повторяем фото по стене, не клонируя текстуру
+        var repX=Math.max(1,Math.round(dep/11)), repY=Math.max(2,Math.round(h/9));
+        var uv=geo.attributes.uv;
+        for(var ui=0;ui<uv.count;ui++){ uv.setXY(ui,uv.getX(ui)*repX,uv.getY(ui)*repY); }
+        uv.needsUpdate=true;
+        var mTop=new THREE.MeshLambertMaterial({color:0x39434a});
+        var tex=facadeTex.length?facadeTex[Math.floor(r()*facadeTex.length)]:null;
+        var mSide=tex?new THREE.MeshLambertMaterial({map:tex}):fallback;
+        var b=new THREE.Mesh(geo,[mSide,mSide,mTop,mTop,mSide,mSide]);
+        var off=(ROAD_W/2+3.6+dep/2);
+        b.position.copy(fr2.p).addScaledVector(fr2.right, side*off);
+        b.position.y=h/2;
+        b.rotation.y=ang;
+        scene.add(b);
+      });
+    }
   }
+  A.facades.forEach(function(url){
+    loader.load(url,function(tx){
+      tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=8; facadeTex.push(tx);
+      if(--needF===0) buildBuildings();
+    },undefined,function(){ if(--needF===0) buildBuildings(); });
+  });
 
   // парящее здание в глубине — как на изображении
   var frMid=frame(0.6);
@@ -322,8 +336,8 @@ function puff(worldPos){
 function doAction(a){
   if(!running||finished)return;
   lastAct=a; lastActAt=elapsed;
-  if(a==='left'){ laneTarget=-1; holdT=2.0; }
-  if(a==='right'){ laneTarget=1; holdT=2.0; }
+  if(a==='left'){ laneTarget=-1; holdT=2.6; }
+  if(a==='right'){ laneTarget=1; holdT=2.6; }
   if(a==='jump'){ if(jumpT<=0) jumpT=0.85; }
   if(a==='duck'){ if(duckT<=0) duckT=0.75; }
   var btn=document.querySelector('[data-act="'+a+'"]');
@@ -366,14 +380,16 @@ function judge(e){
   if(ok){
     passed++;
     flash('ok');
+    judgeLabel('Есть!',true);
     puff(wp);
     if(e.type==='debris'&&e.pieces) e.pieces.forEach(function(s){ s.userData.missed=true; });
   }else{
     failed++;
     integrity=Math.max(0,integrity-HIT_DAMAGE);
-    shake=0.95;
+    shake=1.5;
     if(e.type==='pit') dipT=dipMax;               // провалились в дыру
     flash('hit');
+    judgeLabel('Удар!',false);
     puff(wp);
     if(integrity<=0){
       integrity=30;
@@ -381,6 +397,15 @@ function judge(e){
     }
   }
   updateHud();
+}
+
+var judgeTimer=null;
+function judgeLabel(text,ok){
+  if(!el.judge)return;
+  el.judge.textContent=text;
+  el.judge.className=(ok?'ok ':'bad ')+'show';
+  if(judgeTimer)clearTimeout(judgeTimer);
+  judgeTimer=setTimeout(function(){ el.judge.className=ok?'ok':'bad'; },700);
 }
 
 function flash(kind){
@@ -428,11 +453,11 @@ function tick(){
 
   holdT=Math.max(0,holdT-dt);
   if(holdT<=0) laneTarget=0;
-  lane+=(laneTarget-lane)*Math.min(1,dt*10);
+  lane+=(laneTarget-lane)*Math.min(1,dt*16);
   jumpT=Math.max(0,jumpT-dt);
   duckT=Math.max(0,duckT-dt);
   dipT=Math.max(0,dipT-dt);
-  shake=Math.max(0,shake-dt*1.6);
+  shake=Math.max(0,shake-dt*1.1);
 
   var t=Math.min(0.999,progress);
   var p=curve.getPointAt(t), f=curve.getTangentAt(t);
@@ -454,10 +479,10 @@ function tick(){
 
   camera.position.copy(camPos);
   var lookAtT=Math.min(1,t+0.02);
-  look.copy(curve.getPointAt(lookAtT)).addScaledVector(tmpR,lane*LANE_SHIFT*0.85);
+  look.copy(curve.getPointAt(lookAtT)).addScaledVector(tmpR,lane*LANE_SHIFT*1.8);
   look.y+=EYE+jumpY-duckY-0.05-jumpK*0.35;   // при прыжке смотрим вниз на дорогу
   camera.lookAt(look);
-  camera.rotateZ(-lane*0.1);                  // заметный крен при манёвре
+  camera.rotateZ(-lane*0.16);                 // заметный крен при манёвре
 
   if(capsule){
     capsule.position.y=-0.62+bob*0.9+jumpK*0.05;
