@@ -214,10 +214,10 @@ function build(){
 
   // капсула в руках: сначала пробуем картинку «капсула в руках», иначе обычный рендер
   function placeCapsule(tx){
-    capsule=new THREE.Mesh(new THREE.PlaneGeometry(1.32,0.75),
+    var w=1.30, h=w/(tx.image.width/tx.image.height);
+    capsule=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
       new THREE.MeshBasicMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false}));
-    capsule.position.set(0.52,-0.52,-1.0);
-    capsule.rotation.z=-0.2;
+    capsule.position.set(0,-0.62,-1.0);
     capsule.renderOrder=999;
     camera.add(capsule);
   }
@@ -460,9 +460,9 @@ function tick(){
   camera.rotateZ(-lane*0.1);                  // заметный крен при манёвре
 
   if(capsule){
-    capsule.position.y=-0.52+bob*0.8+jumpK*0.06;
-    capsule.position.x=0.52-lane*0.16;
-    capsule.rotation.z=-0.2+Math.sin(elapsed*5.2)*0.025-lane*0.12;
+    capsule.position.y=-0.62+bob*0.9+jumpK*0.05;
+    capsule.position.x=-lane*0.12;
+    capsule.rotation.z=Math.sin(elapsed*5.2)*0.012-lane*0.05;
   }
 
   // затемнение при провале
