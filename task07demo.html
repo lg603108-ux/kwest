@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#101a1e">
+<title>АНОМАЛИЯ — задание 7, пробный участок</title>
+<link rel="stylesheet" href="task07demo.css?v=0312a">
+</head>
+<body>
+<div id="t7-stage">
+  <canvas id="t7-canvas"></canvas>
+
+  <div id="t7-hud">
+    <div class="t7-pill"><small>Путь</small><b id="t7-progress">0%</b></div>
+    <div class="t7-pill"><small>Время</small><b id="t7-time">30</b></div>
+    <div class="t7-pill"><small>Энергия</small><b id="t7-energy">100%</b></div>
+    <div class="t7-pill"><small>Корпус</small><b id="t7-integrity">100%</b></div>
+  </div>
+
+  <div id="t7-alert" class="t7-alert"></div>
+
+  <button id="t7-topview" type="button">Вид сверху</button>
+
+  <div id="t7-controls">
+    <div class="t7-pad">
+      <button type="button" class="t7-btn" data-act="left"><span class="t7-ico">◀</span>Влево</button>
+      <button type="button" class="t7-btn" data-act="jump"><span class="t7-ico">▲</span>Прыгнуть</button>
+    </div>
+    <div class="t7-pad">
+      <button type="button" class="t7-btn" data-act="right"><span class="t7-ico">▶</span>Вправо</button>
+      <button type="button" class="t7-btn" data-act="duck"><span class="t7-ico">▼</span>Пригнуться</button>
+    </div>
+  </div>
+
+  <div id="t7-flash"></div>
+
+  <div id="t7-start" class="t7-screen">
+    <div class="t7-card">
+      <h1>Пробный участок</h1>
+      <p>Один отрезок улицы на 30 секунд: провалы, падающие обломки и низкая балка.</p>
+      <p class="t7-hint">Управление: кнопки внизу или свайпы по экрану. Свайп вверх — прыжок, вниз — пригнуться, влево или вправо — уйти в сторону.</p>
+      <button type="button" id="t7-play" class="t7-primary">Начать</button>
+      <p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>
+    </div>
+  </div>
+
+  <div id="t7-end" class="t7-screen hidden">
+    <div class="t7-card">
+      <h1 id="t7-end-title">Участок пройден</h1>
+      <p id="t7-end-text"></p>
+      <button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>
+    </div>
+  </div>
+</div>
+<script src="vendor/three.min.js"></script>
+<script src="task07demo.js?v=0312a"></script>
+</body>
+</html>
