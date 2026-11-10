@@ -38,7 +38,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&
 // Нормализация слова: регистр, ё/е, пробелы, дефисы и знаки препинания не мешают.
 function norm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[\s\-–—_.,!?;:«»"'()\[\]]+/g,'');}
 function moveById(id){for(let i=0;i<MOVES.length;i++)if(MOVES[i].id===id)return MOVES[i];return null;}
-function pic(id){return 'assets/t6_'+id+'.png';}
+function pic(id){return 'assets/t6_'+id+'.png?v=0311ae';}
 function playSfx(file,volume){try{var x=new Audio('assets/'+file);x.volume=volume;x.play().catch(function(){});}catch(e){}}
 function startMusic(){
 if(musicOn)return;
@@ -78,7 +78,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311ad</p>';
+'<p class="t6-build">Сборка 0311ae</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
