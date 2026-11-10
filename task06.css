@@ -42,7 +42,7 @@
 #t6 .t6-actions{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;width:min(96vw,760px)}
 #t6 .t6-actions .t6-primary{min-height:46px;padding:8px 20px;font-size:15px}
 #t6 .t6-actions .t6-replay-inline{min-height:46px;padding:8px 16px;border:1px solid rgba(48,229,220,.6);border-radius:10px;background:rgba(13,22,26,.9);color:#30e5dc;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
-#t6 .t6-hint{max-width:min(92vw,720px);margin:0 auto;background:rgba(13,22,26,.94);border:1px solid rgba(48,229,220,.45);border-radius:10px;padding:6px 12px;color:#30e5dc;font-size:12.5px;line-height:1.35;text-align:center}
+#t6 .t6-hint{max-width:min(92vw,720px);margin:0 auto;background:rgba(13,22,26,.94);border:1px solid rgba(48,229,220,.45);border-radius:10px;padding:6px 12px;color:#30e5dc;font-size:12.5px;line-height:1.35;text-align:center;pointer-events:none}
 #t6 .t6-hint b{display:block;font-size:11px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
 /* Этап слова */
 #t6 .t6-word{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(13,22,26,0),rgba(13,22,26,.96) 35%)}

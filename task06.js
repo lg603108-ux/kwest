@@ -82,7 +82,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
-'<p class="t6-build">Сборка 0311ah</p>';
+'<p class="t6-build">Сборка 0311ai</p>';
 container.appendChild(root);
 video=root.querySelector('.t6-video');bg=root.querySelector('.t6-bg');
 els={wait:root.querySelector('.t6-wait'),start:root.querySelector('#t6-start'),waitnote:root.querySelector('#t6-waitnote'),
@@ -196,6 +196,14 @@ for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=
 write({shuffle:ids}).catch(function(){}).then(function(){shuffling=false;},function(){shuffling=false;});
 }
 function selected(){const s=task&&task.selected;return Array.isArray(s)?s.slice(0,6):['','','','','',''];}
+// Подсказка исчезает, как только начали исправлять порядок (просьба автора 10.11):
+// иначе она перекрывает кнопки с движениями.
+function hideHint(){
+localHintOrder=0;
+if(!active||!task)return;
+if((+task.hintOrder||0)>0)write({hintOrder:0}).catch(function(){});
+render();
+}
 function onCardClick(e){
 const b=e.target&&e.target.closest?e.target.closest('.t6-card'):null;
 if(!b||!cap()||!task||task.stage!=='order')return;
@@ -208,6 +216,7 @@ if(i<0)return;
 if(sel[i]===id)return;
 sel[i]=id;
 if(picked>=0)picked=-1;
+hideHint();
 write({selected:sel}).catch(function(){});
 }
 function onSlotClick(e){
@@ -217,14 +226,15 @@ if(!slot)return;
 const i=parseInt(slot.getAttribute('data-i'),10);if(isNaN(i))return;
 const del=e.target&&e.target.classList&&e.target.classList.contains('t6-del');
 const sel=selected();
-if(del){if(!sel[i])return;sel[i]='';picked=-1;write({selected:sel}).catch(function(){});return;}
+if(del){if(!sel[i])return;sel[i]='';picked=-1;hideHint();write({selected:sel}).catch(function(){});return;}
 // Касание ячейки только выделяет её: следующая карточка встанет сюда (с заменой).
 picked=(picked===i)?-1:i;
-render();
+hideHint();
 }
 function submitOrder(){
 if(!cap()||!task||task.stage!=='order')return;
 if(Date.now()-lastSubmit<800)return;
+hideHint();
 const sel=selected();
 if(sel.indexOf('')>=0)return;
 lastSubmit=Date.now();
