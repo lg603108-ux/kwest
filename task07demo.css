@@ -21,6 +21,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0d161a;colo
 .t7-pill b{font-size:17px;color:#eaffff;margin-top:2px}
 .t7-pill b.warn{color:#ffb35c}
 .t7-pill b.bad{color:#ff6b6b}
+.t7-zone{min-width:78px}
+.t7-zone b{font-size:14px;letter-spacing:.01em}
+.t7-primary[disabled]{opacity:.45}
 
 /* ——— предупреждение наблюдателя ——— */
 .t7-alert{position:absolute;left:50%;top:76px;transform:translate(-50%,-8px);z-index:7;
