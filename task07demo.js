@@ -15,7 +15,7 @@ if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-би
 
 // ——— параметры участка ———
 var DURATION=60;        // длительность пробного участка, секунд (решение автора 10.11.2026)
-var ROAD_W=9;           // ширина дороги, метров
+var ROAD_W=13;          // ширина дороги, метров (обочины убраны — они давали чёрные полосы)
 var EYE=1.62;           // высота камеры
 var LANE_SHIFT=4.4;     // боковое смещение при манёвре, метров — заметнее, чем было
 var WARN_AHEAD=40;      // за сколько метров до препятствия показать предупреждение
@@ -36,8 +36,8 @@ function loadSounds(){
     SFX.hit=new Audio('assets/task07/hit.mp3');
     SFX.ok=new Audio('assets/task07/ok.mp3');
     SFX.amb=new Audio('assets/task07/ambience.mp3');
-    SFX.amb.loop=true; SFX.amb.volume=0.35;
-    SFX.hit.volume=0.9; SFX.ok.volume=0.6;
+    SFX.amb.loop=true; SFX.amb.volume=0.55;
+    SFX.hit.volume=1.0; SFX.ok.volume=0.9;
   }catch(e){ SFX={}; }
 }
 function playSfx(k){
@@ -75,42 +75,47 @@ function canvasTexture(size,draw){
   draw(c.getContext('2d'),size);
   var t=new THREE.CanvasTexture(c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping;
-  t.anisotropy=4;
+  t.anisotropy=8;
   return t;
 }
 
-// дорожное полотно: настоящее фото асфальта, осветлённое, с разметкой и трещинами
+// дорожное полотно: ровный серый асфальт, трещины с бирюзовым свечением, выбоины, разметка.
+// Фотография как основа не годится: у неё есть почти чёрные участки, дорога выглядит обрывками.
 function roadTexture(photo){
   return canvasTexture(512,function(g,S){
-    g.drawImage(photo,0,0,S,S/2);
-    g.drawImage(photo,0,S/2,S,S/2);
-    // осветляем: на телефоне тёмный вечерний асфальт читается как чёрное пятно
-    g.fillStyle='rgba(255,255,255,0.16)'; g.fillRect(0,0,S,S);
     var r=rnd(73117);
+    g.fillStyle='#5c666d'; g.fillRect(0,0,S,S);
+    // зерно асфальта
+    for(var i=0;i<9000;i++){
+      var v=52+r()*46;
+      g.fillStyle='rgba('+Math.round(v)+','+Math.round(v+5)+','+Math.round(v+7)+','+(0.1+r()*0.35)+')';
+      g.fillRect(r()*S,r()*S,1+r()*3,1+r()*3);
+    }
     // трещины с бирюзовым свечением — как на фотографии улицы
     function crack(x,y,len,ang){
       g.beginPath(); g.moveTo(x,y);
       for(var k=0;k<len;k++){ x+=Math.cos(ang)*8+r()*11-5.5; y+=Math.sin(ang)*8+r()*11-5.5; ang+=(r()-0.5)*0.8; g.lineTo(x,y); }
-      g.strokeStyle='rgba(24,30,33,0.75)'; g.lineWidth=2+r()*2.4; g.stroke();
-      g.strokeStyle='rgba(70,240,230,0.75)'; g.lineWidth=1+r(); g.shadowColor='#30e5dc'; g.shadowBlur=6; g.stroke();
+      g.strokeStyle='rgba(20,26,29,0.85)'; g.lineWidth=7+r()*7; g.stroke();
+      g.strokeStyle='rgba(70,240,230,0.8)'; g.lineWidth=3.5+r()*3; g.shadowColor='#30e5dc'; g.shadowBlur=7; g.stroke();
       g.shadowBlur=0;
     }
-    for(var c=0;c<16;c++) crack(r()*S,r()*S,8+r()*15,r()*6.28);
+    for(var c=0;c<18;c++) crack(r()*S,r()*S,8+r()*15,r()*6.28);
     // выбоины
-    for(var i=0;i<40;i++){
-      var v=30+r()*40;
-      g.fillStyle='rgba('+Math.round(v)+','+Math.round(v+4)+','+Math.round(v+6)+','+(0.35+r()*0.4)+')';
-      g.beginPath(); g.ellipse(r()*S,r()*S,2+r()*7,1.5+r()*5,r()*3.14,0,6.29); g.fill();
+    for(var h=0;h<50;h++){
+      var vv=34+r()*54;
+      g.fillStyle='rgba('+Math.round(vv)+','+Math.round(vv+4)+','+Math.round(vv+6)+','+(0.3+r()*0.4)+')';
+      g.beginPath(); g.ellipse(r()*S,r()*S,2+r()*8,1.5+r()*5,r()*3.14,0,6.29); g.fill();
     }
     // разметка
-    g.fillStyle='rgba(228,238,240,0.5)';
-    g.fillRect(S*0.085,0,S*0.012,S);
-    g.fillRect(S*0.903,0,S*0.012,S);
-    g.fillStyle='rgba(220,232,234,0.36)';
-    for(var y=0;y<S;y+=96){ g.fillRect(S*0.494,y,S*0.012,48); }
+    g.fillStyle='rgba(228,238,240,0.55)';
+    g.fillRect(S*0.085,0,S*0.014,S);
+    g.fillRect(S*0.901,0,S*0.014,S);
+    g.fillStyle='rgba(220,232,234,0.4)';
+    for(var y=0;y<S;y+=96){ g.fillRect(S*0.493,y,S*0.014,48); }
+    // тёмные края
     var grd=g.createLinearGradient(0,0,S,0);
-    grd.addColorStop(0,'rgba(0,0,0,0.14)'); grd.addColorStop(0.14,'rgba(0,0,0,0)');
-    grd.addColorStop(0.86,'rgba(0,0,0,0)'); grd.addColorStop(1,'rgba(0,0,0,0.14)');
+    grd.addColorStop(0,'rgba(0,0,0,0.22)'); grd.addColorStop(0.16,'rgba(0,0,0,0)');
+    grd.addColorStop(0.84,'rgba(0,0,0,0)'); grd.addColorStop(1,'rgba(0,0,0,0.22)');
     g.fillStyle=grd; g.fillRect(0,0,S,S);
   });
 }
@@ -130,22 +135,22 @@ function dustTexture(){
 // ——— построение мира ———
 function build(){
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x2c3a42);
-  scene.fog=new THREE.Fog(0x3d4b53,32,190);
+  scene.background=new THREE.Color(0x475a64);
+  scene.fog=new THREE.Fog(0x3d4b53,14,78);
 
   camera=new THREE.PerspectiveCamera(72,window.innerWidth/Math.max(1,window.innerHeight),0.1,700);
   scene.add(camera);
 
-  scene.add(new THREE.HemisphereLight(0xc6dbe4,0x39434a,2.15));
-  scene.add(new THREE.AmbientLight(0x8fa6ae,0.45));
-  var sun=new THREE.DirectionalLight(0xd6ecf2,0.65); sun.position.set(-40,80,-30); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xb9d0da,0x2c3438,1.55));
+  scene.add(new THREE.AmbientLight(0x8fa6ae,0.18));
+  var sun=new THREE.DirectionalLight(0xd6ecf2,0.6); sun.position.set(-40,80,-30); scene.add(sun);
 
   // маршрут: улица с плавным поворотом, а в конце — поворот на другую улицу
   curve=new THREE.CatmullRomCurve3([
     new THREE.Vector3(0,0,10), new THREE.Vector3(0,0,-90), new THREE.Vector3(3,0,-180),
-    new THREE.Vector3(14,0,-270), new THREE.Vector3(25,0,-360), new THREE.Vector3(22,0,-450),
-    new THREE.Vector3(17,0,-505), new THREE.Vector3(28,0,-540),
-    new THREE.Vector3(58,0,-556), new THREE.Vector3(100,0,-562), new THREE.Vector3(150,0,-566)
+    new THREE.Vector3(10,0,-255), new THREE.Vector3(18,0,-315), new THREE.Vector3(24,0,-360),
+    new THREE.Vector3(50,0,-398), new THREE.Vector3(95,0,-420), new THREE.Vector3(150,0,-428),
+    new THREE.Vector3(205,0,-430), new THREE.Vector3(265,0,-432), new THREE.Vector3(325,0,-434)
   ],false,'catmullrom',0.4);
   pathLen=curve.getLength();
 
@@ -163,7 +168,7 @@ function build(){
     var l=fr.p.clone().addScaledVector(fr.right, ROAD_W/2);
     var r=fr.p.clone().addScaledVector(fr.right,-ROAD_W/2);
     pos.push(l.x,l.y,l.z, r.x,r.y,r.z);
-    var v=t*pathLen/12;
+    var v=t*pathLen/45;
     uv.push(0,v, 1,v);
     if(i<SEG){ var a=i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
   }
@@ -173,36 +178,14 @@ function build(){
   rg.setIndex(idx); rg.computeVertexNormals();
 
   var loader=new THREE.TextureLoader();
-  var roadMat=new THREE.MeshLambertMaterial({color:0xffffff});
+  var roadMat=new THREE.MeshLambertMaterial({color:0xffffff, map:roadTexture(), emissive:new THREE.Color(0x2c3439), emissiveIntensity:1});
   var road=new THREE.Mesh(rg,roadMat);
   scene.add(road);
 
-  // обочины — тот же асфальт, тот же цвет
-  var sideMat=new THREE.MeshLambertMaterial({color:0xe8e8e8,side:THREE.DoubleSide});
-  [-1,1].forEach(function(side){
-    var p2=[],u2=[],i2=[];
-    for(var i=0;i<=SEG;i++){
-      var t=i/SEG, fr=frame(t);
-      var a=fr.p.clone().addScaledVector(fr.right, side*ROAD_W/2);
-      var b=fr.p.clone().addScaledVector(fr.right, side*(ROAD_W/2+3.4)).setY(0.05);
-      p2.push(a.x,a.y,a.z, b.x,b.y,b.z);
-      u2.push(0,t*pathLen/12, 0.4,t*pathLen/12);
-      if(i<SEG){ var q=i*2; i2.push(q,q+1,q+2, q+1,q+3,q+2); }
-    }
-    var g2=new THREE.BufferGeometry();
-    g2.setAttribute('position',new THREE.Float32BufferAttribute(p2,3));
-    g2.setAttribute('uv',new THREE.Float32BufferAttribute(u2,2));
-    g2.setIndex(i2); g2.computeVertexNormals();
-    var curb=new THREE.Mesh(g2,sideMat);
-    scene.add(curb);
-  });
+  // обочины не строим: отдельная полоса по краю читалась как чёрный провал.
+  // Дорога шире, один материал на всё полотно.
 
-  loader.load(A.road,function(tx){
-    tx.anisotropy=8; tx.wrapS=tx.wrapT=THREE.RepeatWrapping;
-    var rt=roadTexture(tx.image);
-    roadMat.map=rt; roadMat.needsUpdate=true;
-    sideMat.map=rt; sideMat.needsUpdate=true;
-  });
+  // текстура дороги уже натянута при создании материала (не зависит от загрузки файлов)
 
   // фасады из фотографии улицы. ВАЖНО: здания строим ТОЛЬКО после загрузки картинок,
   // иначе материал берётся пустым и дома остаются серыми параллелепипедами.
@@ -270,10 +253,10 @@ function build(){
 
   // капсула в руках: сначала пробуем картинку «капсула в руках», иначе обычный рендер
   function placeCapsule(tx){
-    var w=1.30, h=w/(tx.image.width/tx.image.height);
+    var w=0.72, h=w/(tx.image.width/tx.image.height);
     capsule=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
       new THREE.MeshBasicMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false}));
-    capsule.position.set(0,-0.62,-1.0);
+    capsule.position.set(0,-0.72,-1.0);
     capsule.renderOrder=999;
     camera.add(capsule);
   }
@@ -295,21 +278,22 @@ function build(){
 function buildEvents(){
   if(events.length)return;
   var defs=[
-    {d:45,  type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:90,  type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:132, type:'beam',   need:'duck',  text:'Низкая балка!'},
-    {d:176, type:'debris', need:'right', text:'Обломки падают слева!'},
-    {d:218, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:258, type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:300, type:'beam',   need:'duck',  text:'Низкая балка!'},
-    {d:342, type:'debris', need:'right', text:'Обломки падают слева!'},
-    {d:384, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:426, type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:468, type:'beam',   need:'duck',  text:'Низкая балка!'},
-    {d:510, type:'debris', need:'right', text:'Обломки падают слева!'},
-    {d:552, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
-    {d:592, type:'debris', need:'left',  text:'Обломки падают справа!'},
-    {d:630, type:'pit',    need:'jump',  text:'Провал! Прыжок'}
+    {d:40,  type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:80,  type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:118, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:156, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:194, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:232, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:268, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:304, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:340, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:376, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:412, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:448, type:'debris', need:'right', text:'Обломки падают слева!'},
+    {d:482, type:'pit',    need:'jump',  text:'Провал! Прыжок'},
+    {d:516, type:'debris', need:'left',  text:'Обломки падают справа!'},
+    {d:548, type:'beam',   need:'duck',  text:'Низкая балка!'},
+    {d:580, type:'pit',    need:'jump',  text:'Провал! Прыжок'}
   ];
   var up=new THREE.Vector3(0,1,0);
 
@@ -323,15 +307,34 @@ function buildEvents(){
     if(e.type==='pit'){
       // настоящая яма: стенки вниз, дно в темноте, рваные края асфальта сверху
       var pitGroup=new THREE.Group();
-      var wallMat=new THREE.MeshLambertMaterial({color:0x2b3135,side:THREE.BackSide});
-      var wall=new THREE.Mesh(new THREE.CylinderGeometry(3.7,2.1,4.4,28,1,true),wallMat);
-      wall.position.y=-2.1; pitGroup.add(wall);
-      var bottom=new THREE.Mesh(new THREE.CircleGeometry(2.1,28),
-        new THREE.MeshBasicMaterial({color:0x04070a}));
-      bottom.rotation.x=-Math.PI/2; bottom.position.y=-4.2; pitGroup.add(bottom);
-      var rim=new THREE.Mesh(new THREE.PlaneGeometry(7.4,5.4),
-        new THREE.MeshBasicMaterial({map:pitTex,transparent:true,depthWrite:false}));
-      rim.rotation.x=-Math.PI/2; rim.position.y=0.07; pitGroup.add(rim);
+      // стенки ямы — бетон с трещинами, видно изнутри
+      var wallMap=null;
+      if(conTex){ wallMap=conTex.clone(); wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(4,2); }
+      var wallMat=new THREE.MeshLambertMaterial({color:0x8f9498,map:wallMap,side:THREE.BackSide,
+        emissive:new THREE.Color(0x14181b),emissiveIntensity:1});
+      var wall=new THREE.Mesh(new THREE.CylinderGeometry(3.9,2.2,4.6,28,1,true),wallMat);
+      wall.position.y=-2.2; pitGroup.add(wall);
+      // дно: бетонная плита с обломками
+      var botMap=null;
+      if(conTex){ botMap=conTex.clone(); botMap.needsUpdate=true; botMap.wrapS=botMap.wrapT=THREE.RepeatWrapping; botMap.repeat.set(2,2); }
+      var bottom=new THREE.Mesh(new THREE.CircleGeometry(2.2,28),
+        new THREE.MeshLambertMaterial({color:0x9aa0a3,map:botMap,emissive:new THREE.Color(0x101416),emissiveIntensity:1}));
+      bottom.rotation.x=-Math.PI/2; bottom.position.y=-4.3; pitGroup.add(bottom);
+      // свет внутри ямы, чтобы дно было видно
+      var pitLight=new THREE.PointLight(0xbfe6ff,1.4,14);
+      pitLight.position.set(0,-1.2,0); pitGroup.add(pitLight);
+      // обломки на дне и по краю
+      for(var pk=0;pk<12;pk++){
+        var ang2=pk/12*Math.PI*2;
+        var mat2=conTex?new THREE.SpriteMaterial({map:conTex,transparent:true,depthWrite:false})
+                       :new THREE.SpriteMaterial({color:0x6d7173});
+        var chunk=new THREE.Sprite(mat2);
+        var cs=0.8+Math.random()*1.1;
+        chunk.scale.set(cs,cs*0.8,1);
+        if(pk<6){ chunk.position.set(Math.cos(ang2)*3.5,0.2,Math.sin(ang2)*3.5); }
+        else { chunk.position.set(Math.cos(ang2)*1.5,-4.2,Math.sin(ang2)*1.5); }
+        pitGroup.add(chunk);
+      }
       pitGroup.position.copy(p);
       pitGroup.rotation.y=ang;
       scene.add(pitGroup);
@@ -362,10 +365,10 @@ function buildEvents(){
         var mat=conTex?new THREE.SpriteMaterial({map:conTex,transparent:true,depthWrite:false})
                       :new THREE.SpriteMaterial({color:0x8a8f8c});
         var sp=new THREE.Sprite(mat);
-        var sc=1.6+Math.random()*1.1;
+        var sc=0.4+Math.random()*0.35;
         sp.scale.set(sc,sc*0.72,1);
-        sp.userData.off=side*(0.6+Math.random()*2.4);
-        sp.userData.dl=(Math.random()-0.5)*2.4;
+        sp.userData.off=side*(1.6+Math.random()*3.6);
+        sp.userData.dl=(Math.random()-0.5)*3.6;
         sp.visible=false;
         scene.add(sp); e.pieces.push(sp);
       }
@@ -381,7 +384,7 @@ function burst(worldPos){
   for(var i=0;i<11;i++){
     var m=new THREE.SpriteMaterial({map:conTex,transparent:true,depthWrite:false});
     var sp=new THREE.Sprite(m);
-    var sc=0.3+Math.random()*0.55;
+    var sc=0.22+Math.random()*0.3;
     sp.scale.set(sc,sc*0.9,1);
     sp.position.copy(worldPos).add(new THREE.Vector3((Math.random()-0.5)*1.6,0.4+Math.random()*1.2,(Math.random()-0.5)*1.6));
     sp.userData.v=new THREE.Vector3((Math.random()-0.5)*8,2.5+Math.random()*4.5,(Math.random()-0.5)*8);
@@ -434,7 +437,7 @@ function judge(e){
   else if(e.need==='left') ok=(lane<-0.4)||(lastAct==='left'&&elapsed-lastActAt<REACT_WINDOW);
   else if(e.need==='right') ok=(lane>0.4)||(lastAct==='right'&&elapsed-lastActAt<REACT_WINDOW);
 
-  var wp=camera.position.clone().addScaledVector(tmpF,3); wp.y=0.4;
+  var wp=camera.position.clone().addScaledVector(tmpF,7); wp.y=0.4;
 
   if(ok){
     passed++;
@@ -446,8 +449,7 @@ function judge(e){
     failed++;
     integrity=Math.max(0,integrity-HIT_DAMAGE);
     shake=1.5;
-    if(e.type==='pit') dipT=dipMax;               // провалились в дыру
-    flash('hit');
+    if(e.type==='pit') dipT=DIP_DUR;               // провалились в дыру и выпрыгиваем обратно
     playSfx('hit');
     burst(wp);
     if(integrity<=0){
@@ -480,7 +482,15 @@ function updateHud(){
   el.integrity.className=integrity<=30?'bad':(integrity<=60?'warn':'');
 }
 
-// ——— кадр ———
+// падение в яму: вниз на дно, задержка (видно дно и обломки), затем выпрыгиваем обратно
+var DIP_DUR=1.7;
+function dipOffset(){
+  if(dipT<=0) return 0;
+  var t=1-dipT/DIP_DUR;
+  if(t<0.32) return -4.0*(t/0.32);
+  if(t<0.62) return -4.0;
+  return -4.0*(1-(t-0.62)/0.38);
+}
 var up=new THREE.Vector3(0,1,0);
 var tmpF=new THREE.Vector3(), tmpR=new THREE.Vector3(), camPos=new THREE.Vector3(), look=new THREE.Vector3();
 
@@ -496,7 +506,7 @@ function tick(){
   }
 
   if(running&&!finished){
-    elapsed+=dt;
+    if(dipT<=0) elapsed+=dt;          // пока падаем в яму, вперёд не движемся
     progress=Math.min(1,elapsed/DURATION);
     if(progress>=1) finish();
   }
@@ -519,8 +529,8 @@ function tick(){
   var bob=Math.sin(elapsed*9)*0.024;
 
   camPos.copy(p).addScaledVector(tmpR,lane*LANE_SHIFT);
-  camPos.y+=EYE+jumpY-duckY+bob;
-  if(dipT>0) camPos.y-=Math.sin(Math.PI*(1-dipT/dipMax))*1.55;
+  var dip=dipOffset();
+  camPos.y+=EYE+jumpY-duckY+bob+dip;
 
   if(shake>0){
     camPos.x+=(Math.random()-0.5)*shake*0.5;
@@ -530,7 +540,7 @@ function tick(){
   camera.position.copy(camPos);
   var lookAtT=Math.min(1,t+0.02);
   look.copy(curve.getPointAt(lookAtT)).addScaledVector(tmpR,lane*LANE_SHIFT*1.8);
-  look.y+=EYE+jumpY*0.2-duckY*0.15-0.05-jumpK*0.5;   // камера взлетает, взгляд остаётся низко — прыжок виден
+  look.y+=EYE+jumpY*0.2-duckY*0.15-0.05-jumpK*0.5+dip*1.25;   // в яме смотрим вниз, на дно
   camera.lookAt(look);
   camera.rotateZ(-lane*0.16);                 // заметный крен при манёвре
 
@@ -540,8 +550,8 @@ function tick(){
     capsule.rotation.z=Math.sin(elapsed*5.2)*0.012-lane*0.05;
   }
 
-  // затемнение при провале
-  if(el.dark) el.dark.style.opacity=(dipT>0?Math.min(0.8,Math.sin(Math.PI*(1-dipT/dipMax))*0.8):0).toFixed(3);
+  // в яме слегка темнеет, но дно остаётся видно
+  if(el.dark) el.dark.style.opacity=(dipT>0?Math.min(0.28,Math.sin(Math.PI*(1-dipT/DIP_DUR))*0.28):0).toFixed(3);
 
   // вид наблюдателя сверху
   topMix+=((topView?1:0)-topMix)*Math.min(1,dt*4);
@@ -569,8 +579,10 @@ function tick(){
           return;
         }
         if(k<-0.12||k>1.2){ s.visible=false; return; }
-        s.visible=true;
         var kk=Math.max(0,Math.min(1.1,k));
+        var ahead=(1-kk)*K + s.userData.dl;
+        if(ahead<6){ s.visible=false; return; }   // не даём обломку пролететь вплотную к лицу
+        s.visible=true;
         s.position.copy(e.origin)
           .addScaledVector(e.right, s.userData.off)
           .addScaledVector(e.fwd, (1-kk)*K + s.userData.dl);
@@ -632,6 +644,9 @@ document.getElementById('t7-play').addEventListener('click',start);
 document.getElementById('t7-again').addEventListener('click',start);
 
 // ——— инициализация ———
+// отладочный переход по маршруту (только для проверки вида, в игре не используется)
+window.__t7goto=function(p){ elapsed=DURATION*Math.max(0,Math.min(1,p)); progress=elapsed/DURATION; };
+
 try{
   renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,powerPreference:'high-performance'});
 }catch(err){
