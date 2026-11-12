@@ -55,8 +55,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0d161a;colo
 
 /* ——— вспышка урона / удачи ——— */
 #t7-flash{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .18s}
-#t7-flash.hit{opacity:1;background:radial-gradient(ellipse at center,rgba(255,60,60,0) 30%,rgba(255,40,40,.75) 100%);
-  box-shadow:inset 0 0 160px rgba(255,30,30,.9)}
 #t7-flash.ok{opacity:1;background:radial-gradient(ellipse at center,rgba(48,229,220,0) 35%,rgba(48,229,220,.5) 100%);
   box-shadow:inset 0 0 140px rgba(48,229,220,.55)}
 
