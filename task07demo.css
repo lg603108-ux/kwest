@@ -54,6 +54,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0d161a;colo
 #t7-judge.bad{color:#ff6b6b}
 
 /* ——— затемнение при провале ——— */
+#t7-rotate{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+  background:#08131a;text-align:center;padding:26px;font-size:19px;line-height:1.4;color:#cfeeee}
+#t7-rotate.show{display:flex}
+.t7-second{-webkit-appearance:none;appearance:none;margin-top:8px;width:100%;padding:11px 16px;
+  border-radius:12px;border:1px solid rgba(48,229,220,.45);background:rgba(16,32,36,.6);
+  color:#cfeeee;font-family:inherit;font-size:15px;font-weight:700}
 #t7-dark{position:absolute;inset:0;pointer-events:none;z-index:4;background:#04080a;opacity:0}
 
 /* ——— вспышка урона / удачи ——— */

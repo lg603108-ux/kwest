@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318a.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318b.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -29,8 +29,8 @@ var Z_START=6, Z_END=-300;
 var PIT={z:-128, rx:6.6, rz:7.8, depth:8.6};
 var Z_PIT_EDGE=PIT.z+PIT.rz;     // -120.2 — ближний край дыры
 var Z_PIT_FAR=PIT.z-PIT.rz;      // -135.8 — дальний край
-var TUN={y:-9.4, z0:-118, z1:-212, w:4.4, h:3.1};
-var MANHOLE_Z=TUN.z1;            // люк на улице над концом тоннеля
+var TUN={y:-8.5, z0:-130, z1:-212, w:4.4, h:3.2};
+var MANHOLE_Z=TUN.z1+1.3;            // люк на улице над концом тоннеля
 var Z_STREET2_JUMP=Z_PIT_FAR-4;  // где оказываемся после прыжка через провал
 
 // ——— ассеты ———
@@ -38,6 +38,8 @@ var A={
   street:'assets/task07/ref_street.jpg', aerial:'assets/task07/ref_aerial.jpg',
   wall:'assets/task07/tex_wall.jpg', pit:'assets/task07/tex_pit.jpg',
   concrete:'assets/task07/concrete.png', capsule:'assets/task07/capsule_hands.png',
+  capsuleDamaged:'assets/task07/capsule_hands_damaged.png',
+  capsuleCritical:'assets/task07/capsule_hands_critical.png',
   capsuleAlt:'assets/task07/capsule.png', crystal:'assets/task07/crystal.png',
   facades:['assets/task07/facade1.jpg','assets/task07/facade2.jpg',
            'assets/task07/facade3.jpg','assets/task07/facade4.jpg']
@@ -63,7 +65,7 @@ function playSfx(k){
 // ——— сцена ———
 var canvas=document.getElementById('t7-canvas');
 var renderer,scene,camera,clock;
-var capsGroup=null, capPlane=null;
+var capsGroup=null, capPlane=null, torch=null;
 
 // ——— состояние бегуна ———
 var phase='street1';   // street1 | trip | fall | tunnel | ladder | street2 | done
@@ -74,7 +76,7 @@ var lastAct='', lastActAt=-9;
 var running=false, finished=false, topView=false, topMix=0;
 var integrity=100, energy=100, passed=0, failed=0;
 var events=[], crystals=[], shards=[], mists=[];
-var tunnelBuilt=false, tunnelGroup=null, tunnelLamps=[], tunnelLightPool=[];
+var tunnelBuilt=false, tunnelEventsDone=false, tunnelGroup=null, tunnelLamps=[], tunnelLightPool=[];
 var exitHint=false, pitWarned=false;
 var fovTarget=74;
 
@@ -135,9 +137,9 @@ function asphaltTexture(){
       g.beginPath(); g.moveTo(x,y);
       for(var k=0;k<len;k++){ x+=Math.cos(ang)*7+r()*9-4.5; y+=Math.sin(ang)*7+r()*9-4.5; ang+=(r()-0.5)*0.9; g.lineTo(x,y); }
       g.strokeStyle='rgba(18,24,28,0.8)'; g.lineWidth=6+r()*6; g.stroke();
-      if(glow){ g.strokeStyle='rgba(88,245,235,0.75)'; g.lineWidth=2.6+r()*2; g.shadowColor='#38e8de'; g.shadowBlur=8; g.stroke(); g.shadowBlur=0; }
+      if(glow){ g.strokeStyle='rgba(88,245,235,0.34)'; g.lineWidth=1.6+r()*1.4; g.shadowColor='#38e8de'; g.shadowBlur=6; g.stroke(); g.shadowBlur=0; }
     }
-    for(var c=0;c<11;c++) crack(r()*S,r()*S,7+r()*13,r()*6.28,r()<0.4);
+    for(var c=0;c<7;c++) crack(r()*S,r()*S,6+r()*9,r()*6.28,r()<0.35);
     for(var h=0;h<44;h++){
       var vv=32+r()*50;
       g.fillStyle='rgba('+Math.round(vv)+','+Math.round(vv+4)+','+Math.round(vv+7)+','+(0.28+r()*0.36)+')';
@@ -160,36 +162,49 @@ function asphaltTexture(){
   });
 }
 // фасад дома: тёмная бетонная плита, сетка небольших окон, редкие светящиеся
+
 function facadeTexture(seed,litChance){
   return canvasTexture(512,function(g,S){
     var r=rnd(seed);
-    g.fillStyle='#4c565b'; g.fillRect(0,0,S,S);
-    for(var i=0;i<5200;i++){ var v=54+r()*34;
-      g.fillStyle='rgba('+Math.round(v)+','+Math.round(v+5)+','+Math.round(v+8)+','+(0.1+r()*0.25)+')';
+    g.fillStyle='#3e484d'; g.fillRect(0,0,S,S);
+    for(var i=0;i<6000;i++){ var v=46+r()*30;
+      g.fillStyle='rgba('+Math.round(v)+','+Math.round(v+5)+','+Math.round(v+8)+','+(0.10+r()*0.22)+')';
       g.fillRect(r()*S,r()*S,2+r()*4,2+r()*4); }
-    // подтёки и грязь
-    for(var s2=0;s2<26;s2++){
-      g.fillStyle='rgba(28,34,38,'+(0.05+r()*0.12)+')';
-      g.fillRect(r()*S,r()*S*0.6,3+r()*14,60+r()*200);
+    // вертикальные простенки
+    var cols=5, rows=7;
+    var cw=S/cols, ch=S/rows;
+    for(var c=0;c<cols;c++){
+      g.fillStyle='rgba(24,30,34,'+(0.18+r()*0.12)+')';
+      g.fillRect(c*cw,0,3,S);
     }
-    var cols=6, rows=8, mx=26, my=22;
-    var cw=(S-mx*2)/cols, ch=(S-my*2)/rows;
+    // окна: ровная сетка, рама светлее, стекло тёмное
     for(var cx=0;cx<cols;cx++){
       for(var cy=0;cy<rows;cy++){
-        var wx=mx+cx*cw+cw*0.22, wy=my+cy*ch+ch*0.2;
-        var ww=cw*0.56, wh=ch*0.52;
+        var ww=cw*0.46, wh=ch*0.52;
+        var wx=cx*cw+(cw-ww)/2, wy=cy*ch+ch*0.22;
+        // подоконник
+        g.fillStyle='rgba(118,128,132,0.42)';
+        g.fillRect(wx-3,wy+wh+1,ww+6,3);
         var lit=r()<litChance;
-        g.fillStyle=lit?'rgba(140,242,234,'+(0.30+r()*0.25)+')':'rgba(12,17,20,'+(0.85+r()*0.15)+')';
+        g.fillStyle=lit?'rgba(126,238,230,0.80)':'rgba(20,28,33,0.92)';
         g.fillRect(wx,wy,ww,wh);
-        if(lit){ g.shadowColor='#5ce6dc'; g.shadowBlur=8; g.fillRect(wx,wy,ww,wh); g.shadowBlur=0; }
-        g.strokeStyle='rgba(96,108,114,0.22)'; g.lineWidth=2; g.strokeRect(wx,wy,ww,wh);
+        if(lit){ g.shadowColor='#59e8de'; g.shadowBlur=12; g.fillRect(wx,wy,ww,wh); g.shadowBlur=0; }
+        // рама
+        g.strokeStyle=lit?'rgba(190,255,250,0.6)':'rgba(124,136,142,0.62)';
+        g.lineWidth=3; g.strokeRect(wx,wy,ww,wh);
+        // переплёт
+        g.lineWidth=1.6; g.strokeStyle=lit?'rgba(150,230,225,0.35)':'rgba(70,80,86,0.55)';
+        g.beginPath(); g.moveTo(wx+ww/2,wy); g.lineTo(wx+ww/2,wy+wh); g.stroke();
       }
+      // межэтажная полоса
     }
-    // межэтажные полосы
-    for(var fy=0;fy<rows;fy++){
-      g.fillStyle='rgba(30,37,42,0.35)';
-      g.fillRect(0,my+fy*ch,S,3);
+    for(var fy=1;fy<rows;fy++){
+      g.fillStyle='rgba(26,32,36,0.45)'; g.fillRect(0,fy*ch-2,S,4);
     }
+    // грязь внизу фасада
+    var grd=g.createLinearGradient(0,S*0.6,0,S);
+    grd.addColorStop(0,'rgba(14,20,23,0)'); grd.addColorStop(1,'rgba(14,20,23,0.55)');
+    g.fillStyle=grd; g.fillRect(0,S*0.6,S,S*0.4);
   });
 }
 
@@ -215,8 +230,9 @@ function loadAll(cb){
     loader.load(url,function(t){ t.anisotropy=8; TEX[key]=t; if(--left===0) cb(); },
                 undefined,function(){ if(--left===0) cb(); });
   }
-  add('street',A.street); add('wall',A.wall); add('pit',A.pit);
+  add('wall',A.wall); add('pit',A.pit);
   add('concrete',A.concrete); add('capsule',A.capsule); add('crystal',A.crystal);
+  add('capsuleDamaged',A.capsuleDamaged); add('capsuleCritical',A.capsuleCritical);
   for(var i=0;i<A.facades.length;i++) add('facade'+i,A.facades[i]);
   if(left===0) cb();
 }
@@ -229,6 +245,10 @@ function build(){
 
   camera=new THREE.PerspectiveCamera(74,window.innerWidth/Math.max(1,window.innerHeight),0.08,600);
   scene.add(camera);
+  // фонарик бегуна: подсвечивает стенки, пока падаем в провал
+  torch=new THREE.PointLight(0xcfeef6,0,14);
+  torch.position.set(0,0,-1.2);
+  camera.add(torch);
 
   scene.add(new THREE.HemisphereLight(0x8fa8b4,0x121a1e,0.62));
   scene.add(new THREE.AmbientLight(0x33454e,0.30));
@@ -368,101 +388,124 @@ function buildStreet(){
 }
 
 // ——— провал ———
+
 function buildPit(){
   var g=new THREE.Group(); g.position.set(0,0,PIT.z); scene.add(g);
   var r=rnd(3131);
-  var concreteMat=TEX.concrete
-    ? new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x5f686c})
-    : new THREE.MeshLambertMaterial({color:0x424a4e});
+  var rimMat=TEX.concrete?new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x33393c})
+                        :new THREE.MeshLambertMaterial({color:0x2a3033});
+  var deepMap=TEX.concrete?TEX.concrete.clone():null;
+  if(deepMap){ deepMap.needsUpdate=true; deepMap.wrapS=deepMap.wrapT=THREE.RepeatWrapping; deepMap.repeat.set(7,3); }
+  var deepMat=new THREE.MeshLambertMaterial({map:deepMap,color:0x2f373b,side:THREE.BackSide});
 
-  // рваные плиты по краю
-  var N=24;
-  for(var i=0;i<N;i++){
-    var a=i/N*Math.PI*2;
-    var w=2.6+r()*1.6;
-    var slab=new THREE.Mesh(new THREE.BoxGeometry(w,0.3,1.7+r()*0.8),concreteMat);
-    slab.position.set(Math.cos(a)*PIT.rx*(0.93+r()*0.06),-0.06,Math.sin(a)*PIT.rz*(0.93+r()*0.06));
-    slab.rotation.set((r()-0.5)*0.16,a+(r()-0.5)*0.22,(r()-0.5)*0.12);
+  // рваный край дороги
+  for(var i=0;i<26;i++){
+    var a=i/26*Math.PI*2;
+    var w=2.4+r()*1.7;
+    var slab=new THREE.Mesh(new THREE.BoxGeometry(w,0.3,1.6+r()*0.9),rimMat);
+    slab.position.set(Math.cos(a)*PIT.rx*(0.93+r()*0.05),-0.06,Math.sin(a)*PIT.rz*(0.93+r()*0.05));
+    slab.rotation.set((r()-0.5)*0.18,a+(r()-0.5)*0.2,(r()-0.5)*0.14);
     g.add(slab);
   }
-
-  // светящиеся трещины, расходящиеся от дыры
+  // светящиеся трещины от края
   for(var c=0;c<16;c++){
     var ca=r()*Math.PI*2;
-    var cr=new THREE.Mesh(new THREE.PlaneGeometry(0.22+r()*0.16,2.2+r()*3.4),
-      new THREE.MeshBasicMaterial({color:0x5ff2e6,transparent:true,opacity:0.55,
+    var cr=new THREE.Mesh(new THREE.PlaneGeometry(0.2+r()*0.14,2.2+r()*3.4),
+      new THREE.MeshBasicMaterial({color:0x5ff2e6,transparent:true,opacity:0.5,
         blending:THREE.AdditiveBlending,depthWrite:false}));
     cr.rotation.x=-Math.PI/2; cr.rotation.z=ca;
     cr.position.set(Math.cos(ca)*(PIT.rx+1.4+r()*2.6),0.03,Math.sin(ca)*(PIT.rz+1.4+r()*2.6));
     g.add(cr);
   }
 
-  // стенки вниз
-  var wallMap=TEX.concrete?TEX.concrete.clone():null;
-  if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(9,4); }
-  var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x353d41,side:THREE.BackSide});
-  var cone=new THREE.Mesh(new THREE.CylinderGeometry(PIT.rz*0.94,PIT.rz*0.52,PIT.depth,26,2,true),wallMat);
-  cone.position.y=-PIT.depth/2;
-  cone.scale.x=PIT.rx/PIT.rz;
-  g.add(cone);
+  // воронка: одна гладкая стенка сверху вниз, без ступеней-колец
+  var funnel=new THREE.Mesh(new THREE.CylinderGeometry(PIT.rx*0.99, PIT.rx*0.46, PIT.depth, 34,1,true), deepMat);
+  funnel.scale.x=PIT.rx/PIT.rz;
+  funnel.position.y=-PIT.depth/2;
+  g.add(funnel);
 
-  // уступы и обломки на стенках
-  var ledgeMat=TEX.pit?new THREE.MeshLambertMaterial({map:TEX.pit,color:0x424b4f})
-                           :new THREE.MeshLambertMaterial({color:0x323a3e});
-  for(var l=0;l<4;l++){
-    var la=r()*Math.PI*2, lh=-2.2-r()*4.2;
-    var led=new THREE.Mesh(new THREE.BoxGeometry(1.2+r()*0.9,0.35,0.9+r()*0.5),ledgeMat);
-    var rr2=PIT.rz*(0.86-l*0.06);
-    led.position.set(Math.cos(la)*rr2*(PIT.rx/PIT.rz)+Math.cos(la)*0.4,lh,Math.sin(la)*rr2+Math.sin(la)*0.4);
-    led.rotation.set((r()-0.5)*0.25,la,(r()-0.5)*0.2);
-    g.add(led);
+  // отдельные плиты и выступы, разбросанные по стенке
+  var ledgeMat=TEX.concrete?new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x353c40})
+                           :new THREE.MeshLambertMaterial({color:0x2b3134});
+  for(var k2=0;k2<26;k2++){
+    var ka=r()*Math.PI*2;
+    var ky=-1.0-r()*(PIT.depth-1.6);
+    var t=(0-ky)/PIT.depth;
+    var kr=(PIT.rx*0.99+(PIT.rx*0.46-PIT.rx*0.99)*t);
+    var ls=0.7+r()*1.7;
+    var ledge=new THREE.Mesh(new THREE.BoxGeometry(ls,0.16,0.5+r()*0.9),ledgeMat);
+    ledge.position.set(Math.cos(ka)*kr*(PIT.rx/PIT.rz)*0.97,ky,Math.sin(ka)*kr*0.97);
+    ledge.rotation.set((r()-0.5)*0.7,ka+(r()-0.5)*0.9,(r()-0.5)*0.6);
+    g.add(ledge);
   }
 
   // дно
-  var botMat=TEX.concrete
-    ? new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x394245})
-    : new THREE.MeshLambertMaterial({color:0x272e31});
-  var bottom=new THREE.Mesh(new THREE.CircleGeometry(PIT.rz*0.56,26),botMat);
-  bottom.rotation.x=-Math.PI/2; bottom.position.y=-PIT.depth+0.04;
+  var botMat=TEX.pit?new THREE.MeshLambertMaterial({map:TEX.pit,color:0x4a5357})
+                    :new THREE.MeshLambertMaterial({color:0x2b3236});
+  var bottom=new THREE.Mesh(new THREE.CircleGeometry(PIT.rx*0.5,26),botMat);
+  bottom.rotation.x=-Math.PI/2; bottom.position.y=-PIT.depth+0.02;
   bottom.scale.x=PIT.rx/PIT.rz;
   g.add(bottom);
 
-  // обломки на дне
+  // крупные обломки на дне по краям, середина свободна
+  var bigMat=TEX.concrete?new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x31373a})
+                        :new THREE.MeshLambertMaterial({color:0x272d30});
   for(var b=0;b<14;b++){
-    var bs=0.6+r()*1.5;
-    var ch=new THREE.Mesh(new THREE.BoxGeometry(bs,bs*0.6,bs*0.9),concreteMat);
-    var ba=r()*6.28, br=PIT.rz*0.15+r()*PIT.rz*0.35;
-    ch.position.set(Math.cos(ba)*br,-PIT.depth+bs*0.3,Math.sin(ba)*br);
+    var ba=r()*6.28, br=PIT.rx*(0.2+r()*0.22);
+    var bs=0.7+r()*1.4;
+    var geo=new THREE.BoxGeometry(bs,bs*0.7,bs*0.9,2,2,2);
+    var pos=geo.attributes.position;
+    for(var v=0;v<pos.count;v++){
+      pos.setXYZ(v,pos.getX(v)+(r()-0.5)*bs*0.3,pos.getY(v)+(r()-0.5)*bs*0.3,pos.getZ(v)+(r()-0.5)*bs*0.3);
+    }
+    geo.computeVertexNormals();
+    var ch=new THREE.Mesh(geo,bigMat);
+    ch.position.set(Math.cos(ba)*br*(PIT.rx/PIT.rz),-PIT.depth+bs*0.35,Math.sin(ba)*br);
     ch.rotation.set(r()*0.6,r()*3,r()*0.5);
     g.add(ch);
   }
 
-  // арматура, торчащая из краёв
-  var rust=new THREE.MeshLambertMaterial({color:0x2b2a27});
-  for(var rb=0;rb<12;rb++){
-    var ra=r()*6.28, rl=1.0+r()*1.8;
+  // проём в тоннель в дальней стенке дна
+  var arch=new THREE.Group();
+  arch.position.set(0,-PIT.depth,-2.4);
+  var hole=new THREE.Mesh(new THREE.PlaneGeometry(3.4,2.9),
+    new THREE.MeshBasicMaterial({color:0x0b1416}));
+  hole.position.y=1.45; arch.add(hole);
+  var frameMat=rimMat;
+  [-1,1].forEach(function(s){
+    var jamb=new THREE.Mesh(new THREE.BoxGeometry(0.44,3.1,1.2),frameMat);
+    jamb.position.set(s*1.9,1.55,0.2); jamb.rotation.y=s*0.06; arch.add(jamb);
+  });
+  var lintel=new THREE.Mesh(new THREE.BoxGeometry(4.3,0.5,1.2),frameMat);
+  lintel.position.set(0,3.0,0.2); arch.add(lintel);
+  var archGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x76efe6,
+    transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+  archGlow.scale.set(4.6,4.6,1); archGlow.position.set(0,1.5,-0.4); arch.add(archGlow);
+  g.add(arch);
+
+  // арматура, торчащая из уступов
+  var rust=new THREE.MeshLambertMaterial({color:0x33302c});
+  for(var rb=0;rb<14;rb++){
+    var ra=r()*6.28, rl=1.0+r()*1.8, ry=-0.4-r()*6;
     var rod=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,rl,5),rust);
-    var px=Math.cos(ra)*PIT.rx*0.93, pz=Math.sin(ra)*PIT.rz*0.93;
-    rod.position.set(px,0.2+r()*0.4,pz);
-    rod.rotation.set((r()-0.5)*1.2,ra,(r()-0.5)*1.2);
+    var rr3=PIT.rx*0.9;
+    rod.position.set(Math.cos(ra)*rr3*(PIT.rx/PIT.rz),ry,Math.sin(ra)*rr3);
+    rod.rotation.set((r()-0.5)*1.4,ra,(r()-0.5)*1.4);
     g.add(rod);
   }
 
-  // свет и дым из провала
-  var gl1=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x66f0e4,
-    transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending}));
-  gl1.scale.set(13,13,1); gl1.position.y=-3.4; g.add(gl1);
-  var gl2=gl1.clone(); gl2.material=gl1.material.clone();  gl2.material.opacity=0.7;
-  gl2.scale.set(12,12,1); gl2.position.y=-PIT.depth+1.2; g.add(gl2);
+  // свет: только со дна и из проёма
+  var gl2=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x66f0e4,
+    transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl2.scale.set(11,11,1); gl2.position.y=-PIT.depth+1.6; g.add(gl2);
+  var pl2=new THREE.PointLight(0x6fe8e0,1.7,6); pl2.position.set(0,-PIT.depth+1.8,0); g.add(pl2);
+  var pl3=new THREE.PointLight(0x7df0e6,0.3,14); pl3.position.set(0,-4.2,0); g.add(pl3);
 
-  var pl=new THREE.PointLight(0x7df0e6,0.9,18); pl.position.set(0,-4.4,0); g.add(pl);
-  var pl2=new THREE.PointLight(0x6fe8e0,1.15,12); pl2.position.set(0,-PIT.depth+1.4,0); g.add(pl2);
-
-  for(var m=0;m<12;m++){
+  for(var m=0;m<10;m++){
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:MIST,color:0xc8eeee,
-      transparent:true,opacity:0.26,depthWrite:false}));
-    var ma=r()*6.28, mr=r()*PIT.rz*0.7;
-    sp.position.set(Math.cos(ma)*mr,-1-r()*6,Math.sin(ma)*mr);
+      transparent:true,opacity:0.22,depthWrite:false}));
+    var ma=r()*6.28, mr=r()*PIT.rz*0.6;
+    sp.position.set(Math.cos(ma)*mr,-2-r()*5,Math.sin(ma)*mr);
     sp.scale.set(4+r()*3,4+r()*3,1);
     sp.userData.base=sp.position.y; sp.userData.sp=0.35+r()*0.5; sp.userData.ph=r()*6.28;
     g.add(sp); mists.push(sp);
@@ -479,9 +522,18 @@ function placeCapsule(){
   capPlane.position.set(0,-0.60,-1.0);
   capPlane.renderOrder=999;
   camera.add(capPlane);
+  capPlane.userData.tex='capsule';
+}
+
+// капсула трескается по мере урона
+function capsuleTextureName(){
+  if(integrity>60) return 'capsule';
+  if(integrity>30) return 'capsuleDamaged';
+  return 'capsuleCritical';
 }
 
 // ——— тоннель: строится, когда падаем (чтобы не грузить зря) ———
+
 function buildTunnel(){
   if(tunnelBuilt)return;
   tunnelBuilt=true;
@@ -496,7 +548,6 @@ function buildTunnel(){
     new THREE.MeshPhongMaterial({map:floorMap,color:0x3f484c,shininess:90,specular:0x5b8589}));
   floor.position.set(0,-0.15,cz); g.add(floor);
 
-  // лужи
   for(var p=0;p<12;p++){
     var pw=1.2+r()*1.6, pd=1.0+r()*1.8;
     var pud=new THREE.Mesh(new THREE.PlaneGeometry(pw,pd),
@@ -507,7 +558,6 @@ function buildTunnel(){
     g.add(pud);
   }
 
-  // стены
   var wallMap=TEX.wall?TEX.wall.clone():null;
   if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(len/5,1); }
   var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x5d686d});
@@ -515,12 +565,10 @@ function buildTunnel(){
     var w=new THREE.Mesh(new THREE.BoxGeometry(0.4,TUN.h,len),wallMat);
     w.position.set(s*(TUN.w/2+0.2),TUN.h/2,cz); g.add(w);
   });
-  // потолок
-  var ceil=new THREE.Mesh(new THREE.BoxGeometry(TUN.w+0.8,0.3,len),
+  var ceil=new THREE.Mesh(new THREE.BoxGeometry(TUN.w+0.8,0.3,len-2.9),
     new THREE.MeshLambertMaterial({color:0x3a4348}));
-  ceil.position.set(0,TUN.h+0.15,cz); g.add(ceil);
+  ceil.position.set(0,TUN.h+0.15,cz+1.45); g.add(ceil);
 
-  // пилястры
   for(var pz=TUN.z0; pz>TUN.z1; pz-=9){
     [-1,1].forEach(function(s){
       var pil=new THREE.Mesh(new THREE.BoxGeometry(0.22,TUN.h,0.45),
@@ -529,7 +577,6 @@ function buildTunnel(){
     });
   }
 
-  // трубы вдоль стен
   var pipeMat=new THREE.MeshLambertMaterial({color:0x2f373b});
   var pipeMat2=new THREE.MeshLambertMaterial({color:0x262d31});
   function pipeAlong(x,y,rad,mat){
@@ -544,12 +591,10 @@ function buildTunnel(){
   pipeAlong(-0.7,TUN.h-0.22,0.10,pipeMat2);
   pipeAlong(0.7,TUN.h-0.18,0.08,pipeMat2);
 
-  // труба над головой — надо пригнуться
   var lowZ=TUN.z0-16;
   var lowPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,TUN.w+0.4,12),pipeMat);
   lowPipe.rotation.z=Math.PI/2; lowPipe.position.set(0,1.30,lowZ); g.add(lowPipe);
 
-  // лампы и их свет
   for(var lz2=TUN.z0-5; lz2>TUN.z1; lz2-=7){
     var lampBox=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.1,0.24),
       new THREE.MeshBasicMaterial({color:0xcffbf5}));
@@ -562,7 +607,6 @@ function buildTunnel(){
   var pl3=new THREE.PointLight(0x9ff4ec,0.55,9);
   g.add(pl3); tunnelLightPool.push(pl3);
 
-  // мусор у стен
   for(var d=0;d<18;d++){
     var bs=0.25+r()*0.5;
     var ch=new THREE.Mesh(new THREE.BoxGeometry(bs,bs*0.7,bs),
@@ -580,79 +624,97 @@ function buildTunnel(){
     g.add(sp); mists.push(sp);
   }
 
-  // выход: шахта, лестница, люк
-  var shaftMat=new THREE.MeshLambertMaterial({color:0x6f7b80,side:THREE.BackSide});
-  var shaft=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.35,Math.abs(TUN.y)+2.6,16,1,true),shaftMat);
-  shaft.position.set(0,(Math.abs(TUN.y)+2.6)/2-1.4,TUN.z1+0.6);
-  g.add(shaft);
-  var ladderMat=new THREE.MeshPhongMaterial({color:0x8b969b,shininess:60});
-  [-0.35,0.35].forEach(function(lx){
-    var rail=new THREE.Mesh(new THREE.BoxGeometry(0.07,Math.abs(TUN.y)+0.6,0.07),ladderMat);
-    rail.position.set(lx,(Math.abs(TUN.y))/2-0.2,TUN.z1+1.1); g.add(rail);
+  // —— вертикальный коридор выхода со стенами, трубами и лестницей ——
+  var shZ=TUN.z1+1.3, shW=2.5, topH=EYE+2.6-TUN.y;
+  var shMap=TEX.wall?TEX.wall.clone():null;
+  if(shMap){ shMap.needsUpdate=true; shMap.wrapS=shMap.wrapT=THREE.RepeatWrapping; shMap.repeat.set(2,4); }
+  var shMat=new THREE.MeshLambertMaterial({map:shMap,color:0x5b666b});
+  [-1,1].forEach(function(s){
+    var w1=new THREE.Mesh(new THREE.BoxGeometry(0.3,topH,shW),shMat);
+    w1.position.set(s*(shW/2+0.15),topH/2,shZ); g.add(w1);
   });
-  for(var ry=-1.5; ry<Math.abs(TUN.y); ry+=0.42){
-    var rung=new THREE.Mesh(new THREE.BoxGeometry(0.78,0.055,0.055),ladderMat);
-    rung.position.set(0,ry,TUN.z1+1.1); g.add(rung);
+  // задняя стенка коридора (со стороны, куда бежим) и проём со стороны тоннеля
+  var backWall=new THREE.Mesh(new THREE.BoxGeometry(shW+0.6,topH,0.3),shMat);
+  backWall.position.set(0,topH/2,shZ-1.45); g.add(backWall);
+  // трубы вдоль коридора
+  var shPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,topH,8),pipeMat);
+  shPipe.position.set(shW/2-0.12,topH/2,shZ-0.9); g.add(shPipe);
+  // лампа в коридоре
+  var shLamp=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.12,0.2),
+    new THREE.MeshBasicMaterial({color:0xcffbf5}));
+  shLamp.position.set(-shW/2+0.18,topH*0.55,shZ); g.add(shLamp);
+  var shGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x9ff4ec,
+    transparent:true,opacity:0.6,depthWrite:false,blending:THREE.AdditiveBlending}));
+  shGlow.scale.set(3.4,3.4,1); shGlow.position.copy(shLamp.position); g.add(shGlow);
+  var shLight=new THREE.PointLight(0xbdf9f2,1.1,10);
+  shLight.position.set(0,topH*0.55,shZ); g.add(shLight);
+  // лестница
+  var ladderMat=new THREE.MeshLambertMaterial({color:0x8b969b});
+  [-0.32,0.32].forEach(function(lx){
+    var rail=new THREE.Mesh(new THREE.BoxGeometry(0.06,topH-0.6,0.06),ladderMat);
+    rail.position.set(lx,(topH-0.6)/2+0.2,shZ-1.05); g.add(rail);
+  });
+  for(var ry=0.3; ry<topH-0.4; ry+=0.4){
+    var rung=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.05,0.05),ladderMat);
+    rung.position.set(0,ry,shZ-1.05); g.add(rung);
   }
-  // свет сверху и столб света в шахте
-  var shaftLight=new THREE.PointLight(0xbdf9f2,2.2,16);
-  shaftLight.position.set(0,Math.abs(TUN.y)-0.6,TUN.z1+0.6); g.add(shaftLight);
-  var beamMat=new THREE.MeshBasicMaterial({color:0x9ef4ec,transparent:true,opacity:0.10,
-    depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-  var shaftBeam=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.6,Math.abs(TUN.y),12,1,true),beamMat);
-  shaftBeam.position.set(0,Math.abs(TUN.y)/2-0.4,TUN.z1+0.6); g.add(shaftBeam);
-
-  // люк на улице над шахтой: рамка и рваный край
-  var manhole=new THREE.Group(); manhole.position.set(0,TUN.y+Math.abs(TUN.y),TUN.z1);
+  // рамка люка на улице
+  var manhole=new THREE.Group(); manhole.position.set(0,-TUN.y,shZ);
   scene.add(manhole);
-  var rimMat=new THREE.MeshLambertMaterial({color:0x8f9a9e});
+  var rimMat=new THREE.MeshLambertMaterial({color:0x6d777b});
   for(var hh=0; hh<14; hh++){
     var ha=hh/14*Math.PI*2;
-    var seg=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.12,0.5),rimMat);
-    seg.position.set(Math.cos(ha)*1.6,0.06,Math.sin(ha)*1.6);
+    var seg=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.12,0.5),rimMat);
+    seg.position.set(Math.cos(ha)*1.7,0.06,Math.sin(ha)*1.7);
     seg.rotation.y=ha; manhole.add(seg);
   }
-  var mGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x9df4ec,
-    transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending}));
-  mGlow.scale.set(6,6,1); mGlow.position.y=0.2; manhole.add(mGlow);
 }
 
 // ——— препятствия и кристаллы ———
+
 function concreteMat(){
   return TEX.concrete
-    ? new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x5b6468})
-    : new THREE.MeshLambertMaterial({color:0x40484c});
+    ? new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x9aa3a6,emissive:new THREE.Color(0x1a2024)})
+    : new THREE.MeshLambertMaterial({color:0x77807f});
 }
 
-function addBeam(z,pipe){
-  var mat=pipe?new THREE.MeshPhongMaterial({color:0x77838a,shininess:60}):concreteMat();
-  var geo=pipe?new THREE.CylinderGeometry(0.3,0.3,ROAD_W+1.2,12)
-                :new THREE.BoxGeometry(ROAD_W+1.2,0.75,1.2);
-  var m=new THREE.Mesh(geo,mat);
-  if(pipe) m.rotation.z=Math.PI/2;
-  m.position.set(0,pipe?1.42:2.02,z);
+function addBeam(z){
+  var mat=concreteMat();
+  var m=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W+1.2,0.75,1.2),mat);
+  m.position.set(0,2.02,z);
   scene.add(m);
-  // опоры по краям, чтобы читался как настоящий
-  if(!pipe){
-    [-1,1].forEach(function(s){
-      var leg=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),mat);
-      leg.position.set(s*(ROAD_W/2+0.3),0.65,z);
-      leg.rotation.y=0.3*s; scene.add(leg);
-    });
-  }
+  [-1,1].forEach(function(s){
+    var leg=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),mat);
+    leg.position.set(s*(ROAD_W/2+0.3),0.65,z);
+    leg.rotation.y=0.3*s; scene.add(leg);
+  });
   return m;
 }
 
-function addDebris(z,fromSide){
-  var e={z:z,type:'debris',need:fromSide==='left'?'right':'left',
-         text:fromSide==='left'?'Обломки падают слева!':'Обломки падают справа!',
-         done:false,warned:false,pieces:[]};
+// крупный неровный обломок бетона
+function chunkMesh(size){
+  var geo=new THREE.BoxGeometry(size,size*0.85,size*0.95,2,2,2);
+  var pos=geo.attributes.position;
+  var jr=rnd(Math.floor(size*997)+11);
+  for(var i=0;i<pos.count;i++){
+    pos.setXYZ(i,pos.getX(i)+(jr()-0.5)*size*0.16,
+                 pos.getY(i)+(jr()-0.5)*size*0.16,
+                 pos.getZ(i)+(jr()-0.5)*size*0.16);
+  }
+  geo.computeVertexNormals();
+  var mat=TEX.pit?new THREE.MeshLambertMaterial({map:TEX.pit,color:0x5c6468,
+      emissive:new THREE.Color(0x0b1013)}):concreteMat();
+  return new THREE.Mesh(geo,mat);
+}
+
+// обломки падают сверху прямо на бегуна: не ушёл в сторону — удар
+function addDebris(z,baseY,need,text){
+  var e={z:z,baseY:baseY,type:'debris',need:need,text:text,done:false,warned:false,pieces:[]};
   var r=rnd(Math.floor(Math.abs(z)*17)+3);
   for(var i=0;i<4;i++){
-    var sz=1.6+r()*1.2;
-    var m=new THREE.Mesh(new THREE.BoxGeometry(sz,sz*0.8,sz*1.1),concreteMat());
-    var sideOff=(fromSide==='left'?-1:1)*(1.2+r()*2.6);
-    m.userData={off:sideOff,dl:(r()-0.5)*4,fall:r()*1.2,sz:sz};
+    var sz=1.3+r()*0.9;
+    var m=chunkMesh(sz);
+    m.userData={off:(i-1.5)*1.35+(r()-0.5)*0.5, dl:(r()-0.5)*2.2, size:sz};
     m.visible=false;
     scene.add(m);
     e.pieces.push(m);
@@ -661,44 +723,48 @@ function addDebris(z,fromSide){
   return e;
 }
 
-function addCrystal(z,side){
+// кристалл висит на уровне глаз и вращается
+function addCrystal(z,side,baseY){
+  baseY=baseY||0;
   var grp=new THREE.Group();
-  var sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX.crystal||null,color:0xbdfbf4,
-    transparent:true,depthWrite:false}));
-  sprite.scale.set(1.5,0.95,1);
-  grp.add(sprite);
+  var plane=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.3),
+    new THREE.MeshBasicMaterial({map:TEX.crystal||null,color:0xd6fbf7,
+      transparent:true,side:THREE.DoubleSide,depthWrite:false}));
+  grp.add(plane);
   var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x7cf2e8,
-    transparent:true,opacity:0.6,depthWrite:false,blending:THREE.AdditiveBlending}));
-  gl.scale.set(2.6,2.6,1); grp.add(gl);
-  grp.position.set(side*(ROAD_W/2-1.8),1.35,z);
+    transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(3.4,3.4,1); grp.add(gl);
+  var sign=(side==='left')?-1:1;
+  grp.position.set(sign*(ROAD_W/2-3.6),baseY+1.6,z);
   scene.add(grp);
-  crystals.push({z:z,side:side,grp:grp,taken:false,bob:Math.random()*6.28});
+  crystals.push({z:z,side:side,grp:grp,plane:plane,taken:false,bob:Math.random()*6.28,baseY:baseY});
 }
 
 function buildEvents(){
   if(events.length)return;
   // улица 1
+  addBeam(-30);
   events.push({z:-30,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
-  addBeam(-30,false);
-  addCrystal(-44,'left');
-  addDebris(-58,'left');
-  addCrystal(-78,'right');
-  addDebris(-92,'right');
+  addCrystal(-44,'left',0);
+  addDebris(-58,0,'left','Обломки сверху — уходите влево!');
+  addCrystal(-78,'right',0);
+  addDebris(-92,0,'right','Обломки сверху — уходите вправо!');
   events.push({z:Z_PIT_EDGE+1,type:'pit',need:'jump',text:'Провал! Прыжок',done:false,warned:false});
   // улица 2
-  addDebris(-232,'left');
-  addCrystal(-246,'left');
-  addBeam(-262,false);
+  addDebris(-232,0,'left','Обломки сверху — уходите влево!');
+  addCrystal(-246,'left',0);
+  addBeam(-262);
   events.push({z:-262,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
-  addDebris(-282,'right');
+  addDebris(-282,0,'right','Обломки сверху — уходите вправо!');
 }
 
 function buildTunnelEvents(){
-  // тоннель: труба над головой уже построена вместе с тоннелем
+  if(tunnelEventsDone)return;
+  tunnelEventsDone=true;
   events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Труба над головой!',done:false,warned:false});
-  addDebris(TUN.z0-38,'left');
-  addCrystal(TUN.z0-52,'right');
-  addDebris(TUN.z0-70,'right');
+  addDebris(TUN.z0-36,TUN.y,'left','Обломки сверху — уходите влево!');
+  addCrystal(TUN.z0-52,'right',TUN.y);
+  addDebris(TUN.z0-68,TUN.y,'right','Обломки сверху — уходите вправо!');
 }
 
 // ——— разлёт мелких обломков ———
@@ -787,8 +853,10 @@ function judge(e){
   if(ok){
     passed++; flash('ok'); playSfx('ok'); burst(wp,8);
   }else{
-    failed++; integrity=Math.max(0,integrity-15); shake=1.6;
-    flash('hit'); playSfx('hit'); burst(wp,14);
+    failed++; integrity=Math.max(0,integrity-15); shake=2.1;
+    flash('hit'); playSfx('hit');
+    var hitPos=camera.position.clone(); hitPos.y-=0.35;
+    burst(hitPos,16);
     if(integrity<=0){ integrity=30; showAlert('Аварийная стабилизация! Корпус восстановлен'); }
   }
   updateHud();
@@ -832,8 +900,12 @@ function updateHud(){
 // ——— камера ———
 var camPos=new THREE.Vector3(), lookAt=new THREE.Vector3(), tmpF=new THREE.Vector3();
 
+function laneLimit(){
+  return (phase==='tunnel'||phase==='ladder')?0.9:LANE_X;
+}
+
 function updateCamera(dt){
-  var x=lane*LANE_X, y=EYE, z=sZ, focusDy=0, roll=-lane*0.16;
+  var x=lane*laneLimit(), y=EYE, z=sZ, focusDy=0, roll=-lane*0.16;
   var jumpK=jumpT>0?Math.sin(Math.PI*(1-jumpT/JUMP_D)):0;
   var duckY=duckT>0?Math.min(1,duckT/DUCK_D*1.6)*1.06:0;
   var bob=Math.sin(tRun*8.2)*0.022;
@@ -857,7 +929,7 @@ function updateCamera(dt){
     var k3=Math.min(1,phaseT/LADDER_D);
     y=TUN.y+1.7+(EYE-TUN.y-1.7)*easeOut(k3);
     focusDy=2.6*(1-k3);
-    z=TUN.z1+0.6;
+    z=TUN.z1+1.3;
   } else if(phase==='done'){
     y=EYE+bob;
   }
@@ -871,21 +943,27 @@ function updateCamera(dt){
   camPos.set(x,y,z);
   camera.position.copy(camPos);
 
-  tmpF.set(x*1.2,y+focusDy,z-9);
+  tmpF.set(x*1.25,y+focusDy,z-9);
   lookAt.copy(tmpF);
   camera.lookAt(lookAt);
   camera.rotateZ(roll);
 
   if(capPlane){
-    var vis=topMix<0.5&&phase!=='fall';
-    capPlane.visible=vis;
-    var dmg=integrity<60?(1-integrity/100)*0.35:0;
-    capPlane.position.set(-lane*0.10,-0.60+bob*0.7+jumpK*0.04+duckY*0.3,-1.0);
+    var duckK=duckT>0?Math.min(1,duckT/DUCK_D*1.7):0;
+    capPlane.visible=topMix<0.5&&phase!=='fall'&&duckK<0.45;
+    capPlane.position.set(-lane*0.10,-0.60+bob*0.6+jumpK*0.05-duckK*0.75,-1.0);
     capPlane.rotation.z=Math.sin(tRun*5.2)*0.014-lane*0.05;
     capPlane.material.opacity=1;
-    var br=0.78-dmg;
-    capPlane.material.color.setRGB(br,br,br);
+    capPlane.material.color.setRGB(0.82,0.82,0.82);
+    var wantTex=capsuleTextureName();
+    if(capPlane.userData.tex!==wantTex&&TEX[wantTex]){
+      capPlane.material.map=TEX[wantTex];
+      capPlane.material.needsUpdate=true;
+      capPlane.userData.tex=wantTex;
+    }
   }
+
+  if(torch) torch.intensity=(phase==='fall'||phase==='ladder')?1.1:0;
 
   // затемнение в падении
   if(el.dark){
@@ -965,13 +1043,13 @@ function step(dt){
     if(e.pieces&&e.pieces.length){
       var ahead=sZ-e.z;                     // >0 — ещё впереди
       e.pieces.forEach(function(pc){
-        var kk=(ahead-24)/(-24);            // 0 впереди за 24 м, 1 в точке события
-        if(ahead>26||ahead<-2){ pc.visible=false; return; }
+        if(ahead>26||ahead<-3){ pc.visible=false; return; }
         var k2=clamp((26-ahead)/26,0,1);
-        pc.visible=true;
-        pc.position.set(pc.userData.off,Math.max(0.2,14*Math.pow(1-k2,2.1))+0.5,
+        pc.visible=!e.done;
+        pc.position.set(pc.userData.off,
+                        e.baseY+Math.max(0.15,13*Math.pow(1-k2,2.0))+0.4,
                         e.z+pc.userData.dl);
-        pc.rotation.set(k2*2.2,k2*1.4,k2*0.9);
+        pc.rotation.set(k2*2.4,k2*1.7,k2*1.1);
       });
     }
   });
@@ -979,9 +1057,9 @@ function step(dt){
   // кристаллы
   crystals.forEach(function(c){
     if(c.taken)return;
-    c.grp.rotation.y+=dt*1.2;
+    c.grp.rotation.y+=dt*1.6;
     c.bob+=dt*2;
-    c.grp.position.y=1.35+Math.sin(c.bob)*0.12;
+    c.grp.position.y=c.baseY+1.55+Math.sin(c.bob)*0.14;
     var near=Math.abs(sZ-c.z)<3.2&&(phase==='street1'||phase==='street2'||phase==='tunnel');
     if(near){
       var need=c.side==='left'?'left':'right';
@@ -1035,6 +1113,32 @@ function tick(){
   renderer.render(scene,camera);
 }
 
+// ——— полноэкранный режим и горизонтальная ориентация ———
+function lockLandscape(){
+  try{
+    if(screen.orientation&&screen.orientation.lock){
+      var p=screen.orientation.lock('landscape');
+      if(p&&p['catch'])p['catch'](function(){});
+    }
+  }catch(e){}
+}
+function requestFull(){
+  var st=document.getElementById('t7-stage');
+  var fn=st.requestFullscreen||st.webkitRequestFullscreen||st.mozRequestFullScreen||st.msRequestFullscreen;
+  if(fn){
+    try{
+      var p=fn.call(st);
+      if(p&&p.then) p.then(lockLandscape)['catch'](function(){});
+      else lockLandscape();
+    }catch(e){ lockLandscape(); }
+  }else lockLandscape();
+}
+function updateOrient(){
+  var el2=document.getElementById('t7-rotate');
+  if(!el2)return;
+  el2.classList.toggle('show',window.innerHeight>window.innerWidth+8);
+}
+
 // ——— запуск ———
 function reset(){
   phase='street1'; phaseT=0; sZ=Z_START; tRun=0; travelled=0;
@@ -1050,11 +1154,14 @@ function reset(){
   crystals.forEach(function(c){ c.taken=false; c.grp.visible=true; });
   shards.forEach(function(s){ scene.remove(s); }); shards.length=0;
   if(el.dark) el.dark.style.opacity=0;
+  if(capPlane){ capPlane.userData.tex='capsule';
+    if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
   updateHud(); showAlert('');
 }
 
 function start(){
   if(!scene) return;
+  requestFull(); updateOrient();
   reset(); running=true;
   if(!SFX.amb) loadSounds();
   try{ SFX.amb.currentTime=0; var p=SFX.amb.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){}
@@ -1086,6 +1193,9 @@ window.__t7=function(mode){
   else if(mode==='tunnel'){ travelled=126; buildTunnel(); buildTunnelEvents();
     phase='tunnel'; phaseT=0; sZ=TUN.z0-30; }
   else if(mode==='street2'){ travelled=200; phase='street2'; phaseT=0; sZ=-240; }
+  else if(mode==='crystal'){ travelled=42; phase='street1'; phaseT=0; sZ=-40; }
+  else if(mode==='tunelexit'){ travelled=126; buildTunnel(); buildTunnelEvents();
+    phase='tunnel'; phaseT=0; sZ=TUN.z1+4; }
   updateHud();
 };
 
@@ -1114,7 +1224,8 @@ if(playBtn) playBtn.disabled=false;
 tick();
 });
 
-window.addEventListener('resize',function(){
+window.addEventListener('orientationchange',function(){ setTimeout(updateOrient,220); });
+window.addEventListener('resize',function(){ updateOrient();
   camera.aspect=window.innerWidth/Math.max(1,window.innerHeight);
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight,false);
