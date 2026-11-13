@@ -93,7 +93,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0311ai">
+<body data-build="0318k">
 <div id="app">
 
 <header id="topbar">
@@ -240,9 +240,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <button class="sk" data-act="t5a" type="button">⏭ 5: пропустить инструкцию</button>
 <button class="sk" data-act="t6a" type="button">⏭ 6: пропустить инструкцию</button>
 <button class="sk" data-act="t6b" type="button">⏭ 6: танец → сборка</button>
-<!-- Технические кнопки для проверки задания 6 без прохождения квеста. Удалить обе строки, когда проверка не нужна. -->
-<button class="sk" data-act="j5" type="button">🔧 Тест: сразу к заданию 5</button>
-<button class="sk" data-act="j6" type="button">🔧 Тест: сразу к заданию 6</button>
+<!-- Тестовая кнопка перехода к заданию 7 (вместо прежних тестовых переходов к заданиям 5 и 6). -->
+<button class="sk" data-act="j7" type="button">▶ Тест: сразу к заданию 7</button>
 </div>
 
 </div>
@@ -468,8 +467,8 @@ function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.disp
 if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
-// Технический прыжок в задания 5 и 6 из пролога и ранних этапов (только капитан).
-if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j5');on('j6');}
+// Технический переход к заданию 7 из пролога и ранних этапов (только капитан).
+if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j7');}
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
 if(ph==='task05'){if(t5==='intro')on('t5a');}
@@ -501,16 +500,10 @@ if(a==='t5a'&&cap()){firebase.database().ref('rooms/'+NET.room.code+'/tasks/task
 var t6ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task06');};
 if(a==='t6a'&&cap()){t6ref().update({stage:'dance',startsAt:now,playbackId:(Date.now()%100000),playing:true,pausedAt:0,watched:false,replayClearedAt:now}).catch(err);}
 if(a==='t6b'&&cap()){t6ref().update({stage:'order',watched:true,playing:false,pausedAt:0}).catch(err);}
-// Технический прыжок: только этап, без прохождения предыдущих заданий. Правила уже разрешают фазы 5 и 6.
-if(a==='j5'&&cap()){
-silenceAll();
-firebase.database().ref('rooms/'+NET.room.code+'/tasks/task05').update({stage:'wait',startsAt:0,fragment:0,attempts:0,hintLevel:0,listening:false,completed:false,accepted:null,playingAt:0}).catch(err);
-NET.setPhase('task05',now+800).catch(err);
-}
-if(a==='j6'&&cap()){
-silenceAll();
-firebase.database().ref('rooms/'+NET.room.code+'/tasks/task06').update({stage:'wait',startsAt:0,playbackId:0,playing:false,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false,requests:null}).catch(err);
-NET.setPhase('task06',now+800).catch(err);
+// Технический переход к заданию 7: открываем экран задания 7 (пробный 3D-участок).
+// Когда задание 7 будет подключено к общему модулю, здесь появится setPhase('task07').
+if(a==='j7'){
+try{location.href='task07demo.html';}catch(e){}
 }
 });
 setInterval(refresh,500);
