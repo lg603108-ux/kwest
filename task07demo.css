@@ -1,97 +1,105 @@
-/* task07demo.css — пробный 3D-участок задания 7. Локальные стили, только для этой страницы. */
+/* task07demo.css — пробный 3D-участок задания 7. Оформление в общем стиле квеста:
+   тёмные панели #14292f, бирюзовый акцент #30e5dc, чёрные плашки с белым текстом. */
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans.ttf') format('truetype');font-weight:400;font-display:swap}
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0d161a;color:#eaf7f7;
-  font-family:'QuestSans','DejaVu Sans',system-ui,sans-serif;overscroll-behavior:none;
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#070d0f;color:#fff;
+  font-family:'QuestSans',Arial,sans-serif;overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;touch-action:none}
 
-#t7-stage{position:fixed;inset:0;overflow:hidden;background:#0d161a}
+#t7-stage{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%)}
 #t7-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 
 /* ——— показатели ——— */
 #t7-hud{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));
   right:max(8px,env(safe-area-inset-right));display:flex;gap:6px;justify-content:center;pointer-events:none;z-index:6}
 .t7-pill{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-width:70px;padding:5px 10px;border-radius:11px;
-  background:rgba(24,42,48,.62);border:1px solid rgba(160,240,238,.22);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);line-height:1.05}
-.t7-pill small{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8fc3c6}
-.t7-pill b{font-size:17px;color:#eaffff;margin-top:2px}
+  min-width:70px;padding:5px 11px;border-radius:10px;
+  background:rgba(13,22,26,.92);border:1px solid rgba(190,245,245,.28);line-height:1.05}
+.t7-pill small{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#9fd8d8}
+.t7-pill b{font-size:17px;color:#fff;margin-top:2px}
 .t7-pill b.warn{color:#ffb35c}
 .t7-pill b.bad{color:#ff6b6b}
-.t7-zone{min-width:78px}
-.t7-zone b{font-size:14px;letter-spacing:.01em}
-.t7-primary[disabled]{opacity:.45}
+.t7-zone{min-width:80px}
+.t7-zone b{font-size:14px;color:#30e5dc}
 
-/* ——— предупреждение наблюдателя ——— */
-.t7-alert{position:absolute;left:50%;top:76px;transform:translate(-50%,-8px);z-index:7;
-  padding:9px 18px;border-radius:12px;font-size:17px;font-weight:700;letter-spacing:.01em;
-  background:rgba(18,32,36,.78);border:1px solid rgba(255,190,90,.55);color:#ffd79a;
-  opacity:0;transition:opacity .18s ease,transform .18s ease;pointer-events:none;white-space:nowrap}
+/* ——— плашка сообщения: чёрная, белый шрифт ——— */
+.t7-alert{position:absolute;left:50%;top:74px;transform:translate(-50%,-8px);z-index:7;
+  padding:10px 20px;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:.01em;
+  background:#000;border:1px solid rgba(190,245,245,.25);color:#fff;
+  opacity:0;transition:opacity .18s ease,transform .18s ease;pointer-events:none;max-width:86vw;text-align:center}
 .t7-alert.show{opacity:1;transform:translate(-50%,0)}
+
+/* ——— сообщение о повреждении капсулы: чёрное окно, бирюзовый шрифт ——— */
+#t7-damage{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(.94);z-index:9;
+  padding:18px 26px;border-radius:14px;background:rgba(0,0,0,.94);
+  border:1px solid rgba(48,229,220,.55);box-shadow:0 12px 40px rgba(0,0,0,.6);
+  text-align:center;color:#30e5dc;opacity:0;pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease;display:none}
+#t7-damage.show{opacity:1;transform:translate(-50%,-50%) scale(1);display:block}
+#t7-damage .t7-dmg-title{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#9fd8d8}
+#t7-damage .t7-dmg-val{font-size:34px;font-weight:700;color:#30e5dc;margin-top:4px}
+#t7-damage.crit{border-color:#ff6b6b}
+#t7-damage.crit .t7-dmg-val{color:#7cf2e8}
 
 /* ——— кнопки управления ——— */
 #t7-controls{position:absolute;left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));
   bottom:max(8px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;gap:8px;z-index:8;pointer-events:none}
 .t7-pad{display:flex;flex-direction:column;gap:8px;pointer-events:auto}
-.t7-btn{-webkit-appearance:none;appearance:none;border:1px solid rgba(48,229,220,.42);
-  background:rgba(16,32,36,.66);color:#dffafa;border-radius:14px;
-  min-width:104px;padding:10px 14px;font-family:inherit;font-size:15px;font-weight:700;
+.t7-btn{-webkit-appearance:none;appearance:none;
+  border:1px solid rgba(190,245,245,.4);border-radius:12px;
+  background:rgba(13,22,26,.92);color:#fff;
+  min-width:104px;min-height:52px;padding:10px 16px;font-family:inherit;font-size:15px;font-weight:700;
   display:flex;align-items:center;gap:8px;justify-content:center;
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  box-shadow:0 2px 14px rgba(0,0,0,.35);transition:background .1s,transform .08s}
-.t7-btn:active,.t7-btn.on{background:rgba(48,229,220,.28);transform:scale(.97);border-color:#30e5dc}
-.t7-ico{font-size:13px;opacity:.85}
+  transition:background .1s,transform .08s,border-color .1s}
+.t7-btn:active,.t7-btn.on{background:rgba(48,229,220,.22);transform:scale(.97);border-color:#30e5dc}
+.t7-ico{font-size:13px;opacity:.85;color:#30e5dc}
 
-/* ——— отметка принятого действия ——— */
-#t7-judge{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) scale(.9);z-index:7;
-  font-size:34px;font-weight:700;letter-spacing:.02em;opacity:0;pointer-events:none;
-  text-shadow:0 4px 24px rgba(0,0,0,.75);transition:opacity .12s ease,transform .12s ease}
-#t7-judge.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#t7-judge.ok{color:#4bf3e6}
-#t7-judge.bad{color:#ff6b6b}
-
-/* ——— затемнение при провале ——— */
-#t7-rotate{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
-  background:#08131a;text-align:center;padding:26px;font-size:19px;line-height:1.4;color:#cfeeee}
-#t7-rotate.show{display:flex}
-.t7-second{-webkit-appearance:none;appearance:none;margin-top:8px;width:100%;padding:11px 16px;
-  border-radius:12px;border:1px solid rgba(48,229,220,.45);background:rgba(16,32,36,.6);
-  color:#cfeeee;font-family:inherit;font-size:15px;font-weight:700}
-#t7-dark{position:absolute;inset:0;pointer-events:none;z-index:4;background:#04080a;opacity:0}
-
-/* ——— вспышка урона / удачи ——— */
+/* ——— вспышка удара / удачного действия ——— */
 #t7-flash{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .18s}
 #t7-flash.ok{opacity:1;background:radial-gradient(ellipse at center,rgba(48,229,220,0) 35%,rgba(48,229,220,.5) 100%);
   box-shadow:inset 0 0 140px rgba(48,229,220,.55)}
+#t7-flash.hit{opacity:1;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 30%,rgba(0,0,0,.62) 100%);
+  box-shadow:inset 0 0 120px rgba(0,0,0,.85)}
+
+/* затемнение при падении */
+#t7-dark{position:absolute;inset:0;pointer-events:none;z-index:4;background:#04080a;opacity:0}
 
 /* ——— экраны ——— */
-.t7-screen{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:radial-gradient(ellipse at 50% 40%,rgba(14,26,30,.72),rgba(8,14,17,.93))}
+.t7-screen{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:radial-gradient(900px 520px at 50% 40%,rgba(23,56,62,.92),rgba(7,13,15,.97))}
 .t7-screen.hidden{display:none}
-.t7-card{max-width:560px;width:100%;padding:22px 22px 18px;border-radius:18px;text-align:center;
-  background:rgba(20,34,38,.86);border:1px solid rgba(160,240,238,.22);
-  box-shadow:0 18px 50px rgba(0,0,0,.5)}
-.t7-card h1{margin:0 0 10px;font-size:24px;line-height:1.15}
-.t7-card p{margin:0 0 10px;font-size:15px;line-height:1.45;color:#bfe4e4}
-.t7-hint{font-size:14px!important;color:#9fc9cc!important}
+.t7-card{max-width:560px;width:100%;padding:22px 22px 18px;border-radius:14px;text-align:center;
+  background:#14292f;border:1px solid rgba(190,245,245,.3);box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.t7-card h1{margin:0 0 10px;font-size:23px;line-height:1.15;color:#fff}
+.t7-card p{margin:0 0 10px;font-size:15px;line-height:1.45;color:#c9e6e6}
+.t7-hint{font-size:14px!important;color:#9fd8d8!important}
 .t7-note{margin-top:10px;font-size:12px;color:#7fa9ac}
-.t7-primary{-webkit-appearance:none;appearance:none;margin-top:8px;width:100%;padding:14px 18px;
-  border-radius:14px;border:none;background:linear-gradient(180deg,#39f0e6,#1ec3bb);color:#07282a;
-  font-family:inherit;font-size:17px;font-weight:700;box-shadow:0 8px 22px rgba(48,229,220,.25)}
+.t7-primary{-webkit-appearance:none;appearance:none;margin-top:8px;width:100%;min-height:52px;padding:12px 24px;
+  border-radius:12px;border:0;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;
+  font-family:inherit;font-size:17px;font-weight:700}
+.t7-second{-webkit-appearance:none;appearance:none;margin-top:8px;width:100%;min-height:44px;padding:9px 16px;
+  border-radius:10px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;
+  font-family:inherit;font-size:14px;font-weight:700}
+.t7-primary[disabled]{opacity:.45}
 
 /* ——— переключатель вида ——— */
 #t7-topview{position:absolute;right:max(8px,env(safe-area-inset-right));top:66px;z-index:8;
-  -webkit-appearance:none;appearance:none;padding:8px 13px;border-radius:11px;
-  border:1px solid rgba(160,240,238,.3);background:rgba(16,32,36,.66);color:#cfeeee;
-  font-family:inherit;font-size:13px;font-weight:700;backdrop-filter:blur(6px)}
-#t7-topview.on{background:rgba(48,229,220,.26);border-color:#30e5dc;color:#eaffff}
+  -webkit-appearance:none;appearance:none;min-height:42px;padding:8px 14px;border-radius:10px;
+  border:1px solid rgba(190,245,245,.4);background:rgba(13,22,26,.92);color:#fff;
+  font-family:inherit;font-size:13px;font-weight:700}
+#t7-topview.on{background:rgba(48,229,220,.22);border-color:#30e5dc;color:#eaffff}
+
+/* ——— поверните телефон ——— */
+#t7-rotate{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+  background:#070d0f;text-align:center;padding:26px;font-size:19px;line-height:1.4;color:#30e5dc}
+#t7-rotate.show{display:flex}
 
 @media(max-height:430px){
-  .t7-btn{min-width:88px;padding:8px 10px;font-size:14px}
-  .t7-pill{min-width:58px;padding:4px 7px}
+  .t7-btn{min-width:88px;min-height:46px;padding:8px 12px;font-size:14px}
+  .t7-pill{min-width:58px;padding:4px 8px}
   .t7-pill b{font-size:15px}
-  .t7-alert{top:62px;font-size:15px;padding:7px 14px}
+  .t7-alert{top:60px;font-size:15px;padding:8px 14px}
+  #t7-damage .t7-dmg-val{font-size:28px}
 }

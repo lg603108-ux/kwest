@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318b.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318d.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -54,6 +54,10 @@ function loadSounds(){
     SFX.ok=new Audio('assets/task07/ok.mp3');
     SFX.amb=new Audio('assets/task07/ambience.mp3');
     SFX.amb.loop=true; SFX.amb.volume=0.55;
+    SFX.music=new Audio('assets/music_defense_loop.mp3');
+    SFX.music.loop=true; SFX.music.volume=0.30;
+    SFX.crit=new Audio('assets/task07/sfx_capsule_critical.mp3');
+    SFX.crit.volume=1.0;
     SFX.hit.volume=1.0; SFX.ok.volume=0.9;
   }catch(e){ SFX={}; }
 }
@@ -75,7 +79,7 @@ var lane=0, laneTarget=0, holdT=0, jumpT=0, duckT=0, shake=0;
 var lastAct='', lastActAt=-9;
 var running=false, finished=false, topView=false, topMix=0;
 var integrity=100, energy=100, passed=0, failed=0;
-var events=[], crystals=[], shards=[], mists=[];
+var events=[], crystals=[], shards=[], frags=[], mists=[];
 var tunnelBuilt=false, tunnelEventsDone=false, tunnelGroup=null, tunnelLamps=[], tunnelLightPool=[];
 var exitHint=false, pitWarned=false;
 var fovTarget=74;
@@ -166,15 +170,15 @@ function asphaltTexture(){
 function facadeTexture(seed,litChance){
   return canvasTexture(512,function(g,S){
     var r=rnd(seed);
-    g.fillStyle='#3e484d'; g.fillRect(0,0,S,S);
-    for(var i=0;i<6000;i++){ var v=46+r()*30;
+    g.fillStyle='#707a7f'; g.fillRect(0,0,S,S);
+    for(var i=0;i<6000;i++){ var v=88+r()*46;
       g.fillStyle='rgba('+Math.round(v)+','+Math.round(v+5)+','+Math.round(v+8)+','+(0.10+r()*0.22)+')';
       g.fillRect(r()*S,r()*S,2+r()*4,2+r()*4); }
     // вертикальные простенки
     var cols=5, rows=7;
     var cw=S/cols, ch=S/rows;
     for(var c=0;c<cols;c++){
-      g.fillStyle='rgba(24,30,34,'+(0.18+r()*0.12)+')';
+      g.fillStyle='rgba(76,86,92,'+(0.35+r()*0.2)+')';
       g.fillRect(c*cw,0,3,S);
     }
     // окна: ровная сетка, рама светлее, стекло тёмное
@@ -183,15 +187,15 @@ function facadeTexture(seed,litChance){
         var ww=cw*0.46, wh=ch*0.52;
         var wx=cx*cw+(cw-ww)/2, wy=cy*ch+ch*0.22;
         // подоконник
-        g.fillStyle='rgba(118,128,132,0.42)';
-        g.fillRect(wx-3,wy+wh+1,ww+6,3);
+        g.fillStyle='rgba(186,198,203,0.75)';
+        g.fillRect(wx-4,wy+wh+2,ww+8,4);
         var lit=r()<litChance;
-        g.fillStyle=lit?'rgba(126,238,230,0.80)':'rgba(20,28,33,0.92)';
+        g.fillStyle=lit?'rgba(146,246,238,0.92)':'rgba(22,29,34,0.96)';
         g.fillRect(wx,wy,ww,wh);
         if(lit){ g.shadowColor='#59e8de'; g.shadowBlur=12; g.fillRect(wx,wy,ww,wh); g.shadowBlur=0; }
         // рама
-        g.strokeStyle=lit?'rgba(190,255,250,0.6)':'rgba(124,136,142,0.62)';
-        g.lineWidth=3; g.strokeRect(wx,wy,ww,wh);
+        g.strokeStyle=lit?'rgba(210,255,252,0.85)':'rgba(178,192,198,0.85)';
+        g.lineWidth=3.2; g.strokeRect(wx,wy,ww,wh);
         // переплёт
         g.lineWidth=1.6; g.strokeStyle=lit?'rgba(150,230,225,0.35)':'rgba(70,80,86,0.55)';
         g.beginPath(); g.moveTo(wx+ww/2,wy); g.lineTo(wx+ww/2,wy+wh); g.stroke();
@@ -199,7 +203,7 @@ function facadeTexture(seed,litChance){
       // межэтажная полоса
     }
     for(var fy=1;fy<rows;fy++){
-      g.fillStyle='rgba(26,32,36,0.45)'; g.fillRect(0,fy*ch-2,S,4);
+      g.fillStyle='rgba(96,106,112,0.55)'; g.fillRect(0,fy*ch-3,S,5);
     }
     // грязь внизу фасада
     var grd=g.createLinearGradient(0,S*0.6,0,S);
@@ -311,7 +315,7 @@ function buildStreet(){
     for(var ui=0;ui<uv.count;ui++) uv.setXY(ui,uv.getX(ui)*repX,uv.getY(ui)*repY);
     uv.needsUpdate=true;
     var mTop=new THREE.MeshLambertMaterial({color:0x3a444a});
-    var mSide=tex?new THREE.MeshLambertMaterial({map:tex,color:0x8b9599}):fallback;
+    var mSide=tex?new THREE.MeshLambertMaterial({map:tex,color:0xc6cfd2}):fallback;
     var b=new THREE.Mesh(geo,[mSide,mSide,mTop,mTop,mSide,mSide]);
     b.position.set(x,h/2,z);
     if(r()<0.5) b.rotation.y=Math.PI;   // чтобы фасад смотрел на улицу
@@ -518,7 +522,7 @@ function placeCapsule(){
   var w=0.55, h=tx?w/(tx.image.width/tx.image.height):0.34;
   capPlane=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
     new THREE.MeshBasicMaterial({map:tx||null,color:0xffffff,transparent:true,
-      depthTest:false,depthWrite:false,opacity:1}));
+      alphaTest:0.45,depthTest:false,depthWrite:false,opacity:1}));
   capPlane.position.set(0,-0.60,-1.0);
   capPlane.renderOrder=999;
   camera.add(capPlane);
@@ -711,14 +715,12 @@ function chunkMesh(size){
 function addDebris(z,baseY,need,text){
   var e={z:z,baseY:baseY,type:'debris',need:need,text:text,done:false,warned:false,pieces:[]};
   var r=rnd(Math.floor(Math.abs(z)*17)+3);
-  for(var i=0;i<4;i++){
-    var sz=1.3+r()*0.9;
-    var m=chunkMesh(sz);
-    m.userData={off:(i-1.5)*1.35+(r()-0.5)*0.5, dl:(r()-0.5)*2.2, size:sz};
-    m.visible=false;
-    scene.add(m);
-    e.pieces.push(m);
-  }
+  var sz=1.5+r()*0.35;
+  var m=chunkMesh(sz);
+  m.userData={off:(r()-0.5)*0.5, dl:(r()-0.5)*1.0, size:sz};
+  m.visible=false;
+  scene.add(m);
+  e.pieces.push(m);
   events.push(e);
   return e;
 }
@@ -784,6 +786,22 @@ function burst(pos,count){
   }
 }
 
+// обломок разлетается на мелкие куски
+function shatter(pos,count){
+  count=count||12;
+  var floorY=(phase==='tunnel'||phase==='ladder')?TUN.y:0;
+  for(var i=0;i<count;i++){
+    var sz=0.16+Math.random()*0.26;
+    var m=chunkMesh(sz);
+    m.position.copy(pos);
+    m.userData.v=new THREE.Vector3((Math.random()-0.5)*7.5,1.6+Math.random()*4.6,(Math.random()-0.5)*7.5);
+    m.userData.spin=new THREE.Vector3((Math.random()-0.5)*9,(Math.random()-0.5)*9,(Math.random()-0.5)*9);
+    m.userData.life=1.5+Math.random()*0.8;
+    m.userData.floorY=floorY+0.08;
+    scene.add(m); frags.push(m);
+  }
+}
+
 // ——— управление ———
 function doAction(a){
   if(!running||finished)return;
@@ -835,7 +853,7 @@ function resolvePit(){
   if(actOk('jump')){
     passed++; flash('ok'); playSfx('ok');
     phase='trip'; phaseT=0; travelled=145.6;
-    showAlert('Прыжок через провал!');
+    showAlert('');
   }else{
     failed++; integrity=Math.max(0,integrity-15); shake=1.7;
     flash('hit'); playSfx('hit');
@@ -851,13 +869,17 @@ function judge(e){
   var ok=actOk(e.need);
   var wp=camera.position.clone(); wp.y=Math.max(0.4,camera.position.y-0.4);
   if(ok){
-    passed++; flash('ok'); playSfx('ok'); burst(wp,8);
+    passed++; flash('ok'); playSfx('ok');
+    var pPos=camera.position.clone(); pPos.z-=3;
+    shatter(pPos,6);
   }else{
     failed++; integrity=Math.max(0,integrity-15); shake=2.1;
     flash('hit'); playSfx('hit');
-    var hitPos=camera.position.clone(); hitPos.y-=0.35;
-    burst(hitPos,16);
-    if(integrity<=0){ integrity=30; showAlert('Аварийная стабилизация! Корпус восстановлен'); }
+    var hitPos=camera.position.clone();
+    hitPos.y-=0.25; hitPos.z-=1.6;
+    shatter(hitPos,14);
+    showDamage(integrity);
+    if(integrity<=0){ integrity=30; showDamage(30); }
   }
   updateHud();
 }
@@ -877,6 +899,30 @@ function showAlert(text){
   el.alert.classList.add('show');
   if(alertTimer)clearTimeout(alertTimer);
   alertTimer=setTimeout(function(){ el.alert.classList.remove('show'); },2200);
+}
+
+var dmgUntil=0, dmgBox=null;
+function showDamage(val){
+  if(!dmgBox) dmgBox=document.getElementById('t7-damage');
+  var box=dmgBox;
+  if(!box)return;
+  var crit=val<=30;
+  box.className='show'+(crit?' crit':'');
+  box.style.display='block';
+  var t=box.querySelector('.t7-dmg-title'), v=box.querySelector('.t7-dmg-val');
+  if(t) t.textContent=crit?'Капсула критически повреждена':'Капсула повреждена';
+  if(v) v.textContent=Math.round(val)+'%';
+  if(crit) playSfx('crit');
+  dmgUntil=tRun+(crit?3.6:2.2);
+}
+
+function hideDamageIfDue(){
+  if(!dmgBox||!dmgUntil) return;
+  if(tRun>dmgUntil){
+    dmgBox.className='';
+    dmgBox.style.display='none';
+    dmgUntil=0;
+  }
 }
 
 function zoneName(){
@@ -1006,7 +1052,7 @@ function step(dt){
 
   if(phase==='street1'){
     var dz=RUN_SPEED*dt; sZ-=dz; travelled+=dz;
-    if(!pitWarned&&travelled>104){ pitWarned=true; showAlert('Провал! Прыжок'); }
+    if(!pitWarned&&travelled>104){ pitWarned=true; }
     if(travelled>=126){ pitWarned=false; resolvePit(); }
   } else if(phase==='trip'){
     var k=Math.min(1,phaseT/TRIP_D);
@@ -1018,7 +1064,7 @@ function step(dt){
   } else if(phase==='tunnel'){
     if(sZ>TUN.z1+2){ var dz2=TUN_SPEED*dt; sZ-=dz2; travelled+=dz2; }
     else if(!exitHint){
-      exitHint=true; showAlert('Прыгнуть — выбраться наверх');
+      exitHint=true;
     }
     if(sZ<TUN.z1){ sZ=TUN.z1; }
   } else if(phase==='ladder'){
@@ -1037,7 +1083,7 @@ function step(dt){
   events.forEach(function(e){
     if(e.type==='pit')return;
     var dist=Math.abs(sZ-e.z);
-    if(!e.warned&&sZ-e.z<22&&sZ-e.z>-1){ e.warned=true; showAlert(e.text); }
+    if(!e.warned&&sZ-e.z<22&&sZ-e.z>-1){ e.warned=true; }
     if(!e.done&&sZ<=e.z){ e.done=true; judge(e); }
     // падающие обломки
     if(e.pieces&&e.pieces.length){
@@ -1068,7 +1114,7 @@ function step(dt){
         energy=Math.min(100,energy+5); integrity=Math.min(100,integrity+10);
         flash('ok'); playSfx('ok');
         burst(c.grp.position.clone(),8);
-        showAlert('Кристалл собран: +5 энергии, +10 корпуса');
+        
         updateHud();
       }
     }
@@ -1089,6 +1135,22 @@ function step(dt){
     }
   }
 
+  // мелкие куски обломков
+  for(var fi=frags.length-1; fi>=0; fi--){
+    var fr=frags[fi];
+    fr.userData.life-=dt;
+    if(fr.userData.life<=0){ scene.remove(fr); frags.splice(fi,1); continue; }
+    fr.userData.v.y-=dt*17;
+    fr.position.addScaledVector(fr.userData.v,dt);
+    if(fr.position.y<fr.userData.floorY){
+      fr.position.y=fr.userData.floorY;
+      fr.userData.v.y*=-0.34; fr.userData.v.x*=0.68; fr.userData.v.z*=0.68;
+    }
+    fr.rotation.x+=fr.userData.spin.x*dt;
+    fr.rotation.y+=fr.userData.spin.y*dt;
+    fr.rotation.z+=fr.userData.spin.z*dt;
+  }
+
   // осколки
   for(var si=shards.length-1; si>=0; si--){
     var s=shards[si];
@@ -1101,6 +1163,7 @@ function step(dt){
     s.material.opacity=Math.min(1,s.userData.life);
   }
 
+  hideDamageIfDue();
   updateHud();
 }
 
@@ -1153,6 +1216,10 @@ function reset(){
   });
   crystals.forEach(function(c){ c.taken=false; c.grp.visible=true; });
   shards.forEach(function(s){ scene.remove(s); }); shards.length=0;
+  frags.forEach(function(f2){ scene.remove(f2); }); frags.length=0;
+  if(!dmgBox) dmgBox=document.getElementById('t7-damage');
+  if(dmgBox){ dmgBox.className=''; dmgBox.style.display='none'; }
+  dmgUntil=0;
   if(el.dark) el.dark.style.opacity=0;
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
@@ -1165,6 +1232,7 @@ function start(){
   reset(); running=true;
   if(!SFX.amb) loadSounds();
   try{ SFX.amb.currentTime=0; var p=SFX.amb.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){}
+  try{ SFX.music.currentTime=0; var pm=SFX.music.play(); if(pm&&pm.catch)pm.catch(function(){}); }catch(e){}
   if(el.start) el.start.classList.add('hidden');
   if(el.end) el.end.classList.add('hidden');
 }
@@ -1173,6 +1241,7 @@ function finish(){
   if(finished)return;
   finished=true; running=false; phase='done';
   try{ SFX.amb.pause(); }catch(e){}
+  try{ SFX.music.pause(); }catch(e){}
   if(el.endTitle) el.endTitle.textContent=failed===0?'Маршрут пройден без ошибок':'Маршрут пройден';
   if(el.endText) el.endText.textContent='Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
     Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.';
@@ -1194,10 +1263,14 @@ window.__t7=function(mode){
     phase='tunnel'; phaseT=0; sZ=TUN.z0-30; }
   else if(mode==='street2'){ travelled=200; phase='street2'; phaseT=0; sZ=-240; }
   else if(mode==='crystal'){ travelled=42; phase='street1'; phaseT=0; sZ=-40; }
+  else if(mode==='hurt'){ integrity=25; showDamage(25); updateHud(); }
   else if(mode==='tunelexit'){ travelled=126; buildTunnel(); buildTunnelEvents();
     phase='tunnel'; phaseT=0; sZ=TUN.z1+4; }
   updateHud();
 };
+
+window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
+  keys:Object.keys(TEX), integ:integrity}; };
 
 // ——— инициализация ———
 try{
