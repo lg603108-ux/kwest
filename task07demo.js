@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318f.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318g.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -56,6 +56,8 @@ function loadSounds(){
     SFX.amb.loop=true; SFX.amb.volume=0.55;
     SFX.music=new Audio('assets/music_defense_loop.mp3');
     SFX.music.loop=true; SFX.music.volume=0.30;
+    SFX.pickup=new Audio('assets/task07/sfx_energy_pickup.mp3');
+    SFX.pickup.volume=0.9;
     SFX.crit=new Audio('assets/task07/sfx_capsule_critical.mp3');
     SFX.crit.volume=1.0;
     SFX.hit.volume=1.0; SFX.ok.volume=0.9;
@@ -741,13 +743,17 @@ function addDebris(z,baseY,fallH,need,text,size,off){
 function addCrystal(z,side,baseY){
   baseY=baseY||0;
   var grp=new THREE.Group();
-  var plane=new THREE.Mesh(new THREE.PlaneGeometry(1.9,1.1),
+  var plane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
     new THREE.MeshBasicMaterial({map:TEX.crystal||null,color:0x86f4ea,
       transparent:true,side:THREE.DoubleSide,depthWrite:false}));
   grp.add(plane);
+  // второй крест-накрест, чтобы кристалл не пропадал, когда повёрнут ребром
+  var plane2=plane.clone();
+  plane2.rotation.y=Math.PI/2;
+  grp.add(plane2);
   var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x7cf2e8,
-    transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending}));
-  gl.scale.set(3.4,3.4,1); grp.add(gl);
+    transparent:true,opacity:0.32,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(2.3,2.3,1); grp.add(gl);
   var sign=(side==='left')?-1:1;
   grp.position.set(sign*(ROAD_W/2-3.6),baseY+1.6,z);
   scene.add(grp);
@@ -793,9 +799,9 @@ function buildTunnelEvents(){
   if(tunnelEventsDone)return;
   tunnelEventsDone=true;
   events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Труба над головой!',done:false,warned:false});
-  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!',1.3,0.35);
+  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!',1.2,0.45);
   addCrystal(TUN.z0-52,'right',TUN.y);
-  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!',1.3,-0.35);
+  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!',1.2,-0.45);
 }
 
 // ——— разлёт мелких обломков ———
@@ -845,8 +851,8 @@ function shatter(pos,count){
 function doAction(a){
   if(!running||finished)return;
   lastAct=a; lastActAt=tRun;
-  if(a==='left'){ laneTarget=-1; holdT=2.6; }
-  if(a==='right'){ laneTarget=1; holdT=2.6; }
+  if(a==='left'){ laneTarget=-1; holdT=4.0; }
+  if(a==='right'){ laneTarget=1; holdT=4.0; }
   if(a==='jump'){ if(jumpT<=0) jumpT=JUMP_D; }
   if(a==='duck'){ if(duckT<=0) duckT=DUCK_D; }
   var btn=document.querySelector('[data-act="'+a+'"]');
@@ -883,9 +889,10 @@ if(topBtn) topBtn.addEventListener('click',function(){
 function actOk(need){
   if(need==='jump'&&jumpT>0) return true;
   if(need==='duck'&&duckT>0) return true;
-  if(need==='left'&&lane<-0.35) return true;
-  if(need==='right'&&lane>0.35) return true;
-  return lastAct===need && (tRun-lastActAt)<1.8;
+  if(need==='left'&&lane<-0.3) return true;
+  if(need==='right'&&lane>0.3) return true;
+  var win=(need==='left'||need==='right')?2.5:1.8;
+  return lastAct===need && (tRun-lastActAt)<win;
 }
 
 function resolvePit(){
@@ -1155,14 +1162,23 @@ function step(dt){
     if(near){
       var need=c.side==='left'?'left':'right';
       if(actOk(need)){
-        c.taken=true; c.grp.visible=false;
+        c.taken=true;
+        c.fly=0.001;                   // кристалл летит к капсуле
         energy=Math.min(100,energy+5); integrity=Math.min(100,integrity+10);
-        flash('ok'); playSfx('ok');
-        burst(c.grp.position.clone(),8);
-        
+        flash('ok'); playSfx('pickup');
         updateHud();
       }
     }
+  });
+
+  // собранный кристалл летит к капсуле и гаснет
+  crystals.forEach(function(c){
+    if(!c.fly) return;
+    c.fly+=dt*2.2;
+    var k=Math.min(1,c.fly);
+    c.grp.position.lerp(new THREE.Vector3(0,camera.position.y-0.75,camera.position.z-1.2),Math.min(1,dt*7));
+    c.grp.scale.setScalar(Math.max(0.05,1-k));
+    if(k>=1){ c.grp.visible=false; c.fly=0; }
   });
 
   // дым/туман дышит
@@ -1259,7 +1275,7 @@ function reset(){
     e.done=false; e.warned=false;
     if(e.pieces) e.pieces.forEach(function(p){ p.visible=false; });
   });
-  crystals.forEach(function(c){ c.taken=false; c.grp.visible=true; });
+  crystals.forEach(function(c){ c.taken=false; c.fly=0; c.grp.visible=true; c.grp.scale.setScalar(1); });
   shards.forEach(function(s){ scene.remove(s); }); shards.length=0;
   frags.forEach(function(f2){ scene.remove(f2); }); frags.length=0;
   if(!dmgBox) dmgBox=document.getElementById('t7-damage');
@@ -1285,8 +1301,7 @@ function start(){
 function finish(){
   if(finished)return;
   finished=true; running=false; phase='done';
-  // к концу задания капсула и энергия восстановлены
-  if(integrity<100||energy<100){ integrity=100; energy=100; updateHud(); }
+  // капсула и энергия растут только от собранных кристаллов
   try{ SFX.amb.pause(); }catch(e){}
   try{ SFX.music.pause(); }catch(e){}
   if(el.endTitle) el.endTitle.textContent=failed===0?'Маршрут пройден без ошибок':'Маршрут пройден';
@@ -1309,7 +1324,7 @@ window.__t7=function(mode){
   else if(mode==='tunnel'){ travelled=126; buildTunnel(); buildTunnelEvents();
     phase='tunnel'; phaseT=0; sZ=TUN.z0-30; }
   else if(mode==='street2'){ travelled=200; phase='street2'; phaseT=0; sZ=-240; }
-  else if(mode==='crystal'){ travelled=42; phase='street1'; phaseT=0; sZ=-40; }
+  else if(mode==='crystal'){ travelled=36; phase='street1'; phaseT=0; sZ=-34; }
   else if(mode==='hurt'){ integrity=25; showDamage(25); updateHud(); }
   else if(mode==='debris'){ travelled=52; phase='street1'; phaseT=0; sZ=-46; }
   else if(mode==='tundebris'){ travelled=126; buildTunnel(); buildTunnelEvents();
@@ -1324,7 +1339,8 @@ window.__t7=function(mode){
 window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
   integ:integrity, energy:energy, running:running, finished:finished, phase:phase,
   sZ:Math.round(sZ), tRun:+tRun.toFixed(2),
-  ev:events.map(function(e){return e.z+':'+e.type+(e.done?'+':'-');})}; };
+  ev:events.map(function(e){return e.z+':'+e.type+(e.done?'+':'-');}),
+  cr:crystals.map(function(c){return Math.round(c.z)+'/'+(c.taken?'T':'F')+'/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);})}; };
 
 // ——— инициализация ———
 try{
