@@ -32,14 +32,13 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#070d0f;colo
 .t7-alert.show{opacity:1;transform:translate(-50%,0)}
 
 /* ——— сообщение о повреждении капсулы: чёрное окно, бирюзовый шрифт ——— */
-#t7-damage{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(.94);z-index:9;
-  padding:18px 26px;border-radius:14px;background:rgba(0,0,0,.94);
-  border:1px solid rgba(48,229,220,.55);box-shadow:0 12px 40px rgba(0,0,0,.6);
-  text-align:center;color:#30e5dc;opacity:0;pointer-events:none;
-  transition:opacity .16s ease,transform .16s ease;display:none}
-#t7-damage.show{opacity:1;transform:translate(-50%,-50%) scale(1);display:block}
-#t7-damage .t7-dmg-title{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#9fd8d8}
-#t7-damage .t7-dmg-val{font-size:34px;font-weight:700;color:#30e5dc;margin-top:4px}
+#t7-damage{position:absolute;left:max(8px,env(safe-area-inset-left));top:64px;z-index:9;
+  padding:6px 12px 7px;border-radius:10px;background:rgba(0,0,0,.94);
+  border:1px solid rgba(48,229,220,.5);text-align:left;color:#30e5dc;
+  opacity:0;pointer-events:none;transition:opacity .16s ease;display:none}
+#t7-damage.show{opacity:1;display:block}
+#t7-damage .t7-dmg-title{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9fd8d8;line-height:1.2}
+#t7-damage .t7-dmg-val{font-size:20px;font-weight:700;color:#30e5dc;margin-top:1px;line-height:1.1}
 #t7-damage.crit{border-color:#ff6b6b}
 #t7-damage.crit .t7-dmg-val{color:#7cf2e8}
 
