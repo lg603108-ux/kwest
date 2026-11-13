@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318e.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318f.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -333,14 +333,14 @@ function buildStreet(){
     scene.add(b);
     return b;
   }
-  for(var z=-4; z>Z_END+8; z-=17){
+  for(var z=-4; z>Z_END+8; z-=21){
     [-1,1].forEach(function(side){
-      var dep=15+r()*6, h=18+r()*26, w=19+r()*9;
+      var dep=15+r()*6, h=18+r()*26, w=14+r()*5;
       var f1=Math.floor(r()*facades.length);
       addBuilding(side*(ROAD_W/2+WALK+3.4+dep/2), z, h, dep, w, facades[f1], 'f'+f1);
-      var dep2=14+r()*6, h2=26+r()*22, w2=18+r()*9;
+      var dep2=14+r()*6, h2=26+r()*22, w2=14+r()*5;
       var f2=Math.floor(r()*facades.length);
-      addBuilding(side*(ROAD_W/2+WALK+3.4+dep+1.5+dep2/2), z-9, h2, dep2, w2, facades[f2], 'f'+f2);
+      addBuilding(side*(ROAD_W/2+WALK+3.4+dep+2.5+dep2/2), z-10, h2, dep2, w2, facades[f2], 'f'+f2);
     });
   }
 
@@ -723,12 +723,13 @@ function chunkMesh(size,tone){
 }
 
 // обломки падают сверху прямо на бегуна: не ушёл в сторону — удар
-function addDebris(z,baseY,fallH,need,text){
+function addDebris(z,baseY,fallH,need,text,size,off){
   var e={z:z,baseY:baseY,fallH:fallH,type:'debris',need:need,text:text,done:false,warned:false,pieces:[]};
   var r=rnd(Math.floor(Math.abs(z)*17)+3);
-  var sz=1.9+r()*0.35;
+  var sz=size||(1.9+r()*0.35);
   var m=chunkMesh(sz,0x50585c);
-  m.userData={off:(r()-0.5)*0.6, dl:(r()-0.5)*1.2, size:sz};
+  var ox=(off===undefined)?((r()-0.5)*0.6):off;
+  m.userData={off:ox, dl:(r()-0.5)*1.2, size:sz};
   m.visible=false;
   scene.add(m);
   e.pieces.push(m);
@@ -792,9 +793,9 @@ function buildTunnelEvents(){
   if(tunnelEventsDone)return;
   tunnelEventsDone=true;
   events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Труба над головой!',done:false,warned:false});
-  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!');
+  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!',1.3,0.35);
   addCrystal(TUN.z0-52,'right',TUN.y);
-  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!');
+  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!',1.3,-0.35);
 }
 
 // ——— разлёт мелких обломков ———
@@ -811,6 +812,16 @@ function burst(pos,count){
     sp.userData.spin=(Math.random()-0.5)*10;
     sp.userData.life=1.1+Math.random()*0.7;
     scene.add(sp); shards.push(sp);
+  }
+}
+
+// последний участок: если просели энергия или корпус — добавляем кристаллы
+function endgameHeal(){
+  if(integrity>=99&&energy>=99) return;
+  var spots=[-226,-242,-258,-274];
+  for(var i=0;i<spots.length;i++){
+    var side=(i%2===0)?'left':'right';
+    addCrystal(spots[i],side,0);
   }
 }
 
@@ -874,7 +885,7 @@ function actOk(need){
   if(need==='duck'&&duckT>0) return true;
   if(need==='left'&&lane<-0.35) return true;
   if(need==='right'&&lane>0.35) return true;
-  return lastAct===need && (tRun-lastActAt)<1.5;
+  return lastAct===need && (tRun-lastActAt)<1.8;
 }
 
 function resolvePit(){
@@ -901,7 +912,8 @@ function judge(e){
     var pPos=camera.position.clone(); pPos.z-=3;
     shatter(pPos,6);
   }else{
-    failed++; integrity=Math.max(0,integrity-15); shake=2.4;
+    failed++; integrity=Math.max(0,integrity-15);
+    energy=Math.max(0,energy-10); shake=2.4;
     flash('hit'); playSfx('hit');
     var hitPos=camera.position.clone();
     hitPos.y-=0.35; hitPos.z-=2.0;
@@ -977,7 +989,7 @@ function updateHud(){
 var camPos=new THREE.Vector3(), lookAt=new THREE.Vector3(), tmpF=new THREE.Vector3();
 
 function laneLimit(){
-  return (phase==='tunnel'||phase==='ladder')?0.9:LANE_X;
+  return (phase==='tunnel'||phase==='ladder')?1.45:LANE_X;
 }
 
 function updateCamera(dt){
@@ -1089,7 +1101,7 @@ function step(dt){
   } else if(phase==='trip'){
     var k=Math.min(1,phaseT/TRIP_D);
     sZ=lerp(Z_PIT_EDGE+1,Z_STREET2_JUMP,k);
-    if(k>=1){ phase='street2'; phaseT=0; showAlert('Дальше по улице'); }
+    if(k>=1){ phase='street2'; phaseT=0; endgameHeal(); showAlert('Дальше по улице'); }
   } else if(phase==='fall'){
     if(phaseT>=FALL_D){ phase='tunnel'; phaseT=0; sZ=TUN.z0; travelled=126+1;
       buildTunnel(); buildTunnelEvents(); showAlert('Под землёй. Бежим к свету'); }
@@ -1102,6 +1114,7 @@ function step(dt){
   } else if(phase==='ladder'){
     if(phaseT>=LADDER_D){
       phase='street2'; phaseT=0; sZ=MANHOLE_Z; travelled=126+94;
+      endgameHeal();
       showAlert('Снова на улице!');
     }
   } else if(phase==='street2'){
@@ -1272,6 +1285,8 @@ function start(){
 function finish(){
   if(finished)return;
   finished=true; running=false; phase='done';
+  // к концу задания капсула и энергия восстановлены
+  if(integrity<100||energy<100){ integrity=100; energy=100; updateHud(); }
   try{ SFX.amb.pause(); }catch(e){}
   try{ SFX.music.pause(); }catch(e){}
   if(el.endTitle) el.endTitle.textContent=failed===0?'Маршрут пройден без ошибок':'Маршрут пройден';
@@ -1301,11 +1316,15 @@ window.__t7=function(mode){
     phase='tunnel'; phaseT=0; sZ=TUN.z0-26; }
   else if(mode==='tunelexit'){ travelled=126; buildTunnel(); buildTunnelEvents();
     phase='tunnel'; phaseT=0; sZ=TUN.z1+4; }
+  // при переходе в отладке считаем пройденные события уже сработавшими
+  events.forEach(function(e){ if(e.z>sZ) e.done=true; e.warned=false; });
   updateHud();
 };
 
 window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
-  keys:Object.keys(TEX), integ:integrity}; };
+  integ:integrity, energy:energy, running:running, finished:finished, phase:phase,
+  sZ:Math.round(sZ), tRun:+tRun.toFixed(2),
+  ev:events.map(function(e){return e.z+':'+e.type+(e.done?'+':'-');})}; };
 
 // ——— инициализация ———
 try{
