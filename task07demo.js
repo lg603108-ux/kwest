@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318g.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318i.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -11,7 +11,7 @@
 (function(){
 'use strict';
 
-var VER='0318a';
+var VER='0318i';
 var note=document.getElementById('t7-loadnote');
 if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-библиотека (vendor/three.min.js)'; return; }
 
@@ -20,7 +20,7 @@ var DURATION=60;                 // длительность пробного х
 var EYE=1.72;                    // высота глаз бегуна
 var ROAD_W=13;                   // ширина дороги
 var WALK=4.0;                    // ширина тротуара
-var LANE_X=3.4;                  // насколько уходим в сторону при манёвре
+var LANE_X=2.6;                  // насколько уходим в сторону при манёвре (кристалл стоит на 2.35)
 var RUN_SPEED=6.6;               // скорость бега по улице, м/с
 var TUN_SPEED=7.4;               // скорость в тоннеле
 var JUMP_D=0.85, DUCK_D=0.7;
@@ -47,20 +47,27 @@ var A={
 var TEX={};
 
 // ——— звук ———
+// Правило: один звук = одно событие. Никакие два события не играют один и тот же файл.
+//   hit    — удар обломка / повреждение капсулы / падение в провал — ЗВОН;
+//   dodge  — успешный уход от обломка или прыжок через провал — короткий свист воздуха;
+//   charge — сбор кристалла (капсула восстанавливается) — нарастающая зарядка;
+//   crit   — критическое повреждение, один раз за проход;
+//   amb    — фон улицы, music — музыка этапа.
 var SFX={};
 function loadSounds(){
   try{
-    SFX.hit=new Audio('assets/task07/hit.mp3');
-    SFX.ok=new Audio('assets/task07/ok.mp3');
+    SFX.hit=new Audio('assets/task07/sfx_capsule_damage.mp3');
+    SFX.hit.volume=0.85;
+    SFX.dodge=new Audio('assets/task07/sfx_swoosh.mp3');
+    SFX.dodge.volume=0.50;
+    SFX.charge=new Audio('assets/sfx_capsule_charge.mp3');
+    SFX.charge.volume=0.75;
+    SFX.crit=new Audio('assets/task07/sfx_capsule_critical.mp3');
+    SFX.crit.volume=1.0;
     SFX.amb=new Audio('assets/task07/ambience.mp3');
     SFX.amb.loop=true; SFX.amb.volume=0.55;
     SFX.music=new Audio('assets/music_defense_loop.mp3');
     SFX.music.loop=true; SFX.music.volume=0.30;
-    SFX.pickup=new Audio('assets/task07/sfx_energy_pickup.mp3');
-    SFX.pickup.volume=0.9;
-    SFX.crit=new Audio('assets/task07/sfx_capsule_critical.mp3');
-    SFX.crit.volume=1.0;
-    SFX.hit.volume=1.0; SFX.ok.volume=0.9;
   }catch(e){ SFX={}; }
 }
 function playSfx(k){
@@ -71,7 +78,8 @@ function playSfx(k){
 // ——— сцена ———
 var canvas=document.getElementById('t7-canvas');
 var renderer,scene,camera,clock;
-var capsGroup=null, capPlane=null, torch=null;
+var capsGroup=null, capPlane=null, torch=null, capGlow=null, capFlash=0;
+var CAP_FLASH=0.55;              // длительность бирюзовой вспышки капсулы при сборе кристалла
 
 // ——— состояние бегуна ———
 var phase='street1';   // street1 | trip | fall | tunnel | ladder | street2 | done
@@ -540,6 +548,14 @@ function placeCapsule(){
   capPlane.renderOrder=999;
   camera.add(capPlane);
   capPlane.userData.tex='capsule';
+  // бирюзовое свечение вокруг капсулы — включается на время восстановления
+  capGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ffcf2,
+    transparent:true,opacity:0,depthWrite:false,depthTest:false,
+    blending:THREE.AdditiveBlending}));
+  capGlow.scale.set(1.3,1.3,1);
+  capGlow.position.set(0,-0.58,-1.06);
+  capGlow.renderOrder=1000;
+  camera.add(capGlow);
 }
 
 // капсула трескается по мере урона
@@ -739,40 +755,59 @@ function addDebris(z,baseY,fallH,need,text,size,off){
   return e;
 }
 
-// кристалл висит на уровне глаз и вращается
-function addCrystal(z,side,baseY){
-  baseY=baseY||0;
+// ——— кристалл: объёмный восьмигранник со светящимся ядром ———
+// Кристалл стоит сбоку (или высоко) и берётся ДЕЙСТВИЕМ: подъехать в сторону или прыгнуть.
+// Сам к капсуле не летит. Сторона и высота совпадают с дальностью манёвра, чтобы
+// нажатие в сторону приводило к кристаллу, а не уносило мимо него.
+var CRYSTAL_SIDE=2.35, CRYSTAL_SIDE_TUN=1.25;
+var CRYSTAL_HIGH=2.75;           // высота «верхнего» кристалла: достаётся только прыжком
+
+function crystalObject(){
   var grp=new THREE.Group();
-  var plane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
-    new THREE.MeshBasicMaterial({map:TEX.crystal||null,color:0x86f4ea,
-      transparent:true,side:THREE.DoubleSide,depthWrite:false}));
-  grp.add(plane);
-  // второй крест-накрест, чтобы кристалл не пропадал, когда повёрнут ребром
-  var plane2=plane.clone();
-  plane2.rotation.y=Math.PI/2;
-  grp.add(plane2);
-  var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x7cf2e8,
-    transparent:true,opacity:0.32,depthWrite:false,blending:THREE.AdditiveBlending}));
-  gl.scale.set(2.3,2.3,1); grp.add(gl);
-  var sign=(side==='left')?-1:1;
-  grp.position.set(sign*(ROAD_W/2-3.6),baseY+1.6,z);
-  scene.add(grp);
-  crystals.push({z:z,side:side,grp:grp,plane:plane,taken:false,bob:Math.random()*6.28,baseY:baseY});
+  var shellGeo=new THREE.OctahedronGeometry(0.5,0);
+  var shellMat=new THREE.MeshPhongMaterial({color:0x7ff2e8,emissive:0x1d8f87,
+    shininess:95,specular:0xd6fffb,flatShading:true,transparent:true,opacity:0.92});
+  var shell=new THREE.Mesh(shellGeo,shellMat);
+  shell.scale.set(0.62,1.28,0.62);          // вытянутый вверх кристалл
+  grp.add(shell);
+  var coreGeo=new THREE.OctahedronGeometry(0.5,0);
+  var coreMat=new THREE.MeshBasicMaterial({color:0xeafffd,transparent:true,opacity:0.92});
+  var core=new THREE.Mesh(coreGeo,coreMat);
+  core.scale.set(0.30,0.62,0.30);           // светящееся ядро внутри
+  grp.add(core);
+  var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x74f4e8,
+    transparent:true,opacity:0.40,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(2.4,2.4,1); grp.add(gl);
+  return {grp:grp,shell:shellMat,core:coreMat,glow:gl};
+}
+
+function addCrystal(z,side,high,baseY){
+  baseY=baseY||0;
+  var dist=(baseY<0)?CRYSTAL_SIDE_TUN:CRYSTAL_SIDE;
+  var x=(side==='left')?-dist:((side==='right')?dist:0);
+  var y=high?baseY+CRYSTAL_HIGH:baseY+1.15;
+  var obj=crystalObject();
+  obj.grp.position.set(x,y,z);
+  scene.add(obj.grp);
+  crystals.push({z:z,side:side,high:!!high,grp:obj.grp,shell:obj.shell,core:obj.core,
+    glow:obj.glow,x:x,yBase:y,taken:false,bob:Math.random()*6.28,pop:0});
 }
 
 function buildEvents(){
   if(events.length)return;
   // улица 1
+  addCrystal(-20,'center',true,0);                       // высоко — только прыжком
   addBeam(-30);
   events.push({z:-30,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
-  addCrystal(-44,'left',0);
+  addCrystal(-44,'left',false,0);                        // слева — манёвр влево
   addDebris(-58,0,9,'left','Обломки сверху — уходите влево!');
-  addCrystal(-78,'right',0);
+  addCrystal(-78,'right',false,0);                       // справа — манёвр вправо
   addDebris(-92,0,9,'right','Обломки сверху — уходите вправо!');
   events.push({z:Z_PIT_EDGE+1,type:'pit',need:'jump',text:'Провал! Прыжок',done:false,warned:false});
   // улица 2
   addDebris(-232,0,9,'left','Обломки сверху — уходите влево!');
-  addCrystal(-246,'left',0);
+  addCrystal(-246,'left',false,0);
+  addCrystal(-256,'center',true,0);                      // высоко — только прыжком
   addBeam(-262);
   events.push({z:-262,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
   addDebris(-282,0,9,'right','Обломки сверху — уходите вправо!');
@@ -792,7 +827,7 @@ function ensureHealCrystal(){
   var baseY=(phase==='tunnel'||phase==='ladder')?TUN.y:0;
   var z=sZ-16;
   var side=(Math.random()<0.5)?'left':'right';
-  addCrystal(z,side,baseY);
+  addCrystal(z,side,false,baseY);
 }
 
 function buildTunnelEvents(){
@@ -800,7 +835,7 @@ function buildTunnelEvents(){
   tunnelEventsDone=true;
   events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Труба над головой!',done:false,warned:false});
   addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!',1.2,0.45);
-  addCrystal(TUN.z0-52,'right',TUN.y);
+  addCrystal(TUN.z0-52,'right',false,TUN.y);
   addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!',1.2,-0.45);
 }
 
@@ -821,15 +856,31 @@ function burst(pos,count){
   }
 }
 
+// бирюзовые искры на месте собранного кристалла
+function spark(pos,count){
+  count=count||10;
+  var floorY=(phase==='tunnel'||phase==='ladder')?TUN.y+0.1:0.12;
+  for(var i=0;i<count;i++){
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ffcf2,
+      transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending}));
+    var sc=0.26+Math.random()*0.3;
+    sp.scale.set(sc,sc,1);
+    sp.position.copy(pos);
+    sp.userData.v=new THREE.Vector3((Math.random()-0.5)*4.2,1.6+Math.random()*3.2,(Math.random()-0.5)*4.2);
+    sp.userData.spin=(Math.random()-0.5)*6;
+    sp.userData.life=0.55+Math.random()*0.35;
+    sp.userData.floorY=floorY;
+    scene.add(sp); shards.push(sp);
+  }
+}
+
 // последний участок: если просели энергия или корпус — добавляем кристаллы
 function endgameHeal(){
   if(integrity>=99&&energy>=99) return;
-  var spots=[-226,-262,-282,-300];
-  for(var i=0;i<spots.length;i++){
-    var side=(i%2===0)?'left':'right';
-    var y=(i%2===0)?0:1.5;
-    addCrystal(spots[i],side,y);
-  }
+  addCrystal(-226,'right',false,0);
+  addCrystal(-244,'left',false,0);
+  addCrystal(-258,'center',true,0);      // высоко — только прыжком
+  addCrystal(-276,'right',false,0);
 }
 
 // обломок разлетается на мелкие куски
@@ -898,7 +949,7 @@ function actOk(need){
 
 function resolvePit(){
   if(actOk('jump')){
-    passed++; flash('ok'); playSfx('ok');
+    passed++; flash('ok'); playSfx('dodge');
     phase='trip'; phaseT=0; travelled=145.6;
     showAlert('');
   }else{
@@ -919,8 +970,9 @@ function judge(e){
     lane:+lane.toFixed(2),last:lastAct,age:+(tRun-lastActAt).toFixed(2),sZ:Math.round(sZ),phase:phase});
   var wp=camera.position.clone(); wp.y=Math.max(0.4,camera.position.y-0.4);
   if(ok){
-    passed++; flash('ok'); playSfx('ok');
-    var pPos=camera.position.clone(); pPos.z-=3;
+    passed++; flash('ok'); playSfx('dodge');
+    var pPos=camera.position.clone();
+    pPos.z-=3;
     shatter(pPos,6);
   }else{
     failed++; integrity=Math.max(0,integrity-15);
@@ -933,6 +985,19 @@ function judge(e){
     ensureHealCrystal();
     if(integrity<=0){ integrity=30; showDamage(30); }
   }
+  updateHud();
+}
+
+// ——— сбор кристалла: капсула восстанавливается и вспыхивает бирюзовым ———
+function collectCrystal(c){
+  c.taken=true; c.pop=0.0001;
+  energy=Math.min(100,energy+5);
+  integrity=Math.min(100,integrity+10);
+  capFlash=CAP_FLASH;
+  flash('ok');
+  playSfx('charge');
+  spark(c.grp.position,10);
+  window.__t7pick=(window.__t7pick||0)+1;
   updateHud();
 }
 
@@ -1055,7 +1120,20 @@ function updateCamera(dt){
                           -1.0);
     capPlane.rotation.z=Math.sin(tRun*5.2)*0.014-lane*0.05;
     capPlane.material.opacity=1;
-    capPlane.material.color.setRGB(0.82,0.82,0.82);
+    // вспышка бирюзовым при восстановлении от кристалла
+    var cf=capFlash>0?(capFlash/CAP_FLASH):0;
+    if(cf>0){
+      capFlash=Math.max(0,capFlash-dt);
+      capPlane.material.color.setRGB(0.82+cf*3.4,0.82+cf*5.6,0.82+cf*5.4);
+    }else{
+      capPlane.material.color.setRGB(0.82,0.82,0.82);
+    }
+    if(capGlow){
+      capGlow.visible=capPlane.visible;
+      capGlow.material.opacity=cf>0?Math.min(0.95,cf*1.15):0;
+      var gs=1.25+cf*1.9;
+      capGlow.scale.set(gs,gs,1);
+    }
     var wantTex=capsuleTextureName();
     if(capPlane.userData.tex!==wantTex&&TEX[wantTex]){
       capPlane.material.map=TEX[wantTex];
@@ -1156,30 +1234,34 @@ function step(dt){
     }
   });
 
-  // кристаллы
+  // кристаллы: берутся ДЕЙСТВИЕМ — подъехать в сторону или прыгнуть вверх
+  var capX=lane*laneLimit();
   crystals.forEach(function(c){
     if(c.taken)return;
-    c.grp.rotation.y+=dt*1.6;
+    c.grp.rotation.y+=dt*1.35;
     c.bob+=dt*2;
-    c.grp.position.y=c.baseY+1.55+Math.sin(c.bob)*0.14;
-    var near=Math.abs(sZ-c.z)<3.2&&(phase==='street1'||phase==='street2'||phase==='tunnel');
-    if(near){
-      c.taken=true;
-      c.fly=0.001;                   // кристалл летит к капсуле
-      energy=Math.min(100,energy+5); integrity=Math.min(100,integrity+10);
-      flash('ok'); playSfx('pickup');
-      updateHud();
-    }
+    c.grp.position.y=c.yBase+Math.sin(c.bob)*0.13;
+    if(phase!=='street1'&&phase!=='street2'&&phase!=='tunnel')return;
+    if(Math.abs(sZ-c.z)>1.7)return;
+    var dx=Math.abs(capX-c.x);
+    if(c.high){
+      if(jumpT<=0)return;              // верхний кристалл достаётся только прыжком
+      if(dx>1.35)return;
+    }else if(dx>1.15)return;           // к боковому надо подъехать в его сторону
+    collectCrystal(c);
   });
 
-  // собранный кристалл летит к капсуле и гаснет
+  // собранный кристалл вспыхивает на своём месте и гаснет — к капсуле не летит
   crystals.forEach(function(c){
-    if(!c.fly) return;
-    c.fly+=dt*2.2;
-    var k=Math.min(1,c.fly);
-    c.grp.position.lerp(new THREE.Vector3(0,camera.position.y-0.75,camera.position.z-1.2),Math.min(1,dt*7));
-    c.grp.scale.setScalar(Math.max(0.05,1-k));
-    if(k>=1){ c.grp.visible=false; c.fly=0; }
+    if(!c.pop)return;
+    c.pop=Math.min(1,c.pop+dt*2.8);
+    var k=c.pop;
+    c.grp.scale.setScalar(Math.max(0.06,1-k*0.94));
+    c.grp.position.y=c.yBase+Math.sin(c.bob)*0.13+k*0.5;
+    c.shell.opacity=0.92*(1-k);
+    c.core.opacity=0.95*(1-k);
+    c.glow.material.opacity=0.40*(1-k)+0.55*Math.sin(Math.PI*k);
+    if(k>=1){ c.grp.visible=false; c.pop=0; }
   });
 
   // дым/туман дышит
@@ -1220,7 +1302,8 @@ function step(dt){
     if(s.userData.life<=0){ scene.remove(s); shards.splice(si,1); continue; }
     s.userData.v.y-=dt*18;
     s.position.addScaledVector(s.userData.v,dt);
-    if(s.position.y<0.12){ s.position.y=0.12; s.userData.v.y*=-0.35; s.userData.v.x*=0.7; s.userData.v.z*=0.7; }
+    var sfy=(s.userData.floorY!==undefined)?s.userData.floorY:0.12;
+    if(s.position.y<sfy){ s.position.y=sfy; s.userData.v.y*=-0.35; s.userData.v.x*=0.7; s.userData.v.z*=0.7; }
     s.material.rotation+=s.userData.spin*dt;
     s.material.opacity=Math.min(1,s.userData.life);
   }
@@ -1276,7 +1359,11 @@ function reset(){
     e.done=false; e.warned=false;
     if(e.pieces) e.pieces.forEach(function(p){ p.visible=false; });
   });
-  crystals.forEach(function(c){ c.taken=false; c.fly=0; c.grp.visible=true; c.grp.scale.setScalar(1); });
+  crystals.forEach(function(c){ c.taken=false; c.pop=0; c.grp.visible=true;
+    c.grp.scale.setScalar(1); c.grp.position.set(c.x,c.yBase,c.z);
+    c.shell.opacity=0.92; c.core.opacity=0.95; c.glow.material.opacity=0.40; });
+  capFlash=0; window.__t7pick=0;
+  if(capGlow){ capGlow.material.opacity=0; capGlow.visible=true; }
   shards.forEach(function(s){ scene.remove(s); }); shards.length=0;
   frags.forEach(function(f2){ scene.remove(f2); }); frags.length=0;
   if(!dmgBox) dmgBox=document.getElementById('t7-damage');
@@ -1341,7 +1428,9 @@ window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
   integ:integrity, energy:energy, running:running, finished:finished, phase:phase,
   sZ:Math.round(sZ), tRun:+tRun.toFixed(2),
   ev:events.map(function(e){return e.z+':'+e.type+':'+e.need+(e.done?'+':'-');}),
-  cr:crystals.map(function(c){return Math.round(c.z)+'/'+(c.taken?'T':'F')+'/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);})}; };
+  cr:crystals.map(function(c){return Math.round(c.z)+'/'+c.side+(c.high?'H':'L')+'/'+(c.taken?'T':'F')+
+    '/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);}),
+  picks:(window.__t7pick||0)}; };
 
 // ——— инициализация ———
 try{
