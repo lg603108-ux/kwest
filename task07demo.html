@@ -4,64 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#101a1e">
-<title>АНОМАЛИЯ — задание 7, пробный участок</title>
-<link rel="stylesheet" href="task07demo.css?v=0318k">
+<title>АНОМАЛИЯ — задание 7, экран Бегуна</title>
+<link rel="stylesheet" href="task07.css?v=0319a">
 </head>
 <body>
-<div id="t7-stage">
-  <canvas id="t7-canvas"></canvas>
-
-  <div id="t7-hud">
-    <div class="t7-pill"><small>Путь</small><b id="t7-progress">0%</b></div>
-    <div class="t7-pill"><small>Время</small><b id="t7-time">30</b></div>
-    <div class="t7-pill"><small>Энергия</small><b id="t7-energy">100%</b></div>
-    <div class="t7-pill"><small>Корпус</small><b id="t7-integrity">100%</b></div>
-    <div class="t7-pill t7-zone"><small>Участок</small><b id="t7-zone">Улица</b></div>
-  </div>
-
-  <div id="t7-alert" class="t7-alert"></div>
-  <div id="t7-damage">
-    <div class="t7-dmg-title">Капсула повреждена</div>
-    <div class="t7-dmg-val">15%</div>
-  </div>
-
-  <button id="t7-topview" type="button">Вид сверху</button>
-
-  <div id="t7-controls">
-    <div class="t7-pad">
-      <button type="button" class="t7-btn" data-act="left"><span class="t7-ico">◀</span>Влево</button>
-      <button type="button" class="t7-btn" data-act="jump"><span class="t7-ico">▲</span>Прыгнуть</button>
-    </div>
-    <div class="t7-pad">
-      <button type="button" class="t7-btn" data-act="right"><span class="t7-ico">▶</span>Вправо</button>
-      <button type="button" class="t7-btn" data-act="duck"><span class="t7-ico">▼</span>Пригнуться</button>
-    </div>
-  </div>
-
-  <div id="t7-rotate"><div>Поверните телефон горизонтально</div></div>
-  <div id="t7-dark"></div>
-  <div id="t7-flash"></div>
-
-  <div id="t7-start" class="t7-screen">
-    <div class="t7-card">
-      <h1>Пробный участок</h1>
-      <p>Улица, провал и тоннель под землёй: падающие обломки, балка, кристаллы. Перепрыгнете провал — бежите дальше; не перепрыгнете — упадёте вниз и выйдете через тоннель.</p>
-      <p class="t7-hint">Управление: кнопки внизу или свайпы по экрану. Свайп вверх — прыжок, вниз — пригнуться, влево или вправо — уйти в сторону.</p>
-      <button type="button" id="t7-play" class="t7-primary">Начать</button>
-      <button type="button" id="t7-full" class="t7-second">Во весь экран</button>
-      <p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>
-    </div>
-  </div>
-
-  <div id="t7-end" class="t7-screen hidden">
-    <div class="t7-card">
-      <h1 id="t7-end-title">Участок пройден</h1>
-      <p id="t7-end-text"></p>
-      <button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>
-    </div>
-  </div>
-</div>
+<!-- Отдельная страница задания 7 для быстрой проверки на телефоне.
+     В общем квесте этот же модуль монтируется внутри index.html (фаза task07). -->
+<div id="t7-host"></div>
 <script src="vendor/three.min.js"></script>
-<script src="task07demo.js?v=0318k"></script>
+<script src="task07.js?v=0319a"></script>
+<script>
+if(window.Task07){
+  Task07.mount(document.getElementById('t7-host'),{
+    title:'Прорыв к лаборатории',
+    text:'Улица, провал и тоннель под землёй: падающие обломки, балка, кристаллы. Перепрыгнете провал — бежите дальше; не перепрыгнете — упадёте вниз и выйдете через тоннель.'
+  });
+}
+</script>
 </body>
 </html>

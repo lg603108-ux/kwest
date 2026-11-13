@@ -1,4 +1,7 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318k.
+/* task07.js — задание 7 «Прорыв к лаборатории», экран Бегуна (модуль общего квеста).
+   Версия 0319a. Подключается как window.Task07: mount(container) / unmount().
+   Отдельная страница task07demo.html монтирует этот же модуль для быстрой проверки.
+
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -8,12 +11,60 @@
    Провал: перепрыгнул — бегу дальше; не перепрыгнул — падаю вниз, бегу по тоннелю,
    выхожу наверх ТОЛЬКО по кнопке «Прыгнуть».
    Кнопки и свайпы работают в любой момент, оценка — по нажатию, а не по положению камеры. */
-(function(){
+window.Task07=(function(){
 'use strict';
 
-var VER='0318k';
-var note=document.getElementById('t7-loadnote');
-if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-библиотека (vendor/three.min.js)'; return; }
+var VER='0319a';
+var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
+var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
+var onFinishCb=null;            // сообщает общему модулю итог маршрута
+
+// Разметка экрана Бегуна — модуль вставляет её сам, чтобы работать внутри общей страницы.
+var T7_HTML='<div id="t7-stage">'+
+'<canvas id="t7-canvas"></canvas>'+
+'<div id="t7-hud">'+
+'<div class="t7-pill"><small>Путь</small><b id="t7-progress">0%</b></div>'+
+'<div class="t7-pill"><small>Время</small><b id="t7-time">30</b></div>'+
+'<div class="t7-pill"><small>Энергия</small><b id="t7-energy">100%</b></div>'+
+'<div class="t7-pill"><small>Корпус</small><b id="t7-integrity">100%</b></div>'+
+'<div class="t7-pill t7-zone"><small>Участок</small><b id="t7-zone">Улица</b></div>'+
+'</div>'+
+'<div id="t7-alert" class="t7-alert"></div>'+
+'<div id="t7-damage"><div class="t7-dmg-title">Капсула повреждена</div><div class="t7-dmg-val">15%</div></div>'+
+'<button id="t7-topview" type="button">Вид сверху</button>'+
+'<div id="t7-controls">'+
+'<div class="t7-pad">'+
+'<button type="button" class="t7-btn" data-act="left"><span class="t7-ico">◀</span>Влево</button>'+
+'<button type="button" class="t7-btn" data-act="jump"><span class="t7-ico">▲</span>Прыгнуть</button>'+
+'</div>'+
+'<div class="t7-pad">'+
+'<button type="button" class="t7-btn" data-act="right"><span class="t7-ico">▶</span>Вправо</button>'+
+'<button type="button" class="t7-btn" data-act="duck"><span class="t7-ico">▼</span>Пригнуться</button>'+
+'</div>'+
+'</div>'+
+'<div id="t7-rotate"><div>Поверните телефон горизонтально</div></div>'+
+'<div id="t7-dark"></div>'+
+'<div id="t7-flash"></div>'+
+'<div id="t7-start" class="t7-screen">'+
+'<div class="t7-card">'+
+'<h1 id="t7-start-title">Прорыв к лаборатории</h1>'+
+'<p id="t7-start-text">Улица, провал и тоннель под землёй: падающие обломки, балка, кристаллы. Перепрыгнете провал — бежите дальше; не перепрыгнете — упадёте вниз и выйдете через тоннель.</p>'+
+'<p class="t7-hint">Управление: кнопки внизу или свайпы по экрану. Свайп вверх — прыжок, вниз — пригнуться, влево или вправо — уйти в сторону.</p>'+
+'<button type="button" id="t7-play" class="t7-primary">Начать</button>'+
+'<button type="button" id="t7-full" class="t7-second">Во весь экран</button>'+
+'<p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>'+
+'</div>'+
+'</div>'+
+'<div id="t7-end" class="t7-screen hidden">'+
+'<div class="t7-card">'+
+'<h1 id="t7-end-title">Участок пройден</h1>'+
+'<p id="t7-end-text"></p>'+
+'<button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>'+
+'</div>'+
+'</div>'+
+'</div>';
+
+if(typeof window==='undefined'||!window.document){ /* вне браузера модуль не нужен */ }
 
 // ——— параметры мира, метры ———
 var DURATION=60;                 // длительность пробного хода
@@ -76,7 +127,6 @@ function playSfx(k){
 }
 
 // ——— сцена ———
-var canvas=document.getElementById('t7-canvas');
 var renderer,scene,camera,clock;
 var capsGroup=null, capPlane=null, torch=null, capGlow=null, capFlash=0;
 var CAP_FLASH=0.55;              // длительность бирюзовой вспышки капсулы при сборе кристалла
@@ -95,12 +145,16 @@ var exitHint=false, pitWarned=false;
 var fovTarget=74;
 
 // ——— hud ———
-var el={prog:document.getElementById('t7-progress'),time:document.getElementById('t7-time'),
-  energy:document.getElementById('t7-energy'),integrity:document.getElementById('t7-integrity'),
-  zone:document.getElementById('t7-zone'),alert:document.getElementById('t7-alert'),
-  flash:document.getElementById('t7-flash'),dark:document.getElementById('t7-dark'),
-  start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
-  endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
+function fillDom(){
+  note=document.getElementById('t7-loadnote');
+  canvas=document.getElementById('t7-canvas');
+  el={prog:document.getElementById('t7-progress'),time:document.getElementById('t7-time'),
+    energy:document.getElementById('t7-energy'),integrity:document.getElementById('t7-integrity'),
+    zone:document.getElementById('t7-zone'),alert:document.getElementById('t7-alert'),
+    flash:document.getElementById('t7-flash'),dark:document.getElementById('t7-dark'),
+    start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
+    endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
+}
 
 // ——— мелкие помощники ———
 function rnd(seed){ var s=seed%2147483647; if(s<=0)s+=2147483646;
@@ -995,11 +1049,23 @@ function doAction(a){
   if(a==='jump'&&phase==='tunnel'&&sZ<=TUN.z1+9){ phase='ladder'; phaseT=0; showAlert('Выходим наверх!'); }
 }
 
-Array.prototype.forEach.call(document.querySelectorAll('[data-act]'),function(b){
-  b.addEventListener('pointerdown',function(ev){ ev.preventDefault(); doAction(b.dataset.act); });
-});
+function bindControls(){
+  // только кнопки самого задания 7: в общей странице data-act есть и у служебных кнопок
+  var scope=ROOT||document;
+  Array.prototype.forEach.call(scope.querySelectorAll('[data-act]'),function(b){
+    b.addEventListener('pointerdown',function(ev){ ev.preventDefault(); doAction(b.dataset.act); });
+  });
+  bindSwipes();
+  topBtn=document.getElementById('t7-topview');
+  if(topBtn) topBtn.addEventListener('click',function(){
+    topView=!topView; this.classList.toggle('on',topView);
+    this.textContent=topView?'Вид бегуна':'Вид сверху';
+  });
+  var fullBtn=document.getElementById('t7-full');
+  if(fullBtn) fullBtn.addEventListener('click',requestFull);
+}
 
-(function swipes(){
+function bindSwipes(){
   var sx=0,sy=0,st=0,on=false;
   canvas.addEventListener('pointerdown',function(e){ on=true; sx=e.clientX; sy=e.clientY; st=performance.now(); });
   canvas.addEventListener('pointerup',function(e){
@@ -1011,13 +1077,7 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-act]'),function(b)
     else doAction(dy<0?'jump':'duck');
   });
   canvas.addEventListener('pointercancel',function(){ on=false; });
-})();
-
-var topBtn=document.getElementById('t7-topview');
-if(topBtn) topBtn.addEventListener('click',function(){
-  topView=!topView; this.classList.toggle('on',topView);
-  this.textContent=topView?'Вид бегуна':'Вид сверху';
-});
+}
 
 // ——— оценка событий ———
 function actOk(need){
@@ -1405,7 +1465,8 @@ function step(dt){
 
 // ——— главный цикл ———
 function tick(){
-  requestAnimationFrame(tick);
+  if(!alive){ rafId=0; return; }
+  rafId=requestAnimationFrame(tick);
   var dt=Math.min(0.05,clock.getDelta());
   step(dt);
   updateCamera(dt);
@@ -1487,12 +1548,18 @@ function finish(){
   if(el.endText) el.endText.textContent='Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
     Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.';
   if(el.end) el.end.classList.remove('hidden');
+  if(onFinishCb){
+    try{ onFinishCb({energy:Math.round(energy),integrity:Math.round(integrity),
+      passed:passed,failed:failed}); }catch(e){}
+  }
 }
 
-var playBtn=document.getElementById('t7-play');
-var againBtn=document.getElementById('t7-again');
-if(playBtn) playBtn.addEventListener('click',start);
-if(againBtn) againBtn.addEventListener('click',start);
+function bindButtons(){
+  playBtn=document.getElementById('t7-play');
+  againBtn=document.getElementById('t7-again');
+  if(playBtn) playBtn.addEventListener('click',start);
+  if(againBtn) againBtn.addEventListener('click',start);
+}
 
 // отладочная перестановка (для просмотра вида, в игре не используется)
 window.__t7=function(mode){
@@ -1523,35 +1590,80 @@ window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
     '/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);}),
   picks:(window.__t7pick||0)}; };
 
-// ——— инициализация ———
-try{
-  renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,powerPreference:'high-performance'});
-}catch(err){
-  if(note)note.textContent='Этот телефон не поддерживает объёмную графику. Нужен запасной простой режим.';
-  return;
-}
-renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-renderer.setSize(window.innerWidth,window.innerHeight,false);
-renderer.outputEncoding=THREE.sRGBEncoding;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=0.92;
-
-clock=new THREE.Clock();
-if(note)note.textContent='Загрузка улицы…';
-if(playBtn) playBtn.disabled=true;
-loadAll(function(){
-build();
-buildEvents();
-updateHud();
-if(note)note.textContent='';
-if(playBtn) playBtn.disabled=false;
-tick();
-});
-
-window.addEventListener('orientationchange',function(){ setTimeout(updateOrient,220); });
-window.addEventListener('resize',function(){ updateOrient();
-  camera.aspect=window.innerWidth/Math.max(1,window.innerHeight);
-  camera.updateProjectionMatrix();
+// ——— запуск сцены ———
+function bootScene(){
+  if(booted) return;
+  if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-библиотека (vendor/three.min.js)'; return; }
+  booted=true;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,powerPreference:'high-performance'});
+  }catch(err){
+    booted=false;
+    if(note)note.textContent='Этот телефон не поддерживает объёмную графику. Нужен запасной простой режим.';
+    return;
+  }
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
   renderer.setSize(window.innerWidth,window.innerHeight,false);
-});
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=0.92;
+
+  clock=new THREE.Clock();
+  if(note)note.textContent='Загрузка улицы…';
+  if(playBtn) playBtn.disabled=true;
+  loadAll(function(){
+    build();
+    buildEvents();
+    updateHud();
+    if(note)note.textContent='';
+    if(playBtn) playBtn.disabled=false;
+    tick();
+  });
+
+  if(!listenersBound){
+    listenersBound=true;
+    window.addEventListener('orientationchange',function(){ setTimeout(updateOrient,220); });
+    window.addEventListener('resize',function(){
+      updateOrient();
+      if(!camera||!renderer) return;
+      camera.aspect=window.innerWidth/Math.max(1,window.innerHeight);
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight,false);
+    });
+  }
+}
+
+// ——— подключение к общему квесту: mount(container, {onFinish, title, text}) ———
+function mount(container,opts){
+  if(ROOT) unmount();
+  opts=opts||{};
+  onFinishCb=opts.onFinish||null;
+  ROOT=document.createElement('div');
+  ROOT.className='t7-root';
+  ROOT.innerHTML=T7_HTML;
+  (container||document.body).appendChild(ROOT);
+  alive=true;
+  fillDom();
+  if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
+  if(opts.text){ var p=document.getElementById('t7-start-text'); if(p)p.textContent=opts.text; }
+  bindButtons();
+  bindControls();
+  bootScene();
+  return ROOT;
+}
+
+function unmount(){
+  alive=false;
+  if(rafId){ cancelAnimationFrame(rafId); rafId=0; }
+  try{ if(SFX.amb) SFX.amb.pause(); }catch(e){}
+  try{ if(SFX.music) SFX.music.pause(); }catch(e){}
+  running=false; finished=false;
+  if(renderer){ try{ renderer.dispose(); }catch(e){} renderer=null; }
+  scene=null; camera=null; clock=null; booted=false;
+  if(ROOT&&ROOT.parentNode) ROOT.parentNode.removeChild(ROOT);
+  ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
+  onFinishCb=null;
+}
+
+return {mount:mount, unmount:unmount, version:VER};
 })();

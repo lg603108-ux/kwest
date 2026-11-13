@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
+<link rel="stylesheet" href="task07.css?v=0319a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -93,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0318k">
+<body data-build="0319a">
 <div id="app">
 
 <header id="topbar">
@@ -227,6 +228,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="task04-mount"></div>
 <div id="task05-mount"></div>
 <div id="task06-mount"></div>
+<div id="task07-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -255,11 +257,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task04.js?v=0311s"></script>
 <script src="task05.js?v=0311t"></script>
 <script src="task06.js?v=0311ai"></script>
+<script src="task07.js?v=0319a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false;
+var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -326,6 +329,54 @@ mounted06=false;
 var el6b=document.getElementById('task06-mount');if(el6b)el6b.classList.remove('active');
 if(window.Task06){try{Task06.unmount();}catch(e){}}
 }
+// ——— задание 7: экран Бегуна (капитан) и карточка наблюдателя (остальные) ———
+if(r.state.phase==='task07'&&!mounted07){
+var el7=document.getElementById('task07-mount');
+if(!el7){toastMsg('Контейнер задания 7 не найден');return;}
+mounted07=true;el7.classList.add('active');document.body.dataset.screen='task07';
+if(cap()){
+if(!window.Task07){toastMsg('Модуль задания 7 не загружен (task07.js)');}
+else{
+try{Task07.mount(el7,{onFinish:report07});toastMsg('Задание 7 запущено');}
+catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
+}
+}else{
+renderObserver07(el7);
+}
+}
+if(r.state.phase!=='task07'&&mounted07){
+mounted07=false;
+if(window.Task07){try{Task07.unmount();}catch(e){}}
+var el7b=document.getElementById('task07-mount');
+if(el7b){el7b.classList.remove('active');el7b.innerHTML='';}
+}
+}
+// Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
+function report07(data){
+try{
+var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
+ref.child('result').set({energy:data.energy|0,integrity:data.integrity|0,
+passed:data.passed|0,failed:data.failed|0,at:Date.now()});
+ref.child('done').set(true);
+}catch(e){}
+}
+// Карточка наблюдателя: пока без подсказок, они добавляются следующим шагом.
+function renderObserver07(el7){
+var r=NET.room||{};var t=(r.tasks&&r.tasks.task07)||{};
+var runner=(r.players&&t.runnerUid&&r.players[t.runnerUid])||null;
+var res=t.result||null;
+var name=(runner&&runner.name)?runner.name:'капитан';
+var h='<div class="t7-obs">';
+h+='<p class="t7-obs-eyebrow">ЗАДАНИЕ 7 · ПРОРЫВ К ЛАБОРАТОРИИ</p>';
+h+='<h1>Бегун: '+name+'</h1>';
+if(res){
+h+='<p>Маршрут пройден. Корпус капсулы: '+res.integrity+'%. Энергия: '+res.energy+
+'%. Успешных действий: '+res.passed+', ошибок: '+res.failed+'.</p>';
+}else{
+h+='<p>Бегун проходит маршрут: улица, провал, тоннель. Смотрите на его экран и подсказывайте голосом.</p>';
+}
+h+='</div>';
+el7.innerHTML=h;
 }
 function addContinueButton(){
 if(!ready())return;
@@ -440,8 +491,36 @@ setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);
 }).catch(function(e){btn.disabled=false;btn.hidden=false;if(note)note.hidden=true;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
 });
 }
+// Переход 6 → 7: кнопка «Продолжить квест» на экране завершения задания 6.
+function task06Done(){try{var r=NET.room;return !!(r&&r.state&&r.state.phase==='task06'&&r.tasks&&r.tasks.task06&&r.tasks.task06.stage==='done');}catch(e){return false;}}
+function wireTask07(){
+if(!ready()||!task06Done())return;
+var done=document.querySelector('#task06-mount .t6-done');if(!done)return;
+var note=done.querySelector('.t6-note');
+if(note&&!note.getAttribute('data-bridge7')){note.setAttribute('data-bridge7','1');note.textContent='Дальше — прорыв к лаборатории: бег по улицам аномалии с капсулой в руках.';}
+if(!cap()){
+if(!done.querySelector('#t6-waitnext')){var p=document.createElement('p');p.id='t6-waitnext';p.className='t6-note';p.textContent='Капитан переведёт команду к заданию 7…';done.appendChild(p);}
+return;
+}
+var oldw=done.querySelector('#t6-waitnext');if(oldw)oldw.parentNode.removeChild(oldw);
+if(document.getElementById('t6-continue'))return;
+var btn=document.createElement('button');btn.id='t6-continue';btn.className='t6-primary';btn.type='button';
+btn.textContent='Продолжить квест →';btn.style.marginTop='10px';
+btn.addEventListener('click',function(){
+if(!cap()||btn.disabled)return;
+btn.disabled=true;
+toastMsg('Переводим команду в задание 7…');
+var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
+ref.update({stage:'run',startsAt:Date.now()+1500,runnerUid:NET.uid,done:false,round:0})
+.then(function(){return ref.child('result').remove();})
+.then(function(){return NET.setPhase('task07',Date.now()+1500);})
+.then(function(){setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);})
+.catch(function(e){btn.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
+});
+done.appendChild(btn);
+}
 var wasCap=null;
-setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();tryMount();},500);
+setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();wireTask07();tryMount();},500);
 })();
 </script>
 <script>
@@ -500,10 +579,14 @@ if(a==='t5a'&&cap()){firebase.database().ref('rooms/'+NET.room.code+'/tasks/task
 var t6ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task06');};
 if(a==='t6a'&&cap()){t6ref().update({stage:'dance',startsAt:now,playbackId:(Date.now()%100000),playing:true,pausedAt:0,watched:false,replayClearedAt:now}).catch(err);}
 if(a==='t6b'&&cap()){t6ref().update({stage:'order',watched:true,playing:false,pausedAt:0}).catch(err);}
-// Технический переход к заданию 7: открываем экран задания 7 (пробный 3D-участок).
-// Когда задание 7 будет подключено к общему модулю, здесь появится setPhase('task07').
-if(a==='j7'){
-try{location.href='task07demo.html';}catch(e){}
+// Технический переход к заданию 7: сразу ставим этап и фазу, как после задания 6.
+if(a==='j7'&&cap()){
+silenceAll();
+var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
+r7.update({stage:'run',startsAt:now+800,runnerUid:NET.uid,done:false,round:0})
+.then(function(){return r7.child('result').remove();})
+.then(function(){return NET.setPhase('task07',now+800);})
+.catch(function(e){err('Правила базы пока не разрешают этап задания 7: '+(e&&e.message||e));});
 }
 });
 setInterval(refresh,500);
