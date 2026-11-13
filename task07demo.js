@@ -1,4 +1,4 @@
-/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318i.
+/* task07demo.js — задание 7, 3D-участок «Прорыв». Версия 0318j.
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
    Каждый участок строит свою геометрию в своём месте; маршрут бегуна — прямая внутри участка.
      1) улица 1 (z 6..-120) — дома из фотографий, мокрый асфальт, деревья, фонари, обломки;
@@ -11,7 +11,7 @@
 (function(){
 'use strict';
 
-var VER='0318i';
+var VER='0318j';
 var note=document.getElementById('t7-loadnote');
 if(!window.THREE){ if(note)note.textContent='Не загрузилась 3D-библиотека (vendor/three.min.js)'; return; }
 
@@ -48,7 +48,7 @@ var TEX={};
 
 // ——— звук ———
 // Правило: один звук = одно событие. Никакие два события не играют один и тот же файл.
-//   hit    — удар обломка / повреждение капсулы / падение в провал — ЗВОН;
+//   hit    — удар обломка / повреждение капсулы / падение в провал — звук удара камня о стекло;
 //   dodge  — успешный уход от обломка или прыжок через провал — короткий свист воздуха;
 //   charge — сбор кристалла (капсула восстанавливается) — нарастающая зарядка;
 //   crit   — критическое повреждение, один раз за проход;
@@ -56,8 +56,8 @@ var TEX={};
 var SFX={};
 function loadSounds(){
   try{
-    SFX.hit=new Audio('assets/task07/sfx_capsule_damage.mp3');
-    SFX.hit.volume=0.85;
+    SFX.hit=new Audio('assets/task07/hit.mp3');      // удар камня о стекло (прежний звук квеста)
+    SFX.hit.volume=0.90;
     SFX.dodge=new Audio('assets/task07/sfx_swoosh.mp3');
     SFX.dodge.volume=0.50;
     SFX.charge=new Audio('assets/sfx_capsule_charge.mp3');
@@ -762,23 +762,105 @@ function addDebris(z,baseY,fallH,need,text,size,off){
 var CRYSTAL_SIDE=2.35, CRYSTAL_SIDE_TUN=1.25;
 var CRYSTAL_HIGH=2.75;           // высота «верхнего» кристалла: достаётся только прыжком
 
+// энергия внутри кристалла: бирюзовые завихрения и яркое ядро (по референсу автора)
+function energyTexture(){
+  return canvasTexture(256,function(g,S){
+    var r=rnd(4242);
+    g.fillStyle='#08282a'; g.fillRect(0,0,S,S);
+    for(var i=0;i<80;i++){
+      var x=r()*S, y=r()*S, len=24+r()*110, ang=r()*6.283;
+      var bright=120+r()*135|0;
+      g.strokeStyle='rgba('+bright+','+Math.min(255,235+(r()*20|0))+',255,'+(0.10+r()*0.45).toFixed(2)+')';
+      g.lineWidth=1+r()*5;
+      g.beginPath(); g.moveTo(x,y);
+      for(var k=0;k<6;k++){ ang+=(r()-0.5)*1.2; x+=Math.cos(ang)*len/6; y+=Math.sin(ang)*len/6; g.lineTo(x,y); }
+      g.stroke();
+    }
+    var gr=g.createRadialGradient(S*0.5,S*0.5,S*0.04,S*0.5,S*0.5,S*0.55);
+    gr.addColorStop(0,'rgba(240,255,253,0.95)');
+    gr.addColorStop(0.45,'rgba(90,240,235,0.35)');
+    gr.addColorStop(1,'rgba(20,120,120,0)');
+    g.fillStyle=gr; g.fillRect(0,0,S,S);
+  });
+}
+
+// объёмный обломок льда: кольца-грани по длине, неровные, сужается к концам
+function shardGeometry(seed,len){
+  len=len||1.25;
+  var segs=7, N=0;
+  var prof=[[0.02,0.10],[0.12,0.46],[0.28,0.66],[0.46,0.72],
+            [0.64,0.66],[0.82,0.50],[0.94,0.28],[1.00,0.06]];
+  var r=rnd(seed||4242);
+  var jit=[], i, j;
+  for(i=0;i<prof.length;i++){ jit.push([]); for(j=0;j<segs;j++) jit[i].push(0.84+r()*0.32); }
+  var verts=[], uvs=[], ind=[];
+  for(i=0;i<prof.length;i++){
+    var y=(prof[i][0]-0.5)*len;
+    var rad=prof[i][1]*len*0.30;
+    for(j=0;j<segs;j++){
+      var a=j/segs*Math.PI*2;
+      verts.push(Math.cos(a)*rad*jit[i][j],
+                 y+(r()-0.5)*len*0.02,
+                 Math.sin(a)*rad*jit[i][j]);
+      uvs.push(j/segs, prof[i][0]);
+    }
+  }
+  var rings=prof.length;
+  for(i=0;i<rings-1;i++){
+    for(j=0;j<segs;j++){
+      var a0=i*segs+j, b0=i*segs+(j+1)%segs,
+          a1=(i+1)*segs+j, b1=(i+1)*segs+(j+1)%segs;
+      ind.push(a0,a1,b1, a0,b1,b0);
+    }
+  }
+  // замыкаем концы острыми вершинами
+  var tipBot=verts.length/3; verts.push(0,-len*0.52,0); uvs.push(0.5,0);
+  var tipTop=verts.length/3; verts.push(0, len*0.52,0); uvs.push(0.5,1);
+  for(j=0;j<segs;j++){
+    ind.push(tipBot, (j+1)%segs, j);
+    ind.push(tipTop, (rings-1)*segs+j, (rings-1)*segs+(j+1)%segs);
+  }
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+  geo.setIndex(ind);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+var CRYSTAL_GEO=null, CRYSTAL_ENERGY=null;
+
 function crystalObject(){
+  if(!CRYSTAL_GEO){ CRYSTAL_GEO=shardGeometry(4242,1.28); CRYSTAL_ENERGY=energyTexture(); }
   var grp=new THREE.Group();
-  var shellGeo=new THREE.OctahedronGeometry(0.5,0);
-  var shellMat=new THREE.MeshPhongMaterial({color:0x7ff2e8,emissive:0x1d8f87,
-    shininess:95,specular:0xd6fffb,flatShading:true,transparent:true,opacity:0.92});
-  var shell=new THREE.Mesh(shellGeo,shellMat);
-  shell.scale.set(0.62,1.28,0.62);          // вытянутый вверх кристалл
-  grp.add(shell);
-  var coreGeo=new THREE.OctahedronGeometry(0.5,0);
-  var coreMat=new THREE.MeshBasicMaterial({color:0xeafffd,transparent:true,opacity:0.92});
-  var core=new THREE.Mesh(coreGeo,coreMat);
-  core.scale.set(0.30,0.62,0.30);           // светящееся ядро внутри
-  grp.add(core);
+  // ледяная оболочка: грани, полупрозрачная, блики
+  var shellMat=new THREE.MeshPhongMaterial({color:0xa9eef2,emissive:0x0e3a3c,
+    shininess:140,specular:0xffffff,flatShading:true,transparent:true,opacity:0.74});
+  var shell=new THREE.Mesh(CRYSTAL_GEO,shellMat);
+  shell.renderOrder=2; grp.add(shell);
+  // светящаяся энергия внутри — видна через оболочку
+  var coreMat=new THREE.MeshBasicMaterial({map:CRYSTAL_ENERGY,color:0x9ffcf4,
+    transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false,
+    side:THREE.DoubleSide});
+  var core=new THREE.Mesh(CRYSTAL_GEO,coreMat);
+  core.scale.set(0.60,0.92,0.60);
+  core.renderOrder=1; grp.add(core);
+  // мелкие ледяные крошки рядом, как на референсе
+  var chips=[];
+  var cr=[[0.30,0.42,0.18],[ -0.34,-0.30,0.22],[0.16,-0.48,-0.26],[-0.26,0.34,-0.20]];
+  for(var i=0;i<cr.length;i++){
+    var cm=new THREE.MeshPhongMaterial({color:0xa6e6ea,emissive:0x0b2c2e,
+      shininess:90,flatShading:true});
+    var ch=new THREE.Mesh(CRYSTAL_GEO,cm);
+    ch.scale.setScalar(0.10+Math.random()*0.07);
+    ch.position.set(cr[i][0],cr[i][1],cr[i][2]);
+    ch.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+    grp.add(ch); chips.push(ch);
+  }
   var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x74f4e8,
-    transparent:true,opacity:0.40,depthWrite:false,blending:THREE.AdditiveBlending}));
-  gl.scale.set(2.4,2.4,1); grp.add(gl);
-  return {grp:grp,shell:shellMat,core:coreMat,glow:gl};
+    transparent:true,opacity:0.34,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(2.1,2.1,1); grp.add(gl);
+  return {grp:grp,shell:shellMat,core:coreMat,glow:gl,chips:chips};
 }
 
 function addCrystal(z,side,high,baseY){
@@ -1065,11 +1147,20 @@ function updateHud(){
 var camPos=new THREE.Vector3(), lookAt=new THREE.Vector3(), tmpF=new THREE.Vector3();
 
 function laneLimit(){
-  return (phase==='tunnel'||phase==='ladder')?1.45:LANE_X;
+  // в шахте выхода и у лестницы коридор узкий (2,5 м) — иначе влево/вправо уносит за стены, в пустоту
+  if(phase==='ladder') return 0.55;
+  if(phase==='tunnel') return (sZ<TUN.z1+5)?0.55:1.45;
+  return LANE_X;
+}
+var laneLimitNow=LANE_X;
+function updateLaneLimit(dt){
+  var want=laneLimit();
+  laneLimitNow+=(want-laneLimitNow)*Math.min(1,dt*5);
 }
 
 function updateCamera(dt){
-  var x=lane*laneLimit(), y=EYE, z=sZ, focusDy=0, roll=-lane*0.16;
+  updateLaneLimit(dt);
+  var x=lane*laneLimitNow, y=EYE, z=sZ, focusDy=0, roll=-lane*0.16;
   var jumpK=jumpT>0?Math.sin(Math.PI*(1-jumpT/JUMP_D)):0;
   var duckY=duckT>0?Math.min(1,duckT/DUCK_D*1.6)*1.06:0;
   var bob=Math.sin(tRun*8.2)*0.022;
@@ -1235,7 +1326,7 @@ function step(dt){
   });
 
   // кристаллы: берутся ДЕЙСТВИЕМ — подъехать в сторону или прыгнуть вверх
-  var capX=lane*laneLimit();
+  var capX=lane*laneLimitNow;
   crystals.forEach(function(c){
     if(c.taken)return;
     c.grp.rotation.y+=dt*1.35;
@@ -1258,9 +1349,9 @@ function step(dt){
     var k=c.pop;
     c.grp.scale.setScalar(Math.max(0.06,1-k*0.94));
     c.grp.position.y=c.yBase+Math.sin(c.bob)*0.13+k*0.5;
-    c.shell.opacity=0.92*(1-k);
+    c.shell.opacity=0.74*(1-k);
     c.core.opacity=0.95*(1-k);
-    c.glow.material.opacity=0.40*(1-k)+0.55*Math.sin(Math.PI*k);
+    c.glow.material.opacity=0.34*(1-k)+0.55*Math.sin(Math.PI*k);
     if(k>=1){ c.grp.visible=false; c.pop=0; }
   });
 
@@ -1360,9 +1451,9 @@ function reset(){
     if(e.pieces) e.pieces.forEach(function(p){ p.visible=false; });
   });
   crystals.forEach(function(c){ c.taken=false; c.pop=0; c.grp.visible=true;
-    c.grp.scale.setScalar(1); c.grp.position.set(c.x,c.yBase,c.z);
-    c.shell.opacity=0.92; c.core.opacity=0.95; c.glow.material.opacity=0.40; });
-  capFlash=0; window.__t7pick=0;
+    c.grp.scale.setScalar(1); c.grp.position.set(c.x,c.yBase,c.z); c.grp.rotation.set(0,0,0);
+    c.shell.opacity=0.74; c.core.opacity=0.95; c.glow.material.opacity=0.34; });
+  capFlash=0; window.__t7pick=0; laneLimitNow=LANE_X;
   if(capGlow){ capGlow.material.opacity=0; capGlow.visible=true; }
   shards.forEach(function(s){ scene.remove(s); }); shards.length=0;
   frags.forEach(function(f2){ scene.remove(f2); }); frags.length=0;
