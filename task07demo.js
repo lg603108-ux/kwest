@@ -824,10 +824,11 @@ function burst(pos,count){
 // последний участок: если просели энергия или корпус — добавляем кристаллы
 function endgameHeal(){
   if(integrity>=99&&energy>=99) return;
-  var spots=[-226,-242,-258,-274];
+  var spots=[-226,-262,-282,-300];
   for(var i=0;i<spots.length;i++){
     var side=(i%2===0)?'left':'right';
-    addCrystal(spots[i],side,0);
+    var y=(i%2===0)?0:1.5;
+    addCrystal(spots[i],side,y);
   }
 }
 
@@ -911,8 +912,11 @@ function resolvePit(){
   updateHud();
 }
 
+window.__t7hits=[];
 function judge(e){
   var ok=actOk(e.need);
+  window.__t7hits.push({z:e.z,type:e.type,need:e.need,ok:ok,
+    lane:+lane.toFixed(2),last:lastAct,age:+(tRun-lastActAt).toFixed(2),sZ:Math.round(sZ),phase:phase});
   var wp=camera.position.clone(); wp.y=Math.max(0.4,camera.position.y-0.4);
   if(ok){
     passed++; flash('ok'); playSfx('ok');
@@ -1160,14 +1164,11 @@ function step(dt){
     c.grp.position.y=c.baseY+1.55+Math.sin(c.bob)*0.14;
     var near=Math.abs(sZ-c.z)<3.2&&(phase==='street1'||phase==='street2'||phase==='tunnel');
     if(near){
-      var need=c.side==='left'?'left':'right';
-      if(actOk(need)){
-        c.taken=true;
-        c.fly=0.001;                   // кристалл летит к капсуле
-        energy=Math.min(100,energy+5); integrity=Math.min(100,integrity+10);
-        flash('ok'); playSfx('pickup');
-        updateHud();
-      }
+      c.taken=true;
+      c.fly=0.001;                   // кристалл летит к капсуле
+      energy=Math.min(100,energy+5); integrity=Math.min(100,integrity+10);
+      flash('ok'); playSfx('pickup');
+      updateHud();
     }
   });
 
@@ -1339,7 +1340,7 @@ window.__t7=function(mode){
 window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
   integ:integrity, energy:energy, running:running, finished:finished, phase:phase,
   sZ:Math.round(sZ), tRun:+tRun.toFixed(2),
-  ev:events.map(function(e){return e.z+':'+e.type+(e.done?'+':'-');}),
+  ev:events.map(function(e){return e.z+':'+e.type+':'+e.need+(e.done?'+':'-');}),
   cr:crystals.map(function(c){return Math.round(c.z)+'/'+(c.taken?'T':'F')+'/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);})}; };
 
 // ——— инициализация ———
