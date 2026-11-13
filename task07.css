@@ -1,10 +1,11 @@
-/* task07demo.css — пробный 3D-участок задания 7. Оформление в общем стиле квеста:
-   тёмные панели #14292f, бирюзовый акцент #30e5dc, чёрные плашки с белым текстом. */
+/* task07.css — экран Бегуна задания 7. Оформление в общем стиле квеста:
+   тёмные панели #14292f, бирюзовый акцент #30e5dc, чёрные плашки с белым текстом.
+   Модуль живёт внутри общей страницы, поэтому общие стили ограничены .t7-root. */
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans.ttf') format('truetype');font-weight:400;font-display:swap}
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#070d0f;color:#fff;
+.t7-root,.t7-root *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.t7-root{position:fixed;inset:0;overflow:hidden;background:#070d0f;color:#fff;
   font-family:'QuestSans',Arial,sans-serif;overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;touch-action:none}
 
@@ -102,3 +103,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#070d0f;colo
   .t7-alert{top:60px;font-size:15px;padding:8px 14px}
   #t7-damage .t7-dmg-val{font-size:28px}
 }
+
+/* ——— контейнер модуля в общей странице и карточка наблюдателя ——— */
+#task07-mount{position:relative}
+.t7-obs{position:fixed;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;padding:24px;text-align:center;
+  background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%)}
+.t7-obs h1{margin:0;font-size:26px;color:#fff;font-weight:700}
+.t7-obs p{margin:0;max-width:640px;font-size:16px;line-height:1.45;color:#cfeaea}
+.t7-obs .t7-obs-eyebrow{font-size:11px;letter-spacing:.14em;color:#30e5dc}
