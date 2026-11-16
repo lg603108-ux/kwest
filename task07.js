@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0322b';
+var VER='0323a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -29,6 +29,9 @@ var OBS_RUNNER_GRP=null, OBS_PULSE=[], OBS_MARKS=[], OBS_ICON_TEX={};
 var ASPHALT_TEX=null, PIT_COVER=null, PIT_EDGE=null, PIT_BORN=false, pitFx=null, pitPlates=[];
 var RAIN=[], RAIN_DUST=[], RAIN_ON=true, FOCUS_Z=Z_START;
 var OBS_HUMAN=null;
+// 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
+var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
+var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
 // отрезок Б: поворот с боковой улицы, мост по референсу, спуск к тоннелю
 var SEG='A', ROUND=0, CHANGED=false, VOICE=null;
 var RB={curve:null,len:0,built:false};
@@ -368,6 +371,30 @@ function build(){
   buildStreet();
   buildPit();
   placeCapsule();
+  loadModels();
+}
+
+// ——— загрузка 3D-моделей (бегун и капсула), сделанных по картинкам автора ———
+function loadModels(){
+  if(MODELS_LOADED) { applyModels(); return; }
+  if(!THREE.GLTFLoader){
+    if(typeof console!=='undefined') console.warn('GLTFLoader не подключён — остаются прежние фигуры');
+    return;
+  }
+  var loader=new THREE.GLTFLoader(), left=2;
+  function done(){ if(--left===0){ MODELS_LOADED=true; applyModels(); } }
+  loader.load('assets/task07/runner_running.glb', function(gltf){
+    MODELS.runner=gltf; done();
+  }, undefined, function(){ done(); });
+  loader.load('assets/task07/capsule_hands.glb', function(gltf){
+    MODELS.capsule=gltf; done();
+  }, undefined, function(){ done(); });
+}
+
+function applyModels(){
+  if(!scene) return;
+  if(MODELS.runner && OBS_HUMAN) rebuildObserverHuman();
+  if(MODELS.capsule && capPlane && !capPlane.userData.model3d) buildCapsuleModel();
 }
 
 // ——— режимы: инструкция, экран наблюдателя, подсказки ———
@@ -826,6 +853,63 @@ function placeCapsule(){
   capGlow.position.set(0,-0.58,-1.06);
   capGlow.renderOrder=1000;
   camera.add(capGlow);
+  if(MODELS.capsule) buildCapsuleModel();
+}
+
+// ——— капсула в руках: настоящая 3D-модель по картинке автора ———
+function buildCapsuleModel(){
+  if(!MODELS.capsule||!MODELS.capsule.scene||!camera||CAPSULE3D) return;
+  var m=MODELS.capsule.scene;
+  var box=new THREE.Box3().setFromObject(m), size=new THREE.Vector3();
+  box.getSize(size);
+  var k=0.52/Math.max(0.001,size.x);      // ширина как у прежней картинки (0,52 м)
+  m.scale.setScalar(k); m.updateMatrixWorld(true); box.setFromObject(m);
+  m.position.set(-(box.min.x+box.max.x)/2,-(box.min.y+box.max.y)/2,-(box.min.z+box.max.z)/2);
+  m.rotation.y=Math.PI;                    // руки и корпус лицом к камере
+  var holder=new THREE.Group();
+  holder.add(m);
+  holder.position.set(0,-0.60,-1.0);
+  holder.renderOrder=999;
+  CAPSULE3D=holder;
+  CAPSULE_MATS=[];
+  m.traverse(function(o){
+    if(o.isMesh&&o.material){
+      var mats=Array.isArray(o.material)?o.material:[o.material];
+      for(var i=0;i<mats.length;i++){
+        var mt=mats[i];
+        if(mt&&mt.color){ mt.userData.baseColor=mt.color.clone(); CAPSULE_MATS.push(mt);
+          if(mt.map&&mt.emissive!==undefined){ mt.emissiveMap=mt.map; mt.needsUpdate=true; } }
+      }
+      o.frustumCulled=false;
+    }
+  });
+  camera.add(holder);
+  CAPSULE_DMG=-1;
+  // прежняя картинка остаётся невидимой «логикой»: видимость, покачивание и урон считаются по ней
+  capPlane.material.opacity=0;
+  capPlane.userData.model3d=true;
+}
+
+// повреждение капсулы показываем цветом: целая — как на картинке, дальше темнее и с красным оттенком
+function tintCapsuleModel(lvl){
+  if(!CAPSULE_MATS) return;
+  for(var i=0;i<CAPSULE_MATS.length;i++){
+    var mt=CAPSULE_MATS[i], base=mt.userData.baseColor||new THREE.Color(1,1,1);
+    var k=lvl===0?1:(lvl===1?0.78:0.58);
+    mt.color.setRGB(base.r*k+(lvl===2?0.16:0), base.g*k, base.b*k);
+    if(mt.needsUpdate!==undefined) mt.needsUpdate=true;
+  }
+}
+
+// бирюзовая вспышка при восстановлении от кристалла
+function setCapsuleEmissive(cf){
+  if(!CAPSULE_MATS) return;
+  for(var i=0;i<CAPSULE_MATS.length;i++){
+    var mt=CAPSULE_MATS[i];
+    if(!mt.emissive) continue;
+    if(cf>0) mt.emissive.setRGB(cf*1.1,cf*1.7,cf*1.7);
+    else mt.emissive.setRGB(0.42,0.42,0.42);
+  }
 }
 
 // капсула трескается по мере урона
@@ -1306,11 +1390,24 @@ function buildObserverMarkers(){
 function updateObserverMarkers(dt,z){
   if(OBS_HUMAN){
     var H=OBS_HUMAN, ph=obsT*9.5;
-    H.legL.rotation.x=Math.sin(ph)*0.92;
-    H.legR.rotation.x=-Math.sin(ph)*0.92;
-    H.armL.rotation.x=-Math.sin(ph)*0.82;
-    H.armR.rotation.x=Math.sin(ph)*0.82;
-    H.g.position.set(0,0.04+Math.abs(Math.sin(ph))*0.07,z);
+    if(RUNNER_MIXER){
+      RUNNER_MIXER.update(dt||0.016);
+      // анимация бега тянет персонажа вперёд — возвращаем его на место (движение задаёт игра)
+      if(RUNNER_HIPS){
+        if(!RUNNER_HIPS_BASE) RUNNER_HIPS_BASE=RUNNER_HIPS.position.clone();
+        RUNNER_HIPS.position.x=RUNNER_HIPS_BASE.x;
+        RUNNER_HIPS.position.z=RUNNER_HIPS_BASE.z;
+      }
+      H.g.position.set(0,0.02,z);
+    } else {
+      if(H.legL&&H.legR&&H.armL&&H.armR){
+        H.legL.rotation.x=Math.sin(ph)*0.92;
+        H.legR.rotation.x=-Math.sin(ph)*0.92;
+        H.armL.rotation.x=-Math.sin(ph)*0.82;
+        H.armR.rotation.x=Math.sin(ph)*0.82;
+      }
+      H.g.position.set(0,0.04+Math.abs(Math.sin(ph))*0.07,z);
+    }
   }
   for(var i=0;i<OBS_MARKS.length;i++){
     var m=OBS_MARKS[i];
@@ -1323,42 +1420,65 @@ function updateObserverMarkers(dt,z){
 }
 
 // ——— фигура Бегуна для экрана наблюдателя: человек с капсулой в руках ———
+// Если загрузилась настоящая модель человека (бег с циклом), показываем её;
+// иначе остаётся прежняя фигура из простых форм как запасной вариант.
 function buildHuman(){
   var g=new THREE.Group();
-  var hoodie=new THREE.MeshLambertMaterial({color:0x2b3339});
-  var pants=new THREE.MeshLambertMaterial({color:0x1f2629});
-  var skin=new THREE.MeshLambertMaterial({color:0xc0ae9e});
-  var shoe=new THREE.MeshLambertMaterial({color:0x161c1f});
+  var armL=null, armR=null, legL=null, legR=null;
 
-  var torso=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.86,0.36),hoodie);
-  torso.position.y=1.15; g.add(torso);
-  var hip=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.28,0.32),pants);
-  hip.position.y=0.72; g.add(hip);
-  var head=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,10),skin);
-  head.position.set(0,1.72,0.02); g.add(head);
-  var hood=new THREE.Mesh(new THREE.SphereGeometry(0.23,12,10,0,Math.PI*2,0,Math.PI*0.6),hoodie);
-  hood.position.set(0,1.73,-0.02); hood.rotation.x=-0.25; g.add(hood);
-
-  function limb(len,rad,mat,x,y,extraMat){
-    var pivot=new THREE.Group(); pivot.position.set(x,y,0);
-    var m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*0.82,len,8),mat);
-    m.position.y=-len/2; pivot.add(m);
-    if(extraMat){
-      var f=new THREE.Mesh(new THREE.BoxGeometry(rad*2.6,rad*1.5,len*0.26),extraMat);
-      f.position.set(0,-len+len*0.12,rad*0.6); pivot.add(f);
+  if(MODELS.runner && MODELS.runner.scene){
+    var model=MODELS.runner.scene;
+    var box=new THREE.Box3().setFromObject(model), size=new THREE.Vector3();
+    box.getSize(size);
+    var k=1.85/Math.max(0.001,size.y);
+    // размер задаёт сам скелет (в файле перевод из сантиметров), внешний масштаб только мешает
+    model.scale.setScalar(1); model.updateMatrixWorld(true);
+    model.position.set(0,0,0);
+    model.rotation.y=Math.PI; model.traverse(function(o){ if(o.isMesh){ o.frustumCulled=false; } });
+    g.add(model);
+    if(MODELS.runner.animations && MODELS.runner.animations.length){
+      RUNNER_MIXER=new THREE.AnimationMixer(model);
+      RUNNER_HIPS=model.getObjectByName('Hips')||null; RUNNER_HIPS_BASE=null;
+      var clip=RUNNER_MIXER.clipAction(MODELS.runner.animations[0]);
+      clip.setLoop(THREE.LoopRepeat,Infinity); clip.play();
     }
-    return pivot;
-  }
-  var armL=limb(0.60,0.075,hoodie,-0.37,1.46);
-  var armR=limb(0.60,0.075,hoodie,0.37,1.46);
-  var legL=limb(0.74,0.095,pants,-0.16,0.72,shoe);
-  var legR=limb(0.74,0.095,pants,0.16,0.72,shoe);
-  g.add(armL); g.add(armR); g.add(legL); g.add(legR);
+  } else {
+    var hoodie=new THREE.MeshLambertMaterial({color:0x2b3339});
+    var pants=new THREE.MeshLambertMaterial({color:0x1f2629});
+    var skin=new THREE.MeshLambertMaterial({color:0xc0ae9e});
+    var shoe=new THREE.MeshLambertMaterial({color:0x161c1f});
 
-  // капсула в руках: светится, видно издалека
-  var capMat=new THREE.MeshPhongMaterial({color:0xeafffd,emissive:0x46cfc7,shininess:110});
-  var cap=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.44,10),capMat);
-  cap.position.set(0,1.06,-0.30); g.add(cap);
+    var torso=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.86,0.36),hoodie);
+    torso.position.y=1.15; g.add(torso);
+    var hip=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.28,0.32),pants);
+    hip.position.y=0.72; g.add(hip);
+    var head=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,10),skin);
+    head.position.set(0,1.72,0.02); g.add(head);
+    var hood=new THREE.Mesh(new THREE.SphereGeometry(0.23,12,10,0,Math.PI*2,0,Math.PI*0.6),hoodie);
+    hood.position.set(0,1.73,-0.02); hood.rotation.x=-0.25; g.add(hood);
+
+    var limb=function(len,rad,mat,x,y,extraMat){
+      var pivot=new THREE.Group(); pivot.position.set(x,y,0);
+      var m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*0.82,len,8),mat);
+      m.position.y=-len/2; pivot.add(m);
+      if(extraMat){
+        var f=new THREE.Mesh(new THREE.BoxGeometry(rad*2.6,rad*1.5,len*0.26),extraMat);
+        f.position.set(0,-len+len*0.12,rad*0.6); pivot.add(f);
+      }
+      return pivot;
+    };
+    armL=limb(0.60,0.075,hoodie,-0.37,1.46);
+    armR=limb(0.60,0.075,hoodie,0.37,1.46);
+    legL=limb(0.74,0.095,pants,-0.16,0.72,shoe);
+    legR=limb(0.74,0.095,pants,0.16,0.72,shoe);
+    g.add(armL); g.add(armR); g.add(legL); g.add(legR);
+
+    // капсула в руках: светится, видно издалека
+    var capMat=new THREE.MeshPhongMaterial({color:0xeafffd,emissive:0x46cfc7,shininess:110});
+    var cap=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.44,10),capMat);
+    cap.position.set(0,1.06,-0.30); g.add(cap);
+  }
+
   var capGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x9ffcf2,transparent:true,
     opacity:0.85,depthWrite:false,blending:THREE.AdditiveBlending}));
   capGlow.scale.set(1.9,1.9,1); capGlow.position.set(0,1.06,-0.32); g.add(capGlow);
@@ -1369,9 +1489,19 @@ function buildHuman(){
   ring.rotation.x=-Math.PI/2; ring.position.y=0.06; g.add(ring);
   OBS_PULSE.push({m:ring,base:0.5});
 
-  g.scale.setScalar(1.3);
+  g.scale.setScalar((MODELS.runner&&MODELS.runner.scene)?1.0:1.3);
   scene.add(g);
   return {g:g,armL:armL,armR:armR,legL:legL,legR:legR,ring:ring};
+}
+
+// модель бегуна подгрузилась позже — пересобираем фигуру наблюдателя
+function rebuildObserverHuman(){
+  if(!OBS_HUMAN) return;
+  var z=OBS_HUMAN.g.position.z;
+  scene.remove(OBS_HUMAN.g);
+  if(RUNNER_MIXER){ RUNNER_MIXER.stopAllAction(); RUNNER_MIXER=null; }
+  OBS_HUMAN=buildHuman();
+  OBS_HUMAN.g.position.z=z;
 }
 
 // ——— рождение провала: молния бьёт в дорогу, асфальт обваливается внутрь ———
@@ -1772,12 +1902,12 @@ function updateCamera(dt){
 
   if(capPlane){
     var duckK=duckT>0?Math.min(1,duckT/DUCK_D*1.7):0;
-    capPlane.visible=topMix<0.5&&phase!=='fall'&&duckK<0.45;
+    capPlane.visible=!OBSERVE&&topMix<0.5&&phase!=='fall'&&duckK<0.45;
     capPlane.position.set(-lane*0.10+(shake>0?(Math.random()-0.5)*shake*0.06:0),
                           -0.60+bob*0.6+jumpK*0.05-duckK*0.75+(shake>0?(Math.random()-0.5)*shake*0.05:0),
                           -1.0);
     capPlane.rotation.z=Math.sin(tRun*5.2)*0.014-lane*0.05;
-    capPlane.material.opacity=1;
+    capPlane.material.opacity=CAPSULE3D?0:1;
     // вспышка бирюзовым при восстановлении от кристалла
     var cf=capFlash>0?(capFlash/CAP_FLASH):0;
     if(cf>0){
@@ -1797,6 +1927,15 @@ function updateCamera(dt){
       capPlane.material.map=TEX[wantTex];
       capPlane.material.needsUpdate=true;
       capPlane.userData.tex=wantTex;
+    }
+    // если загрузилась настоящая 3D-капсула с руками — она повторяет положение плоскости
+    if(CAPSULE3D){
+      CAPSULE3D.visible=capPlane.visible;
+      CAPSULE3D.position.copy(capPlane.position);
+      CAPSULE3D.rotation.z=capPlane.rotation.z;
+      var dmgLvl=integrity>60?0:(integrity>30?1:2);
+      if(dmgLvl!==CAPSULE_DMG){ CAPSULE_DMG=dmgLvl; tintCapsuleModel(dmgLvl); }
+      setCapsuleEmissive(cf);
     }
   }
 
@@ -2015,6 +2154,9 @@ function observeStep(dt){
   camera.lookAt(0,0.7,z-28);
   if(scene.fog) scene.fog.density=0.0028;
   updateObserverMarkers(dt,z);
+  // капсула в руках — только у Бегуна, наблюдателю она не нужна
+  if(capPlane) capPlane.visible=false;
+  if(CAPSULE3D) CAPSULE3D.visible=false;
 }
 
 // ——— полноэкранный режим и горизонтальная ориентация ———
@@ -2074,6 +2216,7 @@ function reset(){
   if(el.dark) el.dark.style.opacity=0;
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
+  CAPSULE_DMG=-1; tintCapsuleModel(0);
   updateHud(); showAlert('');
 }
 
@@ -2241,6 +2384,8 @@ function unmount(){
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
+  OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1;
+  if(RUNNER_MIXER){ try{ RUNNER_MIXER.stopAllAction(); }catch(e){} RUNNER_MIXER=null; }
 }
 
 return {mount:mount, unmount:unmount, version:VER,
