@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0324a';
+var VER='0325a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -31,7 +31,7 @@ var RAIN=[], RAIN_DUST=[], RAIN_ON=true, FOCUS_Z=Z_START;
 var OBS_HUMAN=null;
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
-var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
+var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_LIGHT=null, CAPSULE_CORE=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
 // отрезок Б: поворот с боковой улицы, мост по референсу, спуск к тоннелю
 var SEG='A', ROUND=0, CHANGED=false, VOICE=null;
 var RB={curve:null,len:0,built:false};
@@ -107,7 +107,7 @@ var T7_HTML='<div id="t7-stage">'+
 if(typeof window==='undefined'||!window.document){ /* вне браузера модуль не нужен */ }
 
 // ——— параметры мира, метры ———
-var DURATION=75;                 // ход: маршрут стал длиннее на поворот, мост и тоннель (требует согласования автора)
+var DURATION=60;                 // длительность пробного хода
 var EYE=1.72;                    // высота глаз бегуна
 var ROAD_W=13;                   // ширина дороги
 var WALK=4.0;                    // ширина тротуара
@@ -179,7 +179,7 @@ var CAP_FLASH=0.55;              // длительность бирюзовой 
 // ——— состояние бегуна ———
 var phase='street1';   // street1 | trip | fall | tunnel | ladder | street2 | done
 var phaseT=0, sZ=Z_START, tRun=0, travelled=0;
-var pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END)+(Z_END-(-558));
+var pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
 var lane=0, laneTarget=0, holdT=0, jumpT=0, duckT=0, shake=0;
 var lastAct='', lastActAt=-9;
 var running=false, finished=false, topView=false, topMix=0;
@@ -372,7 +372,6 @@ function build(){
 
   buildStreet();
   buildPit();
-  buildRouteB();
   placeCapsule();
   loadModels();
 }
@@ -887,6 +886,18 @@ function buildCapsuleModel(){
     }
   });
   camera.add(holder);
+  // бирюзовое свечение ядра: подсветка рук и мягкий ореол вокруг капсулы
+  if(!CAPSULE_LIGHT){
+    CAPSULE_LIGHT=new THREE.PointLight(0x54f0e6,0.75,2.6);
+    CAPSULE_LIGHT.position.set(0,-0.52,-0.86);
+    camera.add(CAPSULE_LIGHT);
+  }
+  // свечение ядра капсулы — маленький бирюзовый ореол перед корпусом
+  CAPSULE_CORE=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ffcf2,
+    transparent:true,opacity:0.6,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+  CAPSULE_CORE.scale.set(0.46,0.62,1);
+  CAPSULE_CORE.position.set(0,-0.52,-0.94);
+  camera.add(CAPSULE_CORE);
   CAPSULE_DMG=-1;
   // прежняя картинка остаётся невидимой «логикой»: видимость, покачивание и урон считаются по ней
   capPlane.material.opacity=0;
@@ -911,7 +922,7 @@ function setCapsuleEmissive(cf){
     var mt=CAPSULE_MATS[i];
     if(!mt.emissive) continue;
     if(cf>0) mt.emissive.setRGB(cf*1.1,cf*1.7,cf*1.7);
-    else mt.emissive.setRGB(0.42,0.42,0.42);
+    else mt.emissive.setRGB(0.04,0.34,0.31);
   }
 }
 
@@ -2143,6 +2154,7 @@ function updateCamera(dt){
     // если загрузилась настоящая 3D-капсула с руками — она повторяет положение плоскости
     if(CAPSULE3D){
       CAPSULE3D.visible=capPlane.visible;
+      if(CAPSULE_CORE) CAPSULE_CORE.visible=capPlane.visible;
       CAPSULE3D.position.copy(capPlane.position);
       CAPSULE3D.rotation.z=capPlane.rotation.z;
       var dmgLvl=integrity>60?0:(integrity>30?1:2);
@@ -2222,7 +2234,7 @@ function step(dt){
   } else if(phase==='street2'){
     var dz3=RUN_SPEED*dt; sZ-=dz3; travelled+=dz3;
     FOCUS_Z=sZ; RAIN_ON=true;
-    if(sZ<=Z_TURN){ phase='route'; phaseT=0; showAlert('Поворот на мост'); }
+    if(sZ<=Z_END+8) finish();
   } else if(phase==='route'){
     var dz4=RUN_SPEED_B*dt; sZ-=dz4; travelled+=dz4;
     FOCUS_Z=sZ; RAIN_ON=!inTunnelB(sZ);
@@ -2359,14 +2371,14 @@ function tick(){
 function observeStep(dt){
   obsT+=dt;
   PROG+=(PROG_T-PROG)*Math.min(1,dt*3.0);
-  var z=Z_START-(Z_START-Z_FINISH)*(PROG/100);
+  var z=Z_START-(Z_START-Z_END)*(PROG/100);
   FOCUS_Z=z; RAIN_ON=(PROG<39||PROG>72);
   if(PROG>24) birthPit();
   // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
   // видно и самого Бегуна, и препятствия перед ним
   var camZ=z+9;
   if(camZ>Z_START+20) camZ=Z_START+20;
-  if(camZ<Z_FINISH+10) camZ=Z_FINISH+10;
+  if(camZ<Z_END+14) camZ=Z_END+14;
   // в тоннеле камера опускается под потолок, иначе смотрит на его крышу
   var inT = inTunnelB(camZ)||inTunnelB(z);
   if(inT && camZ>z+6) camZ=z+6;
