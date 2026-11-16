@@ -4,11 +4,12 @@
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans.ttf') format('truetype');font-weight:400;font-display:swap}
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
 
-.t7-root,.t7-root *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.t7-root,.t7-root *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;user-select:none}
 .t7-root .hidden{display:none!important}
 .t7-root{position:fixed;inset:0;overflow:hidden;background:#070d0f;color:#fff;
   font-family:'QuestSans',Arial,sans-serif;overscroll-behavior:none;
-  -webkit-user-select:none;user-select:none;touch-action:none}
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
 
 #t7-stage{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%)}
 #t7-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
@@ -115,8 +116,6 @@
 #t7-intro-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #t7-intro-next{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));
   transform:translateX(-50%);z-index:72;min-width:min(320px,72vw);font-size:18px}
-#t7-intro-note{position:absolute;left:50%;bottom:max(80px,calc(env(safe-area-inset-bottom) + 62px));
-  transform:translateX(-50%);z-index:72;margin:0;color:#9fd8d8;font-size:13px;text-align:center;max-width:86vw}
 
 /* ——— экран наблюдателя: роль, подсказки, вид сверху ——— */
 #t7-obs{position:absolute;inset:0;z-index:40;pointer-events:none}

@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0319c';
+var VER='0320a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -22,6 +22,9 @@ var onFinishCb=null;            // сообщает общему модулю и
 var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0, ISCAP=false;
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
 var introV=null, introDone=false;
+var STARTED=false;              // бегун нажал «Начать бег» после инструкции
+// вид наблюдателя: бегун и препятствия, обозначенные в объёме
+var OBS_RUNNER_GRP=null, OBS_PULSE=[], OBS_MARKS=[], OBS_ICON_TEX={};
 
 // Разметка экрана Бегуна — модуль вставляет её сам, чтобы работать внутри общей страницы.
 var T7_HTML='<div id="t7-stage">'+
@@ -60,9 +63,8 @@ var T7_HTML='<div id="t7-stage">'+
 '</div>'+
 '</div>'+
 '<div id="t7-intro" class="hidden">'+
-'<video id="t7-intro-video" playsinline preload="auto" src="assets/v07_intro.mp4"></video>'+
+'<video id="t7-intro-video" playsinline preload="auto" controlslist="nodownload" disablepictureinpicture src="assets/v07_intro.mp4"></video>'+
 '<button type="button" id="t7-intro-next" class="t7-primary hidden">Продолжить →</button>'+
-'<p class="t7-note" id="t7-intro-note">Инструкция…</p>'+
 '</div>'+
 '<div id="t7-obs" class="hidden">'+
 '<div class="t7-obs-top">'+
@@ -349,11 +351,13 @@ function build(){
 
 // ——— режимы: инструкция, экран наблюдателя, подсказки ———
 function shadow(id){ return document.getElementById(id); }
+// Инструкция: только видео во весь экран, без надписей.
+// У Бегуна в конце видео появляется «Продолжить →», дальше — экран «Ты Бегун» и кнопка «Начать бег».
 function showIntro(){
   var box=shadow('t7-intro'); if(!box) return;
   box.classList.remove('hidden');
   if(el.start) el.start.classList.add('hidden');
-  var next=shadow('t7-intro-next'), n=shadow('t7-intro-note');
+  var next=shadow('t7-intro-next');
   if(!introV) introV=box.querySelector('#t7-intro-video');
   if(next){
     next.classList.add('hidden');        // «Продолжить» появляется в конце видео и только у Бегуна
@@ -361,24 +365,20 @@ function showIntro(){
     next.onclick=function(){
       if(MODE!=='runner') return;
       next.disabled=true; next.classList.add('hidden');
-      stopIntroVideo();
-      if(ONSTART){ try{ ONSTART(); }catch(e){} }
-      STAGE='run'; applyStage();
-      start();
+      stopIntroVideo(); hideIntro();
+      STARTED=false;
+      if(el.start) el.start.classList.remove('hidden');   // короткий экран «Ты Бегун» с кнопкой «Начать бег»
     };
   }
-  if(n) n.textContent=MODE==='runner'?'Кнопка «Продолжить» появится в конце видео.':'Инструкция. Дальше начнёт Бегун.';
   if(introV){
     introV.muted=!ISCAP;                 // звук инструкции только у капитана
     try{ introV.currentTime=0; }catch(e){}
     introV.onended=function(){
       if(MODE==='runner'&&next){ next.classList.remove('hidden'); }
-      if(n) n.textContent=MODE==='runner'?'Нажмите «Продолжить», чтобы начать бег.':'Ждём, когда Бегун начнёт бег.';
     };
     var p=introV.play();
     if(p&&p['catch']) p['catch'](function(){
-      if(n) n.textContent='Коснитесь экрана, чтобы включить инструкцию.';
-      introV.muted=true;
+      introV.muted=true;                 // без разрешения звука показываем инструкцию молча, без надписей
       var p2=introV.play(); if(p2&&p2['catch'])p2['catch'](function(){});
     });
   }
@@ -393,8 +393,9 @@ function hideIntro(){
 function applyStage(){
   if(STAGE==='intro'){ showIntro(); return; }
   hideIntro();
-  if(OBSERVE) showObserver();
-  else if(el.start) el.start.classList.remove('hidden');
+  if(OBSERVE){ showObserver(); return; }
+  if(!STARTED){ if(el.start) el.start.classList.remove('hidden'); return; }
+  if(el.start) el.start.classList.add('hidden');
 }
 function showObserver(){
   var ov=shadow('t7-obs'); if(!ov) return;
@@ -455,23 +456,25 @@ function buildStreet(){
     m.rotation.x=-Math.PI/2; m.position.set(0,0,cz);
     scene.add(m); return m;
   }
-  // дорога с разрывом на провал и на люк
-  roadPiece(Z_START,Z_PIT_EDGE,asphalt);
+  // дорога с разрывом на провал и на люк; за стартом оставлены лишние 26 м —
+  // они нужны только камере наблюдателя, чтобы за спиной Бегуна не было пустоты
+  roadPiece(Z_START+26,Z_PIT_EDGE,asphalt);
   roadPiece(Z_PIT_FAR,-210.1,asphalt);
   roadPiece(-213.9,Z_END-4,asphalt);
 
   // тротуары и бордюр — сплошные, провал только в дороге
+  var stEnd=Z_START+26;
   [-1,1].forEach(function(s){
     var wm=walk.clone(); wm.needsUpdate=true; wm.wrapS=wm.wrapT=THREE.RepeatWrapping;
-    wm.repeat.set(3,Math.abs(Z_START-Z_END)/6);
+    wm.repeat.set(3,Math.abs(stEnd-Z_END)/6);
     var wmat=new THREE.MeshPhongMaterial({map:wm,shininess:20,specular:0x6c8186});
-    var wk=new THREE.Mesh(new THREE.BoxGeometry(WALK,0.22,Math.abs(Z_START-Z_END)),
+    var wk=new THREE.Mesh(new THREE.BoxGeometry(WALK,0.22,Math.abs(stEnd-Z_END)),
       [wmat,wmat,wmat,wmat,wmat,wmat]);
-    wk.position.set(s*(ROAD_W/2+WALK/2),0.11,(Z_START+Z_END)/2);
+    wk.position.set(s*(ROAD_W/2+WALK/2),0.11,(stEnd+Z_END)/2);
     scene.add(wk);
-    var curb=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.3,Math.abs(Z_START-Z_END)),
+    var curb=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.3,Math.abs(stEnd-Z_END)),
       new THREE.MeshLambertMaterial({color:0x76848a}));
-    curb.position.set(s*(ROAD_W/2+0.17),0.15,(Z_START+Z_END)/2);
+    curb.position.set(s*(ROAD_W/2+0.17),0.15,(stEnd+Z_END)/2);
     scene.add(curb);
   });
 
@@ -1100,20 +1103,153 @@ function buildTunnelEvents(){
   addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо',1.2,-0.45);
 }
 
-// Метки для вида сверху: где провал, балка, обломки и кристаллы (только для наблюдателя)
-function addObserverMarkers(){
-  var ringMat=new THREE.MeshBasicMaterial({color:0x35e8dc,transparent:true,opacity:0.75,
-    side:THREE.DoubleSide,depthWrite:false});
+// ——— вид наблюдателя: значение препятствий видно и без текста ———
+// Значки рисуются на холсте: «!» опасность, галочка «пригнуться», стрелка «уходить в сторону», ромб кристалл.
+function obsIcon(kind){
+  if(OBS_ICON_TEX[kind]) return OBS_ICON_TEX[kind];
+  var c=document.createElement('canvas'); c.width=c.height=256;
+  var g=c.getContext('2d');
+  var amber='#ffb347', turq='#35e8dc';
+  g.lineJoin='round'; g.lineCap='round';
+  if(kind==='warn'){
+    g.beginPath(); g.moveTo(128,26); g.lineTo(234,212); g.lineTo(22,212); g.closePath();
+    g.fillStyle='rgba(0,0,0,.62)'; g.fill();
+    g.lineWidth=14; g.strokeStyle=amber; g.stroke();
+    g.fillStyle=amber; g.font='bold 122px Arial, sans-serif';
+    g.textAlign='center'; g.textBaseline='middle'; g.fillText('!',128,160);
+  }else if(kind==='duck'){
+    g.fillStyle=amber;
+    g.beginPath(); g.moveTo(128,36); g.lineTo(214,132); g.lineTo(42,132); g.closePath(); g.fill();
+    g.lineWidth=20; g.strokeStyle=amber;
+    g.beginPath(); g.moveTo(32,198); g.lineTo(224,198); g.stroke();
+  }else if(kind==='left'||kind==='right'){
+    g.save(); g.translate(128,128); if(kind==='left') g.scale(-1,1);
+    g.fillStyle=amber;
+    g.beginPath();
+    g.moveTo(-104,-62); g.lineTo(-24,-62); g.lineTo(-24,-110); g.lineTo(104,0);
+    g.lineTo(-24,110); g.lineTo(-24,62); g.lineTo(-104,62); g.closePath(); g.fill();
+    g.restore();
+  }else{
+    g.fillStyle=turq;
+    g.beginPath(); g.moveTo(128,20); g.lineTo(216,128); g.lineTo(128,236); g.lineTo(40,128); g.closePath(); g.fill();
+    g.lineWidth=12; g.strokeStyle='#eaffff'; g.stroke();
+  }
+  var t=new THREE.CanvasTexture(c);
+  t.encoding=THREE.sRGBEncoding; t.needsUpdate=true;
+  OBS_ICON_TEX[kind]=t; return t;
+}
+function obsMark(obj,z,base){ OBS_MARKS.push({o:obj,z:z,base:base}); return obj; }
+function obsIconSprite(kind,scale,z,x,y,base){
+  var m=new THREE.SpriteMaterial({map:obsIcon(kind),transparent:true,depthTest:false,depthWrite:false,opacity:0.95});
+  var s=new THREE.Sprite(m); s.scale.set(scale,scale,1);
+  s.position.set(x||0,y||0,z||0);
+  scene.add(s);
+  if(base!==undefined) obsMark(s,z,base);
+  return s;
+}
+// пульсирующее кольцо: зона опасности или место кристалла
+function obsRing(z,y,x,radius,color,op){
+  var m=new THREE.Mesh(new THREE.RingGeometry(0.76,1,40),
+    new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:op||0.8,
+      side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
+  m.rotation.x=-Math.PI/2;
+  m.position.set(x||0,(y||0)+0.16,z);
+  m.scale.set(radius,radius,1);
+  scene.add(m);
+  return obsMark(m,z,op||0.8);
+}
+// цветная полоса на дороге: «здесь опасно»
+function obsZone(z,y,width,depth,color,op){
+  var m=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),
+    new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:op||0.22,
+      side:THREE.DoubleSide,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.position.set(0,(y||0)+0.12,z);
+  scene.add(m); obsMark(m,z,null); return m;
+}
+
+// Метки для вида наблюдателя: где бегун и что впереди — провал, балка, обломки, кристаллы.
+function buildObserverMarkers(){
+  if(!scene) return;
+  OBS_PULSE.length=0; OBS_MARKS.length=0;
+
+  // сам бегун: светлая капсула, широкое свечение, луч вверх и кольцо на земле —
+  // его всегда видно и он не путается с бирюзовыми кристаллами
+  var grp=new THREE.Group();
+  var glow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xdafffd,transparent:true,
+    opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+  glow.scale.set(7.5,7.5,1); glow.position.y=2.0; grp.add(glow);
+  var capMat=new THREE.MeshPhongMaterial({color:0xffffff,emissive:0x53c8c2,shininess:110});
+  var capBody=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,1.8,16),capMat);
+  capBody.position.y=1.75; grp.add(capBody);
+  var capTop=new THREE.Mesh(new THREE.SphereGeometry(0.9,16,12),capMat);
+  capTop.position.y=2.65; grp.add(capTop);
+  var capBot=new THREE.Mesh(new THREE.SphereGeometry(0.9,16,12),capMat);
+  capBot.position.y=0.85; grp.add(capBot);
+  var beam=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,10,12,1,true),
+    new THREE.MeshBasicMaterial({color:0xeaffff,transparent:true,opacity:0.26,
+      side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  beam.position.y=7.0; grp.add(beam);
+  var rring=new THREE.Mesh(new THREE.RingGeometry(2.2,3.2,40),
+    new THREE.MeshBasicMaterial({color:0xeaffff,transparent:true,opacity:0.6,
+      side:THREE.DoubleSide,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+  rring.rotation.x=-Math.PI/2; rring.position.y=0.2; grp.add(rring);
+  scene.add(grp);
+  OBS_RUNNER_GRP=grp;
+  OBS_PULSE.push({m:rring,base:0.6});
+
+  // препятствия
   events.forEach(function(e){
-    var m=new THREE.Mesh(new THREE.RingGeometry(2.4,3.4,22),ringMat);
-    m.rotation.x=-Math.PI/2; m.position.set(0,0.16,e.z); scene.add(m);
+    var y=(e.baseY||0);
+    if(e.type==='pit'){
+      obsRing(PIT.z,0,0,PIT.rx+1.8,0xff6b6b,0.85);
+      obsIconSprite('warn',5.0,PIT.z,0,5.2,0.95);
+    }else if(e.type==='beam'){
+      obsZone(e.z,y,ROAD_W,3.4,0xffb347,0.30);
+      var bar=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W,1.0,0.9),
+        new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.9}));
+      bar.position.set(0,y+2.4,e.z); scene.add(bar); obsMark(bar,e.z,null);
+      var barGlow=new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W,3.4),
+        new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.26,
+          side:THREE.DoubleSide,depthWrite:false}));
+      barGlow.position.set(0,y+2.4,e.z); scene.add(barGlow); obsMark(barGlow,e.z,null);
+      obsIconSprite('duck',3.6,e.z,0,y+4.4,0.95);
+      obsRing(e.z,y,0,4.6,0xffb347,0.55);
+    }else if(e.type==='pipe'){
+      obsZone(e.z,y,ROAD_W,2.6,0xffb347,0.30);
+      obsIconSprite('duck',2.8,e.z,0,y+2.6,0.95);
+      obsRing(e.z,y,0,3.2,0xffb347,0.5);
+    }else if(e.type==='debris'){
+      obsZone(e.z,y,ROAD_W,6.0,0xff6b6b,0.26);
+      obsIconSprite('warn',3.8,e.z,0,y+4.8,0.95);
+      var safe=(e.need==='left')?'left':'right';
+      var sx=(e.need==='left')?-1:1;
+      obsIconSprite(safe,2.8,e.z+2.2,sx*4.8,y+3.2,0.9);
+      obsIconSprite(safe,2.8,e.z-2.2,sx*4.8,y+3.2,0.9);
+      obsRing(e.z,y,0,5.2,0xff6b6b,0.5);
+    }
   });
   crystals.forEach(function(c){
-    var m=new THREE.Mesh(new THREE.RingGeometry(1.0,1.7,18),ringMat);
-    m.rotation.x=-Math.PI/2;
-    m.position.set(c.x,(c.yBase!==undefined?c.yBase:1.2)+0.1,c.z);
-    scene.add(m);
+    var y=(c.yBase!==undefined?c.yBase:1.2);
+    obsRing(c.z,y-1.0,c.x,2.2,0x35e8dc,0.75);
+    obsIconSprite('crystal',2.6,c.z,c.x,y+2.4,0.9);
   });
+}
+
+// Метки живут: кольца пульсируют, подсветка бегуна едет по маршруту,
+// пройденные препятствия скрываются — впереди остаётся только то, что ещё предстоит.
+function updateObserverMarkers(dt,z){
+  if(OBS_RUNNER_GRP){
+    OBS_RUNNER_GRP.position.set(0,0.04,z);
+    OBS_RUNNER_GRP.rotation.y+=dt*0.9;
+  }
+  for(var i=0;i<OBS_MARKS.length;i++){
+    var m=OBS_MARKS[i];
+    m.o.visible=(m.z<=z+8);
+  }
+  for(var j=0;j<OBS_PULSE.length;j++){
+    var o=OBS_PULSE[j];
+    o.m.material.opacity=o.base*(0.62+0.38*Math.sin(obsT*3.4+j*0.7));
+  }
 }
 
 // ——— разлёт мелких обломков ———
@@ -1609,8 +1745,8 @@ function step(dt){
 
   hideDamageIfDue();
   updateHud();
-  // процент пути для наблюдателей — не чаще раза в 4 секунды
-  if(ONPROG&&(tRun-lastProgAt)>4){
+  // процент пути для наблюдателей — раз в секунду, чтобы их вид двигался плавно, без рывков
+  if(ONPROG&&(tRun-lastProgAt)>1){
     lastProgAt=tRun;
     try{ ONPROG(Math.min(100,Math.round(travelled/pathTotal*100))); }catch(e){}
   }
@@ -1627,14 +1763,21 @@ function tick(){
   renderer.render(scene,camera);
 }
 
-// Экран наблюдателя: улица сверху, камера едет вдоль маршрута по проценту пути Бегуна.
+// Экран наблюдателя: камера чуть позади и выше Бегуна, под углом вперёд —
+// видно улицу в объёме, самого Бегуна и препятствия впереди него.
 function observeStep(dt){
   obsT+=dt;
-  PROG+=(PROG_T-PROG)*Math.min(1,dt*1.2);
+  PROG+=(PROG_T-PROG)*Math.min(1,dt*3.0);
   var z=Z_START-(Z_START-Z_END)*(PROG/100);
-  camera.position.set(0,62,z+16);
-  camera.lookAt(0,0,z-12);
-  if(scene.fog) scene.fog.density=0.0035;
+  // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
+  // видно и самого Бегуна, и препятствия перед ним
+  var camZ=z+18;
+  if(camZ>Z_START+20) camZ=Z_START+20;
+  if(camZ<Z_END+14) camZ=Z_END+14;
+  camera.position.set(0,12,camZ);
+  camera.lookAt(0,0.6,z-26);
+  if(scene.fog) scene.fog.density=0.0028;
+  updateObserverMarkers(dt,z);
 }
 
 // ——— полноэкранный режим и горизонтальная ориентация ———
@@ -1721,8 +1864,17 @@ function finish(){
 function bindButtons(){
   playBtn=document.getElementById('t7-play');
   againBtn=document.getElementById('t7-again');
-  if(playBtn) playBtn.addEventListener('click',start);
+  if(playBtn) playBtn.addEventListener('click',beginRun);
   if(againBtn) againBtn.addEventListener('click',start);
+}
+
+// Бегун нажал «Начать бег» на экране «Ты Бегун»: сообщаем команде стадию бега и стартуем.
+function beginRun(){
+  if(STARTED) return;
+  STARTED=true; STAGE='run';
+  if(ONSTART){ try{ ONSTART(); }catch(e){} }
+  applyStage();
+  start();
 }
 
 // отладочная перестановка (для просмотра вида, в игре не используется)
@@ -1778,7 +1930,7 @@ function bootScene(){
   loadAll(function(){
     build();
     buildEvents();
-    if(OBSERVE){ addObserverMarkers(); hideRunnerUI(); }
+    if(OBSERVE){ buildObserverMarkers(); hideRunnerUI(); }
     updateHud();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
@@ -1813,11 +1965,15 @@ function mount(container,opts){
   STAGE=opts.stage||'intro';
   PROG=opts.progress||0;
   OBS_RUNNER_NAME=opts.runnerName||'';
-  obsT=0; lastProgAt=-9; introDone=false; introV=null;
+  obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false;
   ROOT=document.createElement('div');
   ROOT.className='t7-root'+(OBSERVE?' t7-observer':'');
   ROOT.innerHTML=T7_HTML;
   (container||document.body).appendChild(ROOT);
+  // долгое нажатие не должно выделять текст и открывать меню «Найти в Яндексе / Спросить у Алисы»
+  ['contextmenu','selectstart','dragstart'].forEach(function(ev){
+    ROOT.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
+  });
   alive=true;
   fillDom();
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
@@ -1841,6 +1997,7 @@ function unmount(){
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
+  STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
 }
 
 return {mount:mount, unmount:unmount, version:VER,
