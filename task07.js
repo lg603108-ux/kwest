@@ -1,5 +1,5 @@
 /* task07.js — задание 7 «Прорыв к лаборатории», экран Бегуна (модуль общего квеста).
-   Версия 0319a. Подключается как window.Task07: mount(container) / unmount().
+   Версия 0319b. Подключается как window.Task07: mount(container) / unmount().
    Отдельная страница task07demo.html монтирует этот же модуль для быстрой проверки.
 
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
@@ -14,10 +14,14 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0319a';
+var VER='0319b';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
+// режим работы модуля: 'runner' — экран Бегуна, 'observer' — экран наблюдателя (вид сверху и подсказки)
+var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, ISCAP=false;
+var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
+var introV=null, introDone=false;
 
 // Разметка экрана Бегуна — модуль вставляет её сам, чтобы работать внутри общей страницы.
 var T7_HTML='<div id="t7-stage">'+
@@ -54,6 +58,19 @@ var T7_HTML='<div id="t7-stage">'+
 '<button type="button" id="t7-full" class="t7-second">Во весь экран</button>'+
 '<p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>'+
 '</div>'+
+'</div>'+
+'<div id="t7-intro" class="t7-screen hidden">'+
+'<div class="t7-card t7-intro-card">'+
+'<h1>Прорыв к лаборатории</h1>'+
+'<video id="t7-intro-video" playsinline preload="auto" src="assets/v07_intro.mp4"></video>'+
+'<button type="button" id="t7-intro-next" class="t7-primary hidden">Начать бег</button>'+
+'<p class="t7-note" id="t7-intro-note">Инструкция…</p>'+
+'</div>'+
+'</div>'+
+'<div id="t7-obs" class="hidden">'+
+'<div class="t7-obs-top"><span id="t7-obs-role">НАБЛЮДАТЕЛЬ</span><span id="t7-obs-runner">Бегун: —</span></div>'+
+'<div id="t7-obs-hint">Ждём подсказку…</div>'+
+'<div class="t7-obs-bottom"><span id="t7-obs-progress">Путь: 0%</span></div>'+
 '</div>'+
 '<div id="t7-end" class="t7-screen hidden">'+
 '<div class="t7-card">'+
@@ -329,7 +346,86 @@ function build(){
   placeCapsule();
 }
 
-var up=new THREE.Vector3(0,1,0);
+// ——— режимы: инструкция, экран наблюдателя, подсказки ———
+function shadow(id){ return document.getElementById(id); }
+function showIntro(){
+  var box=shadow('t7-intro'); if(!box) return;
+  box.classList.remove('hidden');
+  if(el.start) el.start.classList.add('hidden');
+  var next=shadow('t7-intro-next'), n=shadow('t7-intro-note');
+  if(next){
+    // «Начать бег» видит только Бегун: остальные ждут его
+    next.classList.toggle('hidden',MODE!=='runner');
+    next.textContent='Начать бег';
+    next.onclick=function(){
+      next.disabled=true;
+      stopIntroVideo();
+      if(ONSTART){ try{ ONSTART(); }catch(e){} }
+      STAGE='run'; applyStage();
+      if(MODE==='runner'){ start(); }
+    };
+  }
+  if(n) n.textContent=MODE==='runner'?'Смотрите инструкцию, затем нажмите «Начать бег».':'Смотрите инструкцию. Бегун начнёт движение сам.';
+  if(!introV && box.querySelector('#t7-intro-video')) introV=box.querySelector('#t7-intro-video');
+  if(introV){
+    introV.muted=!ISCAP;                  // звук инструкции только у капитана
+    introV.currentTime=0;
+    var p=introV.play();
+    if(p&&p['catch']) p['catch'](function(){
+      if(n) n.textContent='Коснитесь экрана, чтобы включить инструкцию.';
+      introV.muted=true;
+      var p2=introV.play(); if(p2&&p2['catch'])p2['catch'](function(){});
+    });
+  }
+}
+function stopIntroVideo(){
+  if(introV){ try{ introV.pause(); }catch(e){} }
+}
+function hideIntro(){
+  stopIntroVideo();
+  var box=shadow('t7-intro'); if(box) box.classList.add('hidden');
+}
+function applyStage(){
+  if(STAGE==='intro'){ showIntro(); return; }
+  hideIntro();
+  if(OBSERVE) showObserver();
+  else if(el.start) el.start.classList.remove('hidden');
+}
+function showObserver(){
+  var ov=shadow('t7-obs'); if(!ov) return;
+  ov.classList.remove('hidden');
+  var rr=shadow('t7-obs-role'), rn=shadow('t7-obs-runner'), pr=shadow('t7-obs-progress');
+  if(rr) rr.textContent=ROLE==='crystal'?'ВАША РОЛЬ: КРИСТАЛЛЫ':(ROLE==='hazard'?'ВАША РОЛЬ: ОПАСНОСТИ':'ВАША РОЛЬ: ПОДСКАЗКИ');
+  if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
+  if(pr) pr.textContent='Путь: '+Math.round(PROG)+'%';
+}
+var OBS_RUNNER_NAME='';
+function hideRunnerUI(){
+  ['t7-controls','t7-topview','t7-start','t7-end'].forEach(function(id){
+    var n=document.getElementById(id); if(n) n.classList.add('hidden');
+  });
+  var t=document.getElementById('t7-time'); if(t&&t.parentNode) t.parentNode.style.display='none';
+  var en=document.getElementById('t7-energy'); if(en&&en.parentNode) en.parentNode.style.display='none';
+  var it=document.getElementById('t7-integrity'); if(it&&it.parentNode) it.parentNode.style.display='none';
+  if(capPlane) capPlane.visible=false;
+}
+// Внешние вызовы от общего модуля
+function setStage(s){ if(!s||s===STAGE) return; STAGE=s; applyStage(); }
+function setHint(h){
+  var box=shadow('t7-obs-hint'); if(!box||!h) return;
+  box.textContent=h.text||'';
+  box.classList.remove('flash');
+  void box.offsetWidth;
+  box.classList.add('flash');
+}
+function setProgress(p){ PROG=Math.max(0,Math.min(100,p||0)); var pr=shadow('t7-obs-progress'); if(pr) pr.textContent='Путь: '+Math.round(PROG)+'%'; }
+function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—'); }
+
+// Бегун сообщает общему модулю текущую подсказку и процент пути (координаты не передаются)
+function emitHint(text,kind){
+  if(OBSERVE||!ONHINT) return;
+  try{ ONHINT({text:text,kind:kind||'hazard'}); }catch(e){}
+}
 
 // ——— улица: дорога, тротуары, дома, деревья, фонари, дальний план ———
 function buildStreet(){
@@ -1368,7 +1464,8 @@ function step(dt){
   events.forEach(function(e){
     if(e.type==='pit')return;
     var dist=Math.abs(sZ-e.z);
-    if(!e.warned&&sZ-e.z<22&&sZ-e.z>-1){ e.warned=true; }
+    if(!e.warned&&sZ-e.z<22&&sZ-e.z>-1){ e.warned=true;
+      emitHint(e.text||'Опасность впереди','hazard'); }
     if(!e.done&&sZ<=e.z){ e.done=true; judge(e); }
     // падающие обломки
     if(e.pieces&&e.pieces.length){
@@ -1392,6 +1489,12 @@ function step(dt){
     c.grp.rotation.y+=dt*1.35;
     c.bob+=dt*2;
     c.grp.position.y=c.yBase+Math.sin(c.bob)*0.13;
+    // подсказка наблюдателям заранее, за 18–45 м до кристалла
+    if(!c.hinted&&(sZ-c.z)>18&&(sZ-c.z)<45){
+      c.hinted=true;
+      emitHint('Кристалл '+(c.side==='left'?'слева':(c.side==='right'?'справа':'сверху'))+
+        (c.high?' — прыжок':''),'crystal');
+    }
     if(phase!=='street1'&&phase!=='street2'&&phase!=='tunnel')return;
     if(Math.abs(sZ-c.z)>1.7)return;
     var dx=Math.abs(capX-c.x);
@@ -1461,6 +1564,11 @@ function step(dt){
 
   hideDamageIfDue();
   updateHud();
+  // процент пути для наблюдателей — не чаще раза в 4 секунды
+  if(ONPROG&&(tRun-lastProgAt)>4){
+    lastProgAt=tRun;
+    try{ ONPROG(Math.min(100,Math.round(travelled/pathTotal*100))); }catch(e){}
+  }
 }
 
 // ——— главный цикл ———
@@ -1468,9 +1576,19 @@ function tick(){
   if(!alive){ rafId=0; return; }
   rafId=requestAnimationFrame(tick);
   var dt=Math.min(0.05,clock.getDelta());
+  if(OBSERVE){ observeStep(dt); renderer.render(scene,camera); return; }
   step(dt);
   updateCamera(dt);
   renderer.render(scene,camera);
+}
+
+// Экран наблюдателя: улица сверху, камера ведёт вдоль маршрута по проценту пути Бегуна.
+function observeStep(dt){
+  obsT+=dt;
+  var z=Z_START-(Z_START-Z_END)*(PROG/100);
+  camera.position.set(3.2*Math.sin(obsT*0.18),34,z+16);
+  camera.lookAt(0,0,z-8);
+  if(scene.fog) scene.fog.density=0.010;
 }
 
 // ——— полноэкранный режим и горизонтальная ориентация ———
@@ -1615,6 +1733,7 @@ function bootScene(){
     build();
     buildEvents();
     updateHud();
+    if(OBSERVE) hideRunnerUI();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
     tick();
@@ -1633,13 +1752,24 @@ function bootScene(){
   }
 }
 
-// ——— подключение к общему квесту: mount(container, {onFinish, title, text}) ———
+// ——— подключение к общему квесту: mount(container, {mode, stage, role, isCaptain, runnerName, onHint, onProgress, onStartRun, onFinish}) ———
 function mount(container,opts){
   if(ROOT) unmount();
   opts=opts||{};
   onFinishCb=opts.onFinish||null;
+  ONHINT=opts.onHint||null;
+  ONPROG=opts.onProgress||null;
+  ONSTART=opts.onStartRun||null;
+  MODE=(opts.mode==='observer')?'observer':'runner';
+  OBSERVE=(MODE==='observer');
+  ROLE=opts.role||MODE;
+  ISCAP=!!opts.isCaptain;
+  STAGE=opts.stage||'intro';
+  PROG=opts.progress||0;
+  OBS_RUNNER_NAME=opts.runnerName||'';
+  obsT=0; lastProgAt=-9; introDone=false; introV=null;
   ROOT=document.createElement('div');
-  ROOT.className='t7-root';
+  ROOT.className='t7-root'+(OBSERVE?' t7-observer':'');
   ROOT.innerHTML=T7_HTML;
   (container||document.body).appendChild(ROOT);
   alive=true;
@@ -1647,8 +1777,9 @@ function mount(container,opts){
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
   if(opts.text){ var p=document.getElementById('t7-start-text'); if(p)p.textContent=opts.text; }
   bindButtons();
-  bindControls();
+  if(!OBSERVE) bindControls();
   bootScene();
+  applyStage();
   return ROOT;
 }
 
@@ -1662,8 +1793,11 @@ function unmount(){
   scene=null; camera=null; clock=null; booted=false;
   if(ROOT&&ROOT.parentNode) ROOT.parentNode.removeChild(ROOT);
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
-  onFinishCb=null;
+  onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
+  MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
 }
 
-return {mount:mount, unmount:unmount, version:VER};
+return {mount:mount, unmount:unmount, version:VER,
+  setStage:setStage, setHint:setHint, setProgress:setProgress, setRunnerName:setRunnerName,
+  mode:function(){ return MODE; }, stage:function(){ return STAGE; }};
 })();
