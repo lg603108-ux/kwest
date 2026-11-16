@@ -86,6 +86,12 @@
   font-family:inherit;font-size:14px;font-weight:700}
 .t7-primary[disabled]{opacity:.45}
 
+/* ——— смена бегуна ——— */
+.t7-change-title{margin:0 0 12px;font-size:26px;letter-spacing:.16em;color:#30e5dc;
+  animation:t7changePulse 1.4s ease-in-out infinite}
+@keyframes t7changePulse{0%,100%{opacity:1}50%{opacity:.45}}
+#t7-change-name{margin:0 0 6px;font-size:18px;color:#eaffff}
+
 /* ——— переключатель вида ——— */
 #t7-topview{position:absolute;right:max(8px,env(safe-area-inset-right));top:66px;z-index:8;
   -webkit-appearance:none;appearance:none;min-height:42px;padding:8px 14px;border-radius:10px;

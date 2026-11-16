@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0321a">
+<link rel="stylesheet" href="task07.css?v=0322a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0321a">
+<body data-build="0322a">
 <div id="app">
 
 <header id="topbar">
@@ -258,7 +258,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task05.js?v=0311t"></script>
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
-<script src="task07.js?v=0321a"></script>
+<script src="task07.js?v=0322a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -351,6 +351,15 @@ function setStage07(s){try{t7ref().child('stage').set(s);}catch(e){}}
 function publishHint07(h){try{t7ref().child('hint').update({text:String(h.text||''),kind:String(h.kind||'hazard'),at:Date.now()});}catch(e){}}
 function publishProgress07(p){try{t7ref().child('progress').set(Math.max(0,Math.min(100,Math.round(p||0))));}catch(e){}}
 if(r.state.phase==='task07'){
+// Смена бегуна: время хода вышло — очередь двигает устройство капитана.
+var n07=t7node();
+if(n07.stage==='change'&&cap()){
+  var bumpKey=String((n07.result&&n07.result.at)||0);
+  if(window.__t7bumpKey!==bumpKey){
+    window.__t7bumpKey=bumpKey;
+    try{t7ref().child('round').set((n07.round||0)+1);}catch(e){}
+  }
+}
 var el7=document.getElementById('task07-mount');
 if(!el7){toastMsg('Контейнер задания 7 не найден');return;}
 if(!window.Task07){
@@ -360,11 +369,15 @@ mounted07=true;el7.classList.add('active');document.body.dataset.screen='task07'
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 var mv=document.getElementById('movie');if(mv){try{mv.pause();}catch(e){}}
 var isRun=(t7runnerUid()===NET.uid);
+var rnd07=+(t7node().round||0), seg07=((rnd07%2)===0)?'A':'B';
+window.__t7mountedSeg=seg07; window.__t7mountedMode=isRun?'runner':'observer';
 try{
 Task07.mount(el7,{
 mode:isRun?'runner':'observer',
 role:isRun?'runner':t7role(),
 stage:t7node().stage||'intro',
+segment:seg07,
+round:rnd07,
 progress:+(t7node().progress||0),
 isCaptain:cap(),
 runnerName:t7runnerName(),
@@ -375,6 +388,15 @@ onFinish:report07
 });
 }catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
 }else{
+// смена бегуна или отрезка: роль и отрезок у устройства меняются — перемонтируем
+var rndNow=+(t7node().round||0), segNow=((rndNow%2)===0)?'A':'B';
+var modeNow=(t7runnerUid()===NET.uid)?'runner':'observer';
+if(window.__t7mountedSeg!==segNow||window.__t7mountedMode!==modeNow){
+mounted07=false;
+try{Task07.unmount();}catch(e){}
+tryMount();
+return;
+}
 // модуль уже смонтирован: догоняем состояние комнаты
 try{
 Task07.setStage(t7node().stage||'intro');
@@ -386,7 +408,7 @@ Task07.setRunnerName(t7runnerName());
 }
 }
 if(r.state.phase!=='task07'&&mounted07){
-mounted07=false;window.__t7hintAt=0;
+mounted07=false;window.__t7hintAt=0;window.__t7mountedSeg=null;window.__t7mountedMode=null;window.__t7bumpKey=null;
 if(window.Task07){try{Task07.unmount();}catch(e){}}
 var el7b=document.getElementById('task07-mount');
 if(el7b){el7b.classList.remove('active');el7b.innerHTML='';}
@@ -398,7 +420,7 @@ try{
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.child('result').set({energy:data.energy|0,integrity:data.integrity|0,
 passed:data.passed|0,failed:data.failed|0,at:Date.now()});
-ref.child('stage').set('done');
+ref.child('stage').set('change');
 }catch(e){}
 }
 function addContinueButton(){
