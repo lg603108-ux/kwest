@@ -104,11 +104,31 @@
   #t7-damage .t7-dmg-val{font-size:28px}
 }
 
-/* ——— контейнер модуля в общей странице и карточка наблюдателя ——— */
-#task07-mount{position:relative}
-.t7-obs{position:fixed;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:10px;padding:24px;text-align:center;
+/* ——— контейнер модуля в общей странице: как у заданий 2–6 ——— */
+#task07-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
+#task07-mount.active{display:block}
+
+/* ——— видео-инструкция задания 7 ——— */
+#t7-intro{position:absolute;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%)}
-.t7-obs h1{margin:0;font-size:26px;color:#fff;font-weight:700}
-.t7-obs p{margin:0;max-width:640px;font-size:16px;line-height:1.45;color:#cfeaea}
-.t7-obs .t7-obs-eyebrow{font-size:11px;letter-spacing:.14em;color:#30e5dc}
+#t7-intro.hidden{display:none}
+.t7-intro-card{width:min(92vw,860px);gap:10px}
+#t7-intro-video{width:100%;max-height:58vh;border-radius:12px;background:#000;
+  border:1px solid rgba(190,245,245,.28)}
+
+/* ——— экран наблюдателя: своя роль, подсказки, вид сверху ——— */
+#t7-obs{position:absolute;inset:0;z-index:40;pointer-events:none}
+#t7-obs.hidden{display:none}
+.t7-obs-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));
+  display:flex;flex-direction:column;gap:2px;font-size:12px;letter-spacing:.06em;color:#9fd8d8}
+#t7-obs-role{color:#30e5dc;font-weight:700;font-size:13px}
+#t7-obs-hint{position:absolute;left:50%;top:16%;transform:translateX(-50%);
+  max-width:min(80vw,660px);padding:14px 22px;border-radius:12px;background:rgba(13,22,26,.92);
+  border:1px solid rgba(190,245,245,.3);color:#fff;font-size:22px;font-weight:700;text-align:center;
+  line-height:1.25}
+#t7-obs-hint.flash{animation:t7obsFlash .55s ease}
+@keyframes t7obsFlash{0%{background:rgba(48,229,220,.38)}100%{background:rgba(13,22,26,.92)}}
+.t7-obs-bottom{position:absolute;bottom:max(10px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  padding:6px 14px;border-radius:10px;background:rgba(13,22,26,.9);border:1px solid rgba(190,245,245,.25);
+  color:#9fd8d8;font-size:13px}
+.t7-observer #t7-controls,.t7-observer #t7-topview{display:none!important}

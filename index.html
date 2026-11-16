@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0319a">
+<link rel="stylesheet" href="task07.css?v=0319b">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0319a">
+<body data-build="0319b">
 <div id="app">
 
 <header id="topbar">
@@ -257,7 +257,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task04.js?v=0311s"></script>
 <script src="task05.js?v=0311t"></script>
 <script src="task06.js?v=0311ai"></script>
-<script src="task07.js?v=0319a"></script>
+<script src="vendor/three.min.js"></script>
+<script src="task07.js?v=0319b"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -329,23 +330,63 @@ mounted06=false;
 var el6b=document.getElementById('task06-mount');if(el6b)el6b.classList.remove('active');
 if(window.Task06){try{Task06.unmount();}catch(e){}}
 }
-// ——— задание 7: экран Бегуна (капитан) и карточка наблюдателя (остальные) ———
-if(r.state.phase==='task07'&&!mounted07){
+// ——— задание 7: экран Бегуна и экраны наблюдателей ———
+// Бегуны идут по очереди автоматически: первый — капитан (самый ранний по входу), далее по кругу.
+// Капитан никого не выбирает; роль капитана с ролью бегуна не связана.
+function t7node(){try{return (NET.room&&NET.room.tasks&&NET.room.tasks.task07)||{};}catch(e){return {};}}
+function t7online(){var r=NET.room;if(!r)return[];return Object.keys(r.players||{}).map(function(u){return [u,r.players[u]];})
+  .filter(function(e){return e[1]&&e[1].connected!==false;})
+  .sort(function(a,b){return (a[1].joinedAt||0)-(b[1].joinedAt||0);});}
+function t7runnerUid(){var list=t7online();if(!list.length)return null;
+  var rnd=(t7node().round||0);return list[rnd%list.length][0];}
+function t7runnerName(){var u=t7runnerUid();var r=NET.room;var p=(u&&r&&r.players)?r.players[u]:null;
+  return (p&&p.name)||'капитан';}
+// роль наблюдателя по порядку входа среди тех, кто не бежит: первый — опасности, второй — кристаллы
+function t7role(){var list=t7online().filter(function(e){return e[0]!==t7runnerUid();});
+  var me=-1;for(var i=0;i<list.length;i++)if(list[i][0]===NET.uid)me=i;
+  if(me<0)return 'all';if(list.length<=1)return 'all';
+  return me===0?'hazard':'crystal';}
+function t7ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');}
+function setStage07(s){try{t7ref().child('stage').set(s);}catch(e){}}
+function publishHint07(h){try{t7ref().child('hint').update({text:String(h.text||''),kind:String(h.kind||'hazard'),at:Date.now()});}catch(e){}}
+function publishProgress07(p){try{t7ref().child('progress').set(Math.max(0,Math.min(100,Math.round(p||0))));}catch(e){}}
+if(r.state.phase==='task07'){
 var el7=document.getElementById('task07-mount');
 if(!el7){toastMsg('Контейнер задания 7 не найден');return;}
+if(!window.Task07){
+if(!mounted07)toastMsg('Модуль задания 7 не загружен (task07.js)');
+}else if(!mounted07){
 mounted07=true;el7.classList.add('active');document.body.dataset.screen='task07';
-if(cap()){
-if(!window.Task07){toastMsg('Модуль задания 7 не загружен (task07.js)');}
-else{
-try{Task07.mount(el7,{onFinish:report07});toastMsg('Задание 7 запущено');}
-catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
-}
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+var mv=document.getElementById('movie');if(mv){try{mv.pause();}catch(e){}}
+var isRun=(t7runnerUid()===NET.uid);
+try{
+Task07.mount(el7,{
+mode:isRun?'runner':'observer',
+role:isRun?'runner':t7role(),
+stage:t7node().stage||'intro',
+progress:+(t7node().progress||0),
+isCaptain:cap(),
+runnerName:t7runnerName(),
+onHint:publishHint07,
+onProgress:publishProgress07,
+onStartRun:function(){setStage07('run');},
+onFinish:report07
+});
+}catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
 }else{
-renderObserver07(el7);
+// модуль уже смонтирован: догоняем состояние комнаты
+try{
+Task07.setStage(t7node().stage||'intro');
+var hh=t7node().hint;
+if(hh&&hh.text&&+(hh.at||0)>(window.__t7hintAt||0)){window.__t7hintAt=+hh.at;Task07.setHint(hh);}
+Task07.setProgress(+(t7node().progress||0));
+Task07.setRunnerName(t7runnerName());
+}catch(e){}
 }
 }
 if(r.state.phase!=='task07'&&mounted07){
-mounted07=false;
+mounted07=false;window.__t7hintAt=0;
 if(window.Task07){try{Task07.unmount();}catch(e){}}
 var el7b=document.getElementById('task07-mount');
 if(el7b){el7b.classList.remove('active');el7b.innerHTML='';}
@@ -357,26 +398,8 @@ try{
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.child('result').set({energy:data.energy|0,integrity:data.integrity|0,
 passed:data.passed|0,failed:data.failed|0,at:Date.now()});
-ref.child('done').set(true);
+ref.child('stage').set('done');
 }catch(e){}
-}
-// Карточка наблюдателя: пока без подсказок, они добавляются следующим шагом.
-function renderObserver07(el7){
-var r=NET.room||{};var t=(r.tasks&&r.tasks.task07)||{};
-var runner=(r.players&&t.runnerUid&&r.players[t.runnerUid])||null;
-var res=t.result||null;
-var name=(runner&&runner.name)?runner.name:'капитан';
-var h='<div class="t7-obs">';
-h+='<p class="t7-obs-eyebrow">ЗАДАНИЕ 7 · ПРОРЫВ К ЛАБОРАТОРИИ</p>';
-h+='<h1>Бегун: '+name+'</h1>';
-if(res){
-h+='<p>Маршрут пройден. Корпус капсулы: '+res.integrity+'%. Энергия: '+res.energy+
-'%. Успешных действий: '+res.passed+', ошибок: '+res.failed+'.</p>';
-}else{
-h+='<p>Бегун проходит маршрут: улица, провал, тоннель. Смотрите на его экран и подсказывайте голосом.</p>';
-}
-h+='</div>';
-el7.innerHTML=h;
 }
 function addContinueButton(){
 if(!ready())return;
@@ -511,8 +534,10 @@ if(!cap()||btn.disabled)return;
 btn.disabled=true;
 toastMsg('Переводим команду в задание 7…');
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
-ref.update({stage:'run',startsAt:Date.now()+1500,runnerUid:NET.uid,done:false,round:0})
+ref.update({stage:'intro',startsAt:Date.now()+1500,round:0})
 .then(function(){return ref.child('result').remove();})
+.then(function(){return ref.child('hint').remove();})
+.then(function(){return ref.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',Date.now()+1500);})
 .then(function(){setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);})
 .catch(function(e){btn.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
@@ -583,10 +608,12 @@ if(a==='t6b'&&cap()){t6ref().update({stage:'order',watched:true,playing:false,pa
 if(a==='j7'&&cap()){
 silenceAll();
 var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
-r7.update({stage:'run',startsAt:now+800,runnerUid:NET.uid,done:false,round:0})
+r7.update({stage:'intro',startsAt:now+800,round:0})
 .then(function(){return r7.child('result').remove();})
+.then(function(){return r7.child('hint').remove();})
+.then(function(){return r7.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',now+800);})
-.catch(function(e){err('Правила базы пока не разрешают этап задания 7: '+(e&&e.message||e));});
+.catch(function(e){err('Не удалось перейти к заданию 7 (проверьте правила базы): '+(e&&e.message||e));});
 }
 });
 setInterval(refresh,500);
