@@ -5,6 +5,7 @@
 @font-face{font-family:'QuestSans';src:url('assets/fonts/DejaVuSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
 
 .t7-root,.t7-root *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.t7-root .hidden{display:none!important}
 .t7-root{position:fixed;inset:0;overflow:hidden;background:#070d0f;color:#fff;
   font-family:'QuestSans',Arial,sans-serif;overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;touch-action:none}
@@ -108,27 +109,30 @@
 #task07-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
 #task07-mount.active{display:block}
 
-/* ——— видео-инструкция задания 7 ——— */
-#t7-intro{position:absolute;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%)}
+/* ——— видео-инструкция задания 7: во весь экран, как в заданиях 2–6 ——— */
+#t7-intro{position:absolute;inset:0;z-index:70;background:#000;overflow:hidden}
 #t7-intro.hidden{display:none}
-.t7-intro-card{width:min(92vw,860px);gap:10px}
-#t7-intro-video{width:100%;max-height:58vh;border-radius:12px;background:#000;
-  border:1px solid rgba(190,245,245,.28)}
+#t7-intro-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#t7-intro-next{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:72;min-width:min(320px,72vw);font-size:18px}
+#t7-intro-note{position:absolute;left:50%;bottom:max(80px,calc(env(safe-area-inset-bottom) + 62px));
+  transform:translateX(-50%);z-index:72;margin:0;color:#9fd8d8;font-size:13px;text-align:center;max-width:86vw}
 
-/* ——— экран наблюдателя: своя роль, подсказки, вид сверху ——— */
+/* ——— экран наблюдателя: роль, подсказки, вид сверху ——— */
 #t7-obs{position:absolute;inset:0;z-index:40;pointer-events:none}
 #t7-obs.hidden{display:none}
-.t7-obs-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));
+.t7-obs-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));
   display:flex;flex-direction:column;gap:2px;font-size:12px;letter-spacing:.06em;color:#9fd8d8}
-#t7-obs-role{color:#30e5dc;font-weight:700;font-size:13px}
-#t7-obs-hint{position:absolute;left:50%;top:16%;transform:translateX(-50%);
-  max-width:min(80vw,660px);padding:14px 22px;border-radius:12px;background:rgba(13,22,26,.92);
-  border:1px solid rgba(190,245,245,.3);color:#fff;font-size:22px;font-weight:700;text-align:center;
-  line-height:1.25}
-#t7-obs-hint.flash{animation:t7obsFlash .55s ease}
-@keyframes t7obsFlash{0%{background:rgba(48,229,220,.38)}100%{background:rgba(13,22,26,.92)}}
+.t7-obs-role{color:#30e5dc;font-weight:700;font-size:14px;letter-spacing:.12em}
+.t7-obs-remind{color:#9fd8d8;font-size:12px;max-width:min(70vw,420px)}
+#t7-obs-hint{position:absolute;left:50%;top:12%;transform:translateX(-50%);
+  max-width:min(86vw,760px);padding:16px 26px;border-radius:12px;background:rgba(0,0,0,.94);
+  border:1px solid rgba(48,229,220,.55);color:#30e5dc;font-size:24px;font-weight:700;
+  letter-spacing:.04em;text-align:center;line-height:1.22;text-transform:uppercase}
+#t7-obs-hint.hidden{display:none}
+#t7-obs-hint.flash{animation:t7obsFlash .6s ease}
+@keyframes t7obsFlash{0%{background:rgba(48,229,220,.30)}100%{background:rgba(0,0,0,.94)}}
 .t7-obs-bottom{position:absolute;bottom:max(10px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
   padding:6px 14px;border-radius:10px;background:rgba(13,22,26,.9);border:1px solid rgba(190,245,245,.25);
   color:#9fd8d8;font-size:13px}
-.t7-observer #t7-controls,.t7-observer #t7-topview{display:none!important}
+.t7-observer #t7-hud,.t7-observer #t7-controls,.t7-observer #t7-topview{display:none!important}

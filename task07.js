@@ -1,5 +1,5 @@
 /* task07.js — задание 7 «Прорыв к лаборатории», экран Бегуна (модуль общего квеста).
-   Версия 0319b. Подключается как window.Task07: mount(container) / unmount().
+   Версия 0319c. Подключается как window.Task07: mount(container) / unmount().
    Отдельная страница task07demo.html монтирует этот же модуль для быстрой проверки.
 
    Новая архитектура (после отказа от 0317a): НЕ одна лента дороги, а отдельные участки.
@@ -14,12 +14,12 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0319b';
+var VER='0319c';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
 // режим работы модуля: 'runner' — экран Бегуна, 'observer' — экран наблюдателя (вид сверху и подсказки)
-var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, ISCAP=false;
+var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0, ISCAP=false;
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
 var introV=null, introDone=false;
 
@@ -51,25 +51,26 @@ var T7_HTML='<div id="t7-stage">'+
 '<div id="t7-flash"></div>'+
 '<div id="t7-start" class="t7-screen">'+
 '<div class="t7-card">'+
-'<h1 id="t7-start-title">Прорыв к лаборатории</h1>'+
-'<p id="t7-start-text">Улица, провал и тоннель под землёй: падающие обломки, балка, кристаллы. Перепрыгнете провал — бежите дальше; не перепрыгнете — упадёте вниз и выйдете через тоннель.</p>'+
+'<h1 id="t7-start-title">Ты Бегун</h1>'+
+'<p id="t7-start-text">В руках капсула. Беги вперёд: перепрыгни провал, пригнись под балкой, уйди в сторону от обломков и собирай кристаллы. Наблюдатели подскажут, что впереди.</p>'+
 '<p class="t7-hint">Управление: кнопки внизу или свайпы по экрану. Свайп вверх — прыжок, вниз — пригнуться, влево или вправо — уйти в сторону.</p>'+
-'<button type="button" id="t7-play" class="t7-primary">Начать</button>'+
+'<button type="button" id="t7-play" class="t7-primary">Начать бег</button>'+
 '<button type="button" id="t7-full" class="t7-second">Во весь экран</button>'+
 '<p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>'+
 '</div>'+
 '</div>'+
-'<div id="t7-intro" class="t7-screen hidden">'+
-'<div class="t7-card t7-intro-card">'+
-'<h1>Прорыв к лаборатории</h1>'+
+'<div id="t7-intro" class="hidden">'+
 '<video id="t7-intro-video" playsinline preload="auto" src="assets/v07_intro.mp4"></video>'+
-'<button type="button" id="t7-intro-next" class="t7-primary hidden">Начать бег</button>'+
+'<button type="button" id="t7-intro-next" class="t7-primary hidden">Продолжить →</button>'+
 '<p class="t7-note" id="t7-intro-note">Инструкция…</p>'+
 '</div>'+
-'</div>'+
 '<div id="t7-obs" class="hidden">'+
-'<div class="t7-obs-top"><span id="t7-obs-role">НАБЛЮДАТЕЛЬ</span><span id="t7-obs-runner">Бегун: —</span></div>'+
-'<div id="t7-obs-hint">Ждём подсказку…</div>'+
+'<div class="t7-obs-top">'+
+'<span class="t7-obs-role">НАБЛЮДАТЕЛЬ</span>'+
+'<span id="t7-obs-runner">Бегун: —</span>'+
+'<span class="t7-obs-remind">Подсказывайте голосом: что впереди и что делать</span>'+
+'</div>'+
+'<div id="t7-obs-hint" class="hidden"></div>'+
 '<div class="t7-obs-bottom"><span id="t7-obs-progress">Путь: 0%</span></div>'+
 '</div>'+
 '<div id="t7-end" class="t7-screen hidden">'+
@@ -353,23 +354,27 @@ function showIntro(){
   box.classList.remove('hidden');
   if(el.start) el.start.classList.add('hidden');
   var next=shadow('t7-intro-next'), n=shadow('t7-intro-note');
+  if(!introV) introV=box.querySelector('#t7-intro-video');
   if(next){
-    // «Начать бег» видит только Бегун: остальные ждут его
-    next.classList.toggle('hidden',MODE!=='runner');
-    next.textContent='Начать бег';
+    next.classList.add('hidden');        // «Продолжить» появляется в конце видео и только у Бегуна
+    next.disabled=false;
     next.onclick=function(){
-      next.disabled=true;
+      if(MODE!=='runner') return;
+      next.disabled=true; next.classList.add('hidden');
       stopIntroVideo();
       if(ONSTART){ try{ ONSTART(); }catch(e){} }
       STAGE='run'; applyStage();
-      if(MODE==='runner'){ start(); }
+      start();
     };
   }
-  if(n) n.textContent=MODE==='runner'?'Смотрите инструкцию, затем нажмите «Начать бег».':'Смотрите инструкцию. Бегун начнёт движение сам.';
-  if(!introV && box.querySelector('#t7-intro-video')) introV=box.querySelector('#t7-intro-video');
+  if(n) n.textContent=MODE==='runner'?'Кнопка «Продолжить» появится в конце видео.':'Инструкция. Дальше начнёт Бегун.';
   if(introV){
-    introV.muted=!ISCAP;                  // звук инструкции только у капитана
-    introV.currentTime=0;
+    introV.muted=!ISCAP;                 // звук инструкции только у капитана
+    try{ introV.currentTime=0; }catch(e){}
+    introV.onended=function(){
+      if(MODE==='runner'&&next){ next.classList.remove('hidden'); }
+      if(n) n.textContent=MODE==='runner'?'Нажмите «Продолжить», чтобы начать бег.':'Ждём, когда Бегун начнёт бег.';
+    };
     var p=introV.play();
     if(p&&p['catch']) p['catch'](function(){
       if(n) n.textContent='Коснитесь экрана, чтобы включить инструкцию.';
@@ -394,37 +399,45 @@ function applyStage(){
 function showObserver(){
   var ov=shadow('t7-obs'); if(!ov) return;
   ov.classList.remove('hidden');
-  var rr=shadow('t7-obs-role'), rn=shadow('t7-obs-runner'), pr=shadow('t7-obs-progress');
-  if(rr) rr.textContent=ROLE==='crystal'?'ВАША РОЛЬ: КРИСТАЛЛЫ':(ROLE==='hazard'?'ВАША РОЛЬ: ОПАСНОСТИ':'ВАША РОЛЬ: ПОДСКАЗКИ');
+  var rn=shadow('t7-obs-runner'), pr=shadow('t7-obs-progress');
   if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
   if(pr) pr.textContent='Путь: '+Math.round(PROG)+'%';
 }
 var OBS_RUNNER_NAME='';
 function hideRunnerUI(){
-  ['t7-controls','t7-topview','t7-start','t7-end'].forEach(function(id){
+  ['t7-hud','t7-controls','t7-topview','t7-start','t7-end'].forEach(function(id){
     var n=document.getElementById(id); if(n) n.classList.add('hidden');
   });
-  var t=document.getElementById('t7-time'); if(t&&t.parentNode) t.parentNode.style.display='none';
-  var en=document.getElementById('t7-energy'); if(en&&en.parentNode) en.parentNode.style.display='none';
-  var it=document.getElementById('t7-integrity'); if(it&&it.parentNode) it.parentNode.style.display='none';
   if(capPlane) capPlane.visible=false;
 }
 // Внешние вызовы от общего модуля
-function setStage(s){ if(!s||s===STAGE) return; STAGE=s; applyStage(); }
+function setStage(s){
+  if(!s||s===STAGE) return;
+  STAGE=s; applyStage();
+}
 function setHint(h){
-  var box=shadow('t7-obs-hint'); if(!box||!h) return;
-  box.textContent=h.text||'';
+  var box=shadow('t7-obs-hint'); if(!box||!h||!h.text) return;
+  box.textContent=String(h.text).toUpperCase();
+  box.classList.remove('hidden');
   box.classList.remove('flash');
   void box.offsetWidth;
   box.classList.add('flash');
 }
-function setProgress(p){ PROG=Math.max(0,Math.min(100,p||0)); var pr=shadow('t7-obs-progress'); if(pr) pr.textContent='Путь: '+Math.round(PROG)+'%'; }
+function setProgress(p){
+  PROG_T=Math.max(0,Math.min(100,p||0));
+  var pr=shadow('t7-obs-progress');
+  if(pr) pr.textContent='Путь: '+Math.round(PROG_T)+'%';
+  if(OBSERVE&&PROG_T>=99){
+    var box=shadow('t7-obs-hint');
+    if(box){ box.textContent='МАРШРУТ ПРОЙДЕН'; box.classList.remove('hidden'); }
+  }
+}
 function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—'); }
 
-// Бегун сообщает общему модулю текущую подсказку и процент пути (координаты не передаются)
+// Бегун сообщает общему модулю подсказку и процент пути (координаты не передаются)
 function emitHint(text,kind){
   if(OBSERVE||!ONHINT) return;
-  try{ ONHINT({text:text,kind:kind||'hazard'}); }catch(e){}
+  try{ ONHINT({text:String(text||'').toUpperCase(),kind:kind||'hazard'}); }catch(e){}
 }
 
 // ——— улица: дорога, тротуары, дома, деревья, фонари, дальний план ———
@@ -557,6 +570,22 @@ function buildStreet(){
     ch.position.set((rb2()-0.5)*ROAD_W*0.96,size*0.2,-10-rb2()*280);
     ch.rotation.set(rb2()*0.5,rb2()*3,rb2()*0.4);
     scene.add(ch);
+  }
+
+  // финишные ворота: светящаяся арка, чтобы маршрут не обрывался в пустоту
+  var gateZ=Z_END+8;
+  var gateMat=new THREE.MeshLambertMaterial({color:0x2c3c40});
+  [-1,1].forEach(function(s){
+    var pil=new THREE.Mesh(new THREE.BoxGeometry(1.3,7.5,1.3),gateMat);
+    pil.position.set(s*(ROAD_W/2-1.4),3.75,gateZ); scene.add(pil);
+  });
+  var lintel=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W-1.6,1.2,1.3),gateMat);
+  lintel.position.set(0,7.6,gateZ); scene.add(lintel);
+  for(var gi=0;gi<4;gi++){
+    var gg=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x7ff6ea,
+      transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+    gg.scale.set(7,7,1);
+    gg.position.set(-ROAD_W/2+1.6+gi*(ROAD_W-3.2)/3,4.2,gateZ); scene.add(gg);
   }
 
   // дальний план: плотная дымка и силуэт домов вместо фотографии
@@ -1030,19 +1059,19 @@ function buildEvents(){
   // улица 1
   addCrystal(-20,'center',true,0);                       // высоко — только прыжком
   addBeam(-30);
-  events.push({z:-30,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
+  events.push({z:-30,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
   addCrystal(-44,'left',false,0);                        // слева — манёвр влево
-  addDebris(-58,0,9,'left','Обломки сверху — уходите влево!');
+  addDebris(-58,0,9,'left','Обломки сверху — уходите влево');
   addCrystal(-78,'right',false,0);                       // справа — манёвр вправо
-  addDebris(-92,0,9,'right','Обломки сверху — уходите вправо!');
-  events.push({z:Z_PIT_EDGE+1,type:'pit',need:'jump',text:'Провал! Прыжок',done:false,warned:false});
+  addDebris(-92,0,9,'right','Обломки сверху — уходите вправо');
+  events.push({z:Z_PIT_EDGE+1,type:'pit',need:'jump',text:'Впереди провал — перепрыгнуть',done:false,warned:false});
   // улица 2
-  addDebris(-232,0,9,'left','Обломки сверху — уходите влево!');
+  addDebris(-232,0,9,'left','Обломки сверху — уходите влево');
   addCrystal(-246,'left',false,0);
   addCrystal(-256,'center',true,0);                      // высоко — только прыжком
   addBeam(-262);
-  events.push({z:-262,type:'beam',need:'duck',text:'Низкая балка!',done:false,warned:false});
-  addDebris(-282,0,9,'right','Обломки сверху — уходите вправо!');
+  events.push({z:-262,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
+  addDebris(-282,0,9,'right','Обломки сверху — уходите вправо');
 }
 
 // при повреждении на пути появляется кристалл
@@ -1065,10 +1094,26 @@ function ensureHealCrystal(){
 function buildTunnelEvents(){
   if(tunnelEventsDone)return;
   tunnelEventsDone=true;
-  events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Труба над головой!',done:false,warned:false});
-  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево!',1.2,0.45);
+  events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Впереди труба — пригнуться',done:false,warned:false});
+  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево',1.2,0.45);
   addCrystal(TUN.z0-52,'right',false,TUN.y);
-  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо!',1.2,-0.45);
+  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо',1.2,-0.45);
+}
+
+// Метки для вида сверху: где провал, балка, обломки и кристаллы (только для наблюдателя)
+function addObserverMarkers(){
+  var ringMat=new THREE.MeshBasicMaterial({color:0x35e8dc,transparent:true,opacity:0.75,
+    side:THREE.DoubleSide,depthWrite:false});
+  events.forEach(function(e){
+    var m=new THREE.Mesh(new THREE.RingGeometry(2.4,3.4,22),ringMat);
+    m.rotation.x=-Math.PI/2; m.position.set(0,0.16,e.z); scene.add(m);
+  });
+  crystals.forEach(function(c){
+    var m=new THREE.Mesh(new THREE.RingGeometry(1.0,1.7,18),ringMat);
+    m.rotation.x=-Math.PI/2;
+    m.position.set(c.x,(c.yBase!==undefined?c.yBase:1.2)+0.1,c.z);
+    scene.add(m);
+  });
 }
 
 // ——— разлёт мелких обломков ———
@@ -1432,7 +1477,7 @@ function step(dt){
 
   if(phase==='street1'){
     var dz=RUN_SPEED*dt; sZ-=dz; travelled+=dz;
-    if(!pitWarned&&travelled>104){ pitWarned=true; }
+    if(!pitWarned&&travelled>88){ pitWarned=true; emitHint('Впереди провал — перепрыгнуть','hazard'); }
     if(travelled>=126){ pitWarned=false; resolvePit(); }
   } else if(phase==='trip'){
     var k=Math.min(1,phaseT/TRIP_D);
@@ -1464,7 +1509,7 @@ function step(dt){
   events.forEach(function(e){
     if(e.type==='pit')return;
     var dist=Math.abs(sZ-e.z);
-    if(!e.warned&&sZ-e.z<22&&sZ-e.z>-1){ e.warned=true;
+    if(!e.warned&&sZ-e.z<34&&sZ-e.z>-1){ e.warned=true;
       emitHint(e.text||'Опасность впереди','hazard'); }
     if(!e.done&&sZ<=e.z){ e.done=true; judge(e); }
     // падающие обломки
@@ -1489,8 +1534,8 @@ function step(dt){
     c.grp.rotation.y+=dt*1.35;
     c.bob+=dt*2;
     c.grp.position.y=c.yBase+Math.sin(c.bob)*0.13;
-    // подсказка наблюдателям заранее, за 18–45 м до кристалла
-    if(!c.hinted&&(sZ-c.z)>18&&(sZ-c.z)<45){
+    // подсказка наблюдателям заранее, за 26–58 м до кристалла
+    if(!c.hinted&&(sZ-c.z)>26&&(sZ-c.z)<58){
       c.hinted=true;
       emitHint('Кристалл '+(c.side==='left'?'слева':(c.side==='right'?'справа':'сверху'))+
         (c.high?' — прыжок':''),'crystal');
@@ -1582,13 +1627,14 @@ function tick(){
   renderer.render(scene,camera);
 }
 
-// Экран наблюдателя: улица сверху, камера ведёт вдоль маршрута по проценту пути Бегуна.
+// Экран наблюдателя: улица сверху, камера едет вдоль маршрута по проценту пути Бегуна.
 function observeStep(dt){
   obsT+=dt;
+  PROG+=(PROG_T-PROG)*Math.min(1,dt*1.2);
   var z=Z_START-(Z_START-Z_END)*(PROG/100);
-  camera.position.set(3.2*Math.sin(obsT*0.18),34,z+16);
-  camera.lookAt(0,0,z-8);
-  if(scene.fog) scene.fog.density=0.010;
+  camera.position.set(0,62,z+16);
+  camera.lookAt(0,0,z-12);
+  if(scene.fog) scene.fog.density=0.0035;
 }
 
 // ——— полноэкранный режим и горизонтальная ориентация ———
@@ -1732,8 +1778,8 @@ function bootScene(){
   loadAll(function(){
     build();
     buildEvents();
+    if(OBSERVE){ addObserverMarkers(); hideRunnerUI(); }
     updateHud();
-    if(OBSERVE) hideRunnerUI();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
     tick();
