@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0322a';
+var VER='0322b';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -347,7 +347,7 @@ function loadAll(cb){
 }
 
 // ——— построение мира ———
-function build(withStreet){
+function build(){
   scene=new THREE.Scene();
   scene.background=new THREE.Color(0x46545c);
   scene.fog=new THREE.FogExp2(0x3b4a52,0.017);
@@ -365,7 +365,8 @@ function build(withStreet){
 
   GLOW=glowTexture(); MIST=mistTexture();
 
-  if(withStreet!==false){ buildStreet(); buildPit(); }
+  buildStreet();
+  buildPit();
   placeCapsule();
 }
 
@@ -1985,341 +1986,11 @@ function step(dt){
   }
 }
 
-
-// ——— ОТРЕЗОК Б: поворот с боковой улицы → мост по референсу → спуск к тоннелю ———
-// Строится отдельной частью города (x ≈ 420), чтобы не мешать первому отрезку.
-function ribbonGeometry(curve,width,segs){
-  var pos=[],uv=[],idx=[];
-  for(var i=0;i<=segs;i++){
-    var t=i/segs, p=curve.getPointAt(t), tg=curve.getTangentAt(t);
-    var side=new THREE.Vector3(-tg.z,0,tg.x).normalize();
-    var l=p.clone().addScaledVector(side,-width/2);
-    var r=p.clone().addScaledVector(side,width/2);
-    pos.push(l.x,l.y,l.z, r.x,r.y,r.z);
-    uv.push(0,t*46, 1,t*46);
-    if(i<segs){ var a=i*2,b=i*2+1,c=i*2+2,d=i*2+3; idx.push(a,c,b, b,c,d); }
-  }
-  var g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
-  g.setIndex(idx); g.computeVertexNormals();
-  return g;
-}
-function bandGeometry(curve,offset,y0,y1,segs){
-  var pos=[],uv=[],idx=[];
-  for(var i=0;i<=segs;i++){
-    var t=i/segs, p=curve.getPointAt(t), tg=curve.getTangentAt(t);
-    var side=new THREE.Vector3(-tg.z,0,tg.x).normalize();
-    var q=p.clone().addScaledVector(side,offset);
-    pos.push(q.x,q.y+y0,q.z, q.x,q.y+y1,q.z);
-    uv.push(t*70,0, t*70,1);
-    if(i<segs){ var a=i*2,b=i*2+1,c=i*2+2,d=i*2+3; idx.push(a,c,b, b,c,d); }
-  }
-  var g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
-  g.setIndex(idx); g.computeVertexNormals();
-  return g;
-}
-
-function buildSegmentB(){
-  if(RB.built) return;
-  RB.built=true;
-  if(!ASPHALT_TEX) ASPHALT_TEX=asphaltTexture();
-  if(scene.fog) scene.fog.density=0.0090;
-
-  var cx=420;
-  RB.curve=new THREE.CatmullRomCurve3([
-    new THREE.Vector3(cx+40,6.0,74),
-    new THREE.Vector3(cx+12,6.0,34),
-    new THREE.Vector3(cx,6.0,-8),
-    new THREE.Vector3(cx,6.0,-72),
-    new THREE.Vector3(cx,6.0,-140),
-    new THREE.Vector3(cx,5.4,-172),
-    new THREE.Vector3(cx,2.4,-196),
-    new THREE.Vector3(cx,0.3,-214)
-  ],false,'catmullrom',0.15);
-  RB.len=RB.curve.getLength();
-  var r=rnd(4242);
-
-  // земля под эстакадой
-  var ground=new THREE.Mesh(new THREE.PlaneGeometry(560,560),
-    new THREE.MeshLambertMaterial({color:0x1e2629}));
-  ground.rotation.x=-Math.PI/2; ground.position.set(cx,-0.3,-70); scene.add(ground);
-
-  // настил моста
-  var deckMap=ASPHALT_TEX?ASPHALT_TEX.clone():null;
-  if(deckMap){ deckMap.needsUpdate=true; deckMap.wrapS=deckMap.wrapT=THREE.RepeatWrapping; deckMap.repeat.set(2.4,46); }
-  var deckMat=deckMap?new THREE.MeshPhongMaterial({map:deckMap,color:0x59646a,shininess:70,specular:0x6f8f96,side:THREE.DoubleSide})
-                     :new THREE.MeshPhongMaterial({color:0x5d686c,side:THREE.DoubleSide});
-  scene.add(new THREE.Mesh(ribbonGeometry(RB.curve,ROAD_W+2*WALK,220),deckMat));
-
-  // опоры эстакады
-  var pierMat=TEX.concrete?new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x707a7d})
-                          :new THREE.MeshLambertMaterial({color:0x5d6669});
-  for(var i=1;i<=10;i++){
-    var t=i/11, p=RB.curve.getPointAt(t), tg=RB.curve.getTangentAt(t);
-    var side=new THREE.Vector3(-tg.z,0,tg.x).normalize();
-    [-1,1].forEach(function(sg){
-      var h=Math.max(0.8,p.y-0.5);
-      var pier=new THREE.Mesh(new THREE.BoxGeometry(2.8,h,2.4),pierMat);
-      pier.position.set(p.x+side.x*sg*(ROAD_W/2-1.6),h/2,p.z+side.z*sg*(ROAD_W/2-1.6));
-      scene.add(pier);
-    });
-  }
-
-  // перила и светящиеся бирюзовые полосы вдоль них
-  [-1,1].forEach(function(sg){
-    var off=sg*(ROAD_W/2+WALK-0.4);
-    scene.add(new THREE.Mesh(bandGeometry(RB.curve,off,0,0.95,140),
-      new THREE.MeshLambertMaterial({color:0x3f484b,side:THREE.DoubleSide})));
-    scene.add(new THREE.Mesh(bandGeometry(RB.curve,off,0.92,1.06,140),
-      new THREE.MeshBasicMaterial({color:0x35e8dc,transparent:true,opacity:0.95,side:THREE.DoubleSide,
-        blending:THREE.AdditiveBlending,depthWrite:false})));
-  });
-
-  // фонари с бирюзовым светом
-  for(var li=0;li<9;li++){
-    var t2=(li+0.5)/9, p2=RB.curve.getPointAt(t2), tg2=RB.curve.getTangentAt(t2);
-    var sd=new THREE.Vector3(-tg2.z,0,tg2.x).normalize();
-    var bx=p2.x+sd.x*(ROAD_W/2+2.4), bz=p2.z+sd.z*(ROAD_W/2+2.4);
-    var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.12,6.4,8),
-      new THREE.MeshLambertMaterial({color:0x2f383b}));
-    pole.position.set(bx,p2.y+3.2,bz); scene.add(pole);
-    var head=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.18,0.42),new THREE.MeshBasicMaterial({color:0xd8fbf6}));
-    head.position.set(bx-sd.x*1.0,p2.y+6.3,bz-sd.z*1.0); scene.add(head);
-    var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xbdf6f0,transparent:true,
-      opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
-    gl.scale.set(4.2,4.2,1); gl.position.copy(head.position); scene.add(gl);
-  }
-
-  // дома вокруг эстакады
-  var facades=[];
-  for(var fi=0;fi<A.facades.length;fi++) if(TEX['facade'+fi]) facades.push(TEX['facade'+fi]);
-  function bFacade(tex,wLen,hLen){
-    if(!tex) return new THREE.MeshLambertMaterial({color:0x424c51});
-    var t=tex.clone(); t.needsUpdate=true; t.wrapS=t.wrapT=THREE.RepeatWrapping;
-    var img=t.image||{width:1,height:1};
-    var tileH=5.6*(img.height/Math.max(1,img.width));
-    t.repeat.set(Math.max(1,wLen/5.6),Math.max(1,hLen/tileH));
-    t.anisotropy=8;
-    return new THREE.MeshLambertMaterial({map:t,color:0xa8b1b4});
-  }
-  for(var bi=0;bi<22;bi++){
-    var tb=0.04+(bi%11)*0.085+r()*0.02;
-    var pb=RB.curve.getPointAt(Math.min(1,tb)), tgb=RB.curve.getTangentAt(Math.min(1,tb));
-    var sdb=new THREE.Vector3(-tgb.z,0,tgb.x).normalize();
-    var sg=(bi%2===0)?-1:1;
-    var dist=27+r()*18;
-    var h=20+r()*26, w=16+r()*10, dp=14+r()*8;
-    var tex=facades.length?facades[Math.floor(r()*facades.length)]:null;
-    var mX=bFacade(tex,w,h), mZ=bFacade(tex,dp,h);
-    var top=new THREE.MeshLambertMaterial({color:0x3a444a});
-    var blk=new THREE.Mesh(new THREE.BoxGeometry(dp,h,w),[mX,mX,top,top,mZ,mZ]);
-    blk.position.set(pb.x+sdb.x*sg*dist,h/2,pb.z+sdb.z*sg*dist);
-    blk.rotation.y=Math.atan2(tgb.x,tgb.z);
-    scene.add(blk);
-  }
-
-  // светящиеся трещины на настиле
-  for(var ci=0;ci<18;ci++){
-    var tc=0.04+r()*0.9;
-    var pc=RB.curve.getPointAt(tc), tgc=RB.curve.getTangentAt(tc);
-    var cr=new THREE.Mesh(new THREE.PlaneGeometry(0.16+r()*0.16,2+r()*3.2),
-      new THREE.MeshBasicMaterial({color:0x5ff2e6,transparent:true,opacity:0.5,
-        blending:THREE.AdditiveBlending,depthWrite:false}));
-    cr.rotation.x=-Math.PI/2; cr.rotation.z=r()*3.14;
-    cr.position.set(pc.x+(r()-0.5)*ROAD_W*0.8,pc.y+0.03,pc.z+(r()-0.5)*10);
-    scene.add(cr);
-  }
-
-  // проём тоннеля в конце спуска
-  var pe=RB.curve.getPointAt(1), tge=RB.curve.getTangentAt(1);
-  var mouth=new THREE.Group();
-  var dark=new THREE.Mesh(new THREE.PlaneGeometry(9,5.2),new THREE.MeshBasicMaterial({color:0x04090a}));
-  dark.position.y=2.6; mouth.add(dark);
-  var frameMat=TEX.concrete?new THREE.MeshLambertMaterial({map:TEX.concrete,color:0x4b5558})
-                           :new THREE.MeshLambertMaterial({color:0x424c4f});
-  var lintel=new THREE.Mesh(new THREE.BoxGeometry(10.6,1.1,1.6),frameMat);
-  lintel.position.y=5.6; mouth.add(lintel);
-  [-1,1].forEach(function(sg){
-    var jamb=new THREE.Mesh(new THREE.BoxGeometry(1.2,5.4,1.6),frameMat);
-    jamb.position.set(sg*4.7,2.7,0); mouth.add(jamb);
-  });
-  var mGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x66f0e4,transparent:true,
-    opacity:0.35,depthWrite:false,blending:THREE.AdditiveBlending}));
-  mGlow.scale.set(7,7,1); mGlow.position.set(0,2.6,-0.6); mouth.add(mGlow);
-  mouth.position.copy(pe).addScaledVector(tge,-1.5);
-  mouth.rotation.y=Math.atan2(tge.x,tge.z);
-  scene.add(mouth);
-
-  // препятствия отрезка: падающие обломки и балки
-  bEvents=[
-    {t:0.30,type:'debris',need:'left',text:'Обломки сверху — уходите влево',done:false,warned:false},
-    {t:0.45,type:'beam',need:'duck',text:'Впереди балка — пригнуться',done:false,warned:false},
-    {t:0.63,type:'debris',need:'right',text:'Обломки сверху — уходите вправо',done:false,warned:false},
-    {t:0.79,type:'beam',need:'duck',text:'Впереди балка — пригнуться',done:false,warned:false}
-  ];
-  bEvents.forEach(function(e){
-    var p=RB.curve.getPointAt(e.t), tg=RB.curve.getTangentAt(e.t);
-    e.pos=p.clone(); e.tangent=tg.clone();
-    if(e.type==='beam'){
-      var bar=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W,0.75,0.9),
-        new THREE.MeshLambertMaterial({map:TEX.concrete||null,color:0x4b5457}));
-      bar.position.copy(p).add(new THREE.Vector3(0,2.1,0));
-      bar.rotation.y=Math.atan2(tg.x,tg.z);
-      scene.add(bar); e.mesh=bar;
-    }else{
-      var sz=2.2;
-      var m=new THREE.Mesh(new THREE.BoxGeometry(sz,sz*0.8,sz*0.9),
-        new THREE.MeshLambertMaterial({map:TEX.concrete||null,color:0x3d4447}));
-      m.position.copy(p).add(new THREE.Vector3(0,14,0));
-      m.visible=false; scene.add(m); e.mesh=m;
-    }
-  });
-}
-
-// ——— движение по отрезку Б ———
-function stepB(dt){
-  if(!running||finished){ phaseT+=dt; return; }
-  tRun+=dt; phaseT+=dt;
-  holdT=Math.max(0,holdT-dt);
-  if(holdT<=0) laneTarget=0;
-  bLane+=(laneTarget-bLane)*Math.min(1,dt*14);
-  jumpT=Math.max(0,jumpT-dt);
-  duckT=Math.max(0,duckT-dt);
-  bJump=(jumpT>0)?Math.sin(Math.PI*(1-jumpT/JUMP_D))*1.4:0;
-  bDuck=(duckT>0)?0.95:0;
-
-  var dz=B_SPEED*dt; travelled+=dz; bT+=dz/RB.len;
-  if(bT>=1){ bT=1; finishB(); return; }
-
-  bEvents.forEach(function(e){
-    var d=e.t*RB.len;
-    if(!e.warned&&travelled>d-32&&travelled<d){ e.warned=true; emitHint(e.text,'hazard'); }
-    if(!e.done&&travelled>=d){ e.done=true; judgeB(e); }
-    if(e.mesh&&e.type==='debris'){
-      var ahead=d-travelled;
-      if(ahead>22||ahead<-4){ e.mesh.visible=false; }
-      else{
-        e.mesh.visible=true;
-        var k=Math.max(0,Math.min(1,(22-ahead)/22));
-        e.mesh.position.copy(e.pos).add(new THREE.Vector3(0,14*(1-k*k),0));
-        e.mesh.rotation.y+=dt*2.2;
-      }
-    }
-  });
-
-  if(tRun>=DURATION){ finishB(); return; }
-  hideDamageIfDue();
-  updateHud();
-  if(ONPROG&&(tRun-lastProgAt)>1){
-    lastProgAt=tRun;
-    try{ ONPROG(Math.min(100,Math.round(bT*100))); }catch(e){}
-  }
-}
-
-function judgeB(e){
-  var ok=false;
-  if(e.need==='duck') ok=(duckT>0);
-  else if(e.need==='left') ok=(bLane<-0.55);
-  else if(e.need==='right') ok=(bLane>0.55);
-  if(ok){ passed++; flash('ok'); playSfx('dodge'); }
-  else{
-    failed++; integrity=Math.max(0,integrity-15); energy=Math.max(0,energy-10);
-    shake=2.4; flash('hit'); playSfx('hit'); showDamage(integrity);
-    if(integrity<=0){ integrity=30; showDamage(30); }
-  }
-  updateHud();
-}
-
-function cameraB(){
-  var t=Math.max(0,Math.min(1,bT));
-  var p=RB.curve.getPointAt(t), tg=RB.curve.getTangentAt(t);
-  var side=new THREE.Vector3(-tg.z,0,tg.x).normalize();
-  var eye=p.clone().addScaledVector(side,bLane*LANE_X);
-  eye.y+=EYE+bJump-bDuck;
-  if(shake>0){
-    eye.x+=(Math.random()-0.5)*shake*0.10;
-    eye.y+=(Math.random()-0.5)*shake*0.10;
-  }
-  camera.position.copy(eye);
-  var ahead=RB.curve.getPointAt(Math.min(1,t+0.03));
-  camera.lookAt(ahead.x+side.x*bLane*LANE_X*0.7, ahead.y+EYE*0.8, ahead.z+side.z*bLane*LANE_X*0.7);
-}
-
-function finishB(){
-  if(finished) return;
-  finished=true; running=false;
-  try{ if(SFX.amb) SFX.amb.pause(); }catch(e){}
-  try{ if(SFX.music) SFX.music.pause(); }catch(e){}
-  if(onFinishCb){
-    try{ onFinishCb({energy:Math.round(energy),integrity:Math.round(integrity),
-      passed:passed,failed:failed}); }catch(e){}
-  }
-}
-
-// ——— экран наблюдателя на отрезке Б ———
-function buildObserverMarkersB(){
-  if(!scene) return;
-  OBS_PULSE.length=0; OBS_MARKS.length=0;
-  OBS_HUMAN=buildHuman();
-  bEvents.forEach(function(e){
-    if(e.type==='beam'){
-      obsRing(e.pos.z,e.pos.y,e.pos.x,4.4,0xffb347,0.55);
-      var ic=obsIconSprite('duck',3.4,0,0,0,0.9);
-      ic.position.set(e.pos.x,e.pos.y+4.2,e.pos.z);
-      OBS_MARKS[OBS_MARKS.length-1].t=e.t;
-    }else{
-      obsRing(e.pos.z,e.pos.y,e.pos.x,5.0,0xff6b6b,0.5);
-      var wn=obsIconSprite('warn',3.6,0,0,0,0.9);
-      wn.position.set(e.pos.x,e.pos.y+4.6,e.pos.z);
-      OBS_MARKS[OBS_MARKS.length-1].t=e.t;
-    }
-  });
-}
-function updateObserverMarkersB(dt,t){
-  if(OBS_HUMAN){
-    var p=RB.curve.getPointAt(Math.max(0,Math.min(1,t)));
-    var tg=RB.curve.getTangentAt(Math.max(0,Math.min(1,t)));
-    var H=OBS_HUMAN, ph=obsT*9.5;
-    H.legL.rotation.x=Math.sin(ph)*0.92;
-    H.legR.rotation.x=-Math.sin(ph)*0.92;
-    H.armL.rotation.x=-Math.sin(ph)*0.82;
-    H.armR.rotation.x=Math.sin(ph)*0.82;
-    H.g.position.set(p.x,p.y+0.04+Math.abs(Math.sin(ph))*0.07,p.z);
-    H.g.rotation.y=Math.atan2(tg.x,tg.z)+Math.PI;
-  }
-  for(var i=0;i<OBS_MARKS.length;i++){
-    var m=OBS_MARKS[i];
-    if(m.t!==undefined) m.o.visible=(m.t<=t+0.02);
-  }
-  for(var j=0;j<OBS_PULSE.length;j++){
-    var o=OBS_PULSE[j];
-    o.m.material.opacity=o.base*(0.62+0.38*Math.sin(obsT*3.4+j*0.7));
-  }
-}
-function observeStepB(dt){
-  obsT+=dt;
-  PROG+=(PROG_T-PROG)*Math.min(1,dt*3.0);
-  var t=Math.max(0,Math.min(1,PROG/100));
-  var p=RB.curve.getPointAt(t), tg=RB.curve.getTangentAt(t);
-  var cam=p.clone().addScaledVector(tg,-9); cam.y+=5.2;
-  camera.position.copy(cam);
-  var ahead=RB.curve.getPointAt(Math.min(1,t+0.10));
-  camera.lookAt(ahead.x,ahead.y+0.7,ahead.z);
-  updateObserverMarkersB(dt,t);
-}
-
 // ——— главный цикл ———
 function tick(){
   if(!alive){ rafId=0; return; }
   rafId=requestAnimationFrame(tick);
   var dt=Math.min(0.05,clock.getDelta());
-  if(SEG==='B'){
-    if(OBSERVE){ observeStepB(dt); updateWorldFx(dt); renderer.render(scene,camera); return; }
-    stepB(dt); cameraB(); updateWorldFx(dt); renderer.render(scene,camera); return;
-  }
   if(OBSERVE){ observeStep(dt); updateWorldFx(dt); renderer.render(scene,camera); return; }
   step(dt);
   updateCamera(dt);
@@ -2374,9 +2045,7 @@ function updateOrient(){
 
 // ——— запуск ———
 function reset(){
-  phase=(SEG==='B')?'bridge':'street1'; phaseT=0; sZ=Z_START; tRun=0; travelled=0;
-  bT=0; bLane=0; bLaneT=0; bJump=0; bDuck=0;
-  bEvents.forEach(function(e){ e.done=false; e.warned=false; if(e.mesh) e.mesh.visible=false; });
+  phase='street1'; phaseT=0; sZ=Z_START; tRun=0; travelled=0;
   pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
   lane=0; laneTarget=0; holdT=0; jumpT=0; duckT=0; shake=0;
   lastAct=''; lastActAt=-9; integrity=100; energy=100; passed=0; failed=0;
@@ -2502,15 +2171,9 @@ function bootScene(){
   if(note)note.textContent='Загрузка улицы…';
   if(playBtn) playBtn.disabled=true;
   loadAll(function(){
-    if(SEG==='B'){
-      build(false);
-      buildSegmentB();
-      if(OBSERVE){ buildObserverMarkersB(); hideRunnerUI(); }
-    }else{
-      build();
-      buildEvents();
-      if(OBSERVE){ buildObserverMarkers(); hideRunnerUI(); }
-    }
+    build();
+    buildEvents();
+    if(OBSERVE){ buildObserverMarkers(); hideRunnerUI(); }
     updateHud();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
@@ -2543,8 +2206,6 @@ function mount(container,opts){
   ROLE=opts.role||MODE;
   ISCAP=!!opts.isCaptain;
   STAGE=opts.stage||'intro';
-  SEG=(opts.segment==='B')?'B':'A';
-  ROUND=+(opts.round||0);
   PROG=opts.progress||0;
   OBS_RUNNER_NAME=opts.runnerName||'';
   obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false;
@@ -2560,11 +2221,6 @@ function mount(container,opts){
   fillDom();
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
   if(opts.text){ var p=document.getElementById('t7-start-text'); if(p)p.textContent=opts.text; }
-  if(!opts.title&&!opts.text&&SEG==='B'){
-    var h2=document.getElementById('t7-start-title'), p2=document.getElementById('t7-start-text');
-    if(h2) h2.textContent='Ты Бегун';
-    if(p2) p2.textContent='В руках капсула. Впереди поворот, эстакада и спуск к тоннелю: уходи в сторону от обломков, пригибайся под балками. Наблюдатели подскажут, что впереди.';
-  }
   bindButtons();
   if(!OBSERVE) bindControls();
   bootScene();
@@ -2585,8 +2241,6 @@ function unmount(){
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
-  SEG='A'; ROUND=0; CHANGED=false; RB={curve:null,len:0,built:false};
-  bT=0; bLane=0; bLaneT=0; bJump=0; bDuck=0; bEvents=[]; bHuman=null;
 }
 
 return {mount:mount, unmount:unmount, version:VER,
