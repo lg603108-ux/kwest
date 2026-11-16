@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0323a';
+var VER='0324a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -107,12 +107,13 @@ var T7_HTML='<div id="t7-stage">'+
 if(typeof window==='undefined'||!window.document){ /* вне браузера модуль не нужен */ }
 
 // ——— параметры мира, метры ———
-var DURATION=60;                 // длительность пробного хода
+var DURATION=75;                 // ход: маршрут стал длиннее на поворот, мост и тоннель (требует согласования автора)
 var EYE=1.72;                    // высота глаз бегуна
 var ROAD_W=13;                   // ширина дороги
 var WALK=4.0;                    // ширина тротуара
 var LANE_X=2.6;                  // насколько уходим в сторону при манёвре (кристалл стоит на 2.35)
 var RUN_SPEED=6.6;               // скорость бега по улице, м/с
+var RUN_SPEED_B=9.4;             // на отрезке Б быстрее: поворот, мост и тоннель укладываются в те же 60 секунд
 var TUN_SPEED=7.4;               // скорость в тоннеле
 var JUMP_D=0.85, DUCK_D=0.7;
 var TRIP_D=1.35, FALL_D=1.7, LADDER_D=2.2;
@@ -178,7 +179,7 @@ var CAP_FLASH=0.55;              // длительность бирюзовой 
 // ——— состояние бегуна ———
 var phase='street1';   // street1 | trip | fall | tunnel | ladder | street2 | done
 var phaseT=0, sZ=Z_START, tRun=0, travelled=0;
-var pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
+var pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END)+(Z_END-(-558));
 var lane=0, laneTarget=0, holdT=0, jumpT=0, duckT=0, shake=0;
 var lastAct='', lastActAt=-9;
 var running=false, finished=false, topView=false, topMix=0;
@@ -354,6 +355,7 @@ function build(){
   scene=new THREE.Scene();
   scene.background=new THREE.Color(0x46545c);
   scene.fog=new THREE.FogExp2(0x3b4a52,0.017);
+  ROUTE_BUILT=false;   // сцена новая — отрезок Б строится заново
 
   camera=new THREE.PerspectiveCamera(74,window.innerWidth/Math.max(1,window.innerHeight),0.08,600);
   scene.add(camera);
@@ -370,6 +372,7 @@ function build(){
 
   buildStreet();
   buildPit();
+  buildRouteB();
   placeCapsule();
   loadModels();
 }
@@ -1398,7 +1401,7 @@ function updateObserverMarkers(dt,z){
         RUNNER_HIPS.position.x=RUNNER_HIPS_BASE.x;
         RUNNER_HIPS.position.z=RUNNER_HIPS_BASE.z;
       }
-      H.g.position.set(0,0.02,z);
+      H.g.position.set(routeX(z),routeY(z)+0.02,z);
     } else {
       if(H.legL&&H.legR&&H.armL&&H.armR){
         H.legL.rotation.x=Math.sin(ph)*0.92;
@@ -1406,7 +1409,7 @@ function updateObserverMarkers(dt,z){
         H.armL.rotation.x=-Math.sin(ph)*0.82;
         H.armR.rotation.x=Math.sin(ph)*0.82;
       }
-      H.g.position.set(0,0.04+Math.abs(Math.sin(ph))*0.07,z);
+      H.g.position.set(routeX(z),routeY(z)+0.04+Math.abs(Math.sin(ph))*0.07,z);
     }
   }
   for(var i=0;i<OBS_MARKS.length;i++){
@@ -1417,6 +1420,209 @@ function updateObserverMarkers(dt,z){
     var o=OBS_PULSE[j];
     o.m.material.opacity=o.base*(0.62+0.38*Math.sin(obsT*3.4+j*0.7));
   }
+}
+
+// ——— отрезок Б: поворот на боковую улицу, мост по референсу, спуск в тоннель ———
+// Дома, асфальт и стены тоннеля — те же материалы, что на первом участке.
+// Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
+var Z_TURN=-318, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
+    Z_TUNB_B=-556, Z_FINISH=-554;
+var ROUTE_X=22, BRIDGE_Y=7, TUNB_Y=-9, ROUTE_BUILT=false;
+
+function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
+function routeX(z){
+  if(z>=Z_TURN) return 0;
+  return ROUTE_X*smooth((Z_TURN-z)/34);
+}
+function routeY(z){
+  if(z>Z_BRIDGE_A) return 0;
+  if(z>Z_BRIDGE_A-26) return BRIDGE_Y*smooth((Z_BRIDGE_A-z)/26);
+  if(z>Z_BRIDGE_B) return BRIDGE_Y;
+  if(z>Z_BRIDGE_B-22) return BRIDGE_Y*(1-smooth((Z_BRIDGE_B-z)/22));
+  if(z>Z_VAULT) return 0;
+  if(z>Z_TUNB_A) return TUNB_Y*smooth((Z_VAULT-z)/(Z_VAULT-Z_TUNB_A));
+  return TUNB_Y;
+}
+function onBridge(z){ return z<Z_BRIDGE_A-2 && z>Z_BRIDGE_B+2; }
+function inTunnelB(z){ return z<Z_TUNB_A && z>Z_TUNB_B; }
+
+// лента дороги по кривой: поворот, подъём на мост, спуск в тоннель
+function routeRibbon(zFrom,zTo,step,width,yOff,mat,uvScale){
+  var pos=[],uvs=[],idx=[],n=0;
+  for(var z=zFrom; z>=zTo-0.001; z-=step){
+    var x=routeX(z), y=routeY(z)+yOff;
+    var dx=routeX(z-1)-routeX(z+1), dz=-2;
+    var len=Math.hypot(dx,dz)||1, nx=-dz/len, nz=dx/len;
+    pos.push(x+nx*width/2,y,z+nz*width/2); uvs.push(0,(zFrom-z)/(uvScale||9));
+    pos.push(x-nx*width/2,y,z-nz*width/2); uvs.push(1,(zFrom-z)/(uvScale||9));
+    if(n>0){ var b=(n-1)*2; idx.push(b,b+1,b+2,b+1,b+3,b+2); }
+    n++;
+  }
+  var g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+  g.setIndex(idx); g.computeVertexNormals();
+  var m=new THREE.Mesh(g,mat); scene.add(m); return m;
+}
+
+function buildRouteB(){
+  if(ROUTE_BUILT) return; ROUTE_BUILT=true;
+  var asphalt=TEX.wall||TEX.concrete, r=rnd(7771);
+  var roadMat=(function(){
+    var t=(ASPHALT_TEX||TEX.concrete).clone(); t.needsUpdate=true;
+    t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    return new THREE.MeshPhongMaterial({map:t,color:0x77838a,shininess:55,specular:0x5f7c82,side:THREE.DoubleSide});
+  })();
+  var walkMat=(function(){
+    var t=(TEX.wall||TEX.concrete).clone(); t.needsUpdate=true;
+    t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    return new THREE.MeshPhongMaterial({map:t,shininess:20,specular:0x6c8186,side:THREE.DoubleSide});
+  })();
+
+  // ——— дорога: от конца второй улицы через поворот, мост и спуск до конца тоннеля
+  routeRibbon(Z_TURN+10,Z_FINISH-6,3,ROAD_W,0.02,roadMat,9);
+  // тротуары с двух сторон
+  [-1,1].forEach(function(s){
+    var pos=[],uvs=[],idx=[],n=0;
+    for(var z=Z_TURN+8; z>=Z_FINISH-4; z-=3){
+      var x=routeX(z), y=routeY(z), dx=routeX(z-1)-routeX(z+1), dz=-2;
+      var len=Math.hypot(dx,dz)||1, nx=-dz/len, nz=dx/len;
+      var cx=x+nx*s*(ROAD_W/2+WALK/2), cz=z+nz*s*(ROAD_W/2+WALK/2);
+      pos.push(cx+s*nx*WALK/2, y+0.20, cz+s*nz*WALK/2); uvs.push(0,(Z_TURN-z)/6);
+      pos.push(cx-s*nx*WALK/2, y+0.20, cz-s*nz*WALK/2); uvs.push(1,(Z_TURN-z)/6);
+      if(n>0){ var b=(n-1)*2; idx.push(b,b+1,b+2,b+1,b+3,b+2); }
+      n++;
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    g.setIndex(idx); g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g,walkMat));
+  });
+
+  // ——— дома вдоль нового отрезка: те же фасады и размеры, что на первом участке
+  var facades=[];
+  for(var fi=0;fi<A.facades.length;fi++) if(TEX['facade'+fi]) facades.push(TEX['facade'+fi]);
+  var faceCache={}, TILE_W=5.6;
+  function faceMat(tex,key,wLen,hLen){
+    var k=key+'_'+wLen.toFixed(1)+'_'+hLen.toFixed(1);
+    if(faceCache[k]) return faceCache[k];
+    var t=tex.clone(); t.needsUpdate=true; t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    var img=t.image||{width:1,height:1};
+    var tileH=TILE_W*(img.height/Math.max(1,img.width));
+    t.repeat.set(Math.max(1,wLen/TILE_W),Math.max(1,hLen/tileH)); t.anisotropy=8;
+    var m=new THREE.MeshLambertMaterial({map:t,color:0xa8b1b4});
+    faceCache[k]=m; return m;
+  }
+  function house(x,z,h,dep,w,tex,key,baseY){
+    var geo=new THREE.BoxGeometry(dep,h,w);
+    var top=new THREE.MeshLambertMaterial({color:0x3a444a});
+    var mx=(tex&&key)?faceMat(tex,key+'x',w,h):top, mz=(tex&&key)?faceMat(tex,key+'z',dep,h):top;
+    var b=new THREE.Mesh(geo,[mx,mx,top,top,mz,mz]);
+    b.position.set(x,(baseY||0)+h/2,z); scene.add(b); return b;
+  }
+  // застройка по обе стороны, шаг 21 м — как на прежней улице, без наложений
+  var zi=0;
+  for(var z=Z_TURN-48; z>Z_TUNB_B+10; z-=21){
+    if(onBridge(z)||inTunnelB(z)){ zi++; continue; }   // на самом мосту и в тоннеле домов нет
+    var xi=routeX(z);
+    var yaw=Math.atan2(routeX(z-2)-routeX(z+2),-4);   // дома разворачиваются вдоль поворота
+    (function(zz,xx,ya,idx){
+      [-1,1].forEach(function(s){
+        var dep=14+r()*5, w=14+r()*5, h=16+r()*14;
+        var tex=facades.length?facades[Math.floor(r()*facades.length)%facades.length]:null;
+        var off=(ROAD_W/2+WALK+dep/2)*s;
+        var b=house(xx+Math.cos(ya)*off, zz-Math.sin(ya)*off, h, dep, w, tex, 'b'+(idx*2)+(s>0?'r':'l'), routeY(zz));
+        b.rotation.y=ya;
+      });
+    })(z,xi,yaw,zi);
+    zi++;
+  }
+
+  // ——— мост: бетонные балки под настилом, опоры, перила с бирюзовой полосой, фонари
+  var conc=concreteMat(); if(conc) conc.side=THREE.DoubleSide;
+  var railMat=new THREE.MeshLambertMaterial({color:0x5d6b70});
+  var glowMat=new THREE.MeshBasicMaterial({color:0x30e5dc});
+  var bridgeLen=Z_BRIDGE_A-Z_BRIDGE_B;
+  routeRibbon(Z_BRIDGE_A,Z_BRIDGE_B,3,ROAD_W+0.6,-0.35,conc,8);         // настил снизу
+  // боковые балки
+  [-1,1].forEach(function(s){
+    for(var z=Z_BRIDGE_A; z>Z_BRIDGE_B; z-=6){
+      var x=routeX(z), y=routeY(z);
+      var beam=new THREE.Mesh(new THREE.BoxGeometry(0.5,1.1,6.2),conc);
+      beam.position.set(x+s*(ROAD_W/2+0.25), y-0.55, z-3); scene.add(beam);
+      // перила и светящаяся полоса
+      var rail=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.16,6.2),railMat);
+      rail.position.set(x+s*(ROAD_W/2+0.25), y+1.05, z-3); scene.add(rail);
+      var gl=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.09,6.2),glowMat);
+      gl.position.set(x+s*(ROAD_W/2+0.25), y+0.62, z-3); scene.add(gl);
+      for(var k2=0;k2<3;k2++){
+        var post=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.1,0.12),railMat);
+        post.position.set(x+s*(ROAD_W/2+0.25), y+0.55, z-k2*2.1); scene.add(post);
+      }
+    }
+  });
+  // опоры
+  for(var pz=Z_BRIDGE_A-8; pz>Z_BRIDGE_B+6; pz-=26){
+    var px=routeX(pz), py=routeY(pz);
+    var col=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.9,py+0.6,10),conc);
+    col.position.set(px, (py-0.6)/2, pz); scene.add(col);
+  }
+  // фонари на мосту
+  for(var fz=Z_BRIDGE_A-6; fz>Z_BRIDGE_B+4; fz-=22){
+    var fx=routeX(fz), fy=routeY(fz);
+    var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.11,5.2,8),railMat);
+    pole.position.set(fx+ROAD_W/2-0.6, fy+2.6, fz); scene.add(pole);
+    var lamp=new THREE.Mesh(new THREE.SphereGeometry(0.26,10,8),new THREE.MeshBasicMaterial({color:0xbdf6f0}));
+    lamp.position.set(fx+ROAD_W/2-0.6, fy+5.2, fz); scene.add(lamp);
+    var li=new THREE.PointLight(0x9fe8ec,0.75,26); li.position.set(fx+ROAD_W/2-0.6, fy+5.1, fz);
+    scene.add(li);
+  }
+
+  // ——— тоннель: те же кирпичные стены и трубы, что в тоннеле под провалом
+  var wallMat=(function(){
+    var t=(TEX.wall||TEX.concrete).clone(); t.needsUpdate=true;
+    t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,3);
+    return new THREE.MeshPhongMaterial({map:t,color:0x6e7a7e,shininess:12,side:THREE.DoubleSide});
+  })();
+  var pipeMat=new THREE.MeshLambertMaterial({color:0x4b5559});
+  // бетонный портал входа в тоннель — чтобы вход читался, а не висел коробкой
+  (function(){
+    var pz=Z_TUNB_A+1.2, px=routeX(pz), py=routeY(pz);
+    var frame=new THREE.MeshLambertMaterial({color:0x59656a});
+    var top=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W+3.2,1.4,1.6),frame);
+    top.position.set(px,py+4.9,pz); scene.add(top);
+    [-1,1].forEach(function(s){
+      var side=new THREE.Mesh(new THREE.BoxGeometry(1.4,6.2,1.6),frame);
+      side.position.set(px+s*(ROAD_W/2+0.9),py+2.6,pz); scene.add(side);
+    });
+  })();
+  for(var z=Z_TUNB_A; z>Z_TUNB_B; z-=3){
+    var x=routeX(z), y=routeY(z);
+    [-1,1].forEach(function(s){
+      var w=new THREE.Mesh(new THREE.BoxGeometry(0.4,4.6,3.1),wallMat);
+      w.position.set(x+s*(ROAD_W/2+0.2), y+2.3, z-1.5); scene.add(w);
+      var p=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,3.1,8),pipeMat);
+      p.rotation.x=Math.PI/2; p.position.set(x+s*(ROAD_W/2-0.15), y+0.55, z-1.5); scene.add(p);
+    });
+    var ceil=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W+1.0,0.35,3.1),wallMat);
+    ceil.position.set(x,y+4.65,z-1.5); scene.add(ceil);
+    if(Math.abs(z%15)<3){
+      var li2=new THREE.PointLight(0x9fe8ec,0.6,16);
+      li2.position.set(x, y+3.9, z-1.5); scene.add(li2);
+    }
+  }
+
+  // ——— финишные ворота в конце тоннеля
+  var gx=routeX(Z_FINISH), gy=routeY(Z_FINISH);
+  [-1,1].forEach(function(s){
+    var post=new THREE.Mesh(new THREE.BoxGeometry(0.4,4.2,0.4),railMat);
+    post.position.set(gx+s*(ROAD_W/2-0.5), gy+2.1, Z_FINISH); scene.add(post);
+  });
+  var cross=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W,0.4,0.4),railMat);
+  cross.position.set(gx, gy+4.2, Z_FINISH); scene.add(cross);
+  var gateLight=new THREE.PointLight(0x8ffcf2,1.1,30);
+  gateLight.position.set(gx,gy+3.4,Z_FINISH); scene.add(gateLight);
 }
 
 // ——— фигура Бегуна для экрана наблюдателя: человек с капсулой в руках ———
@@ -1826,6 +2032,7 @@ function zoneName(){
   if(phase==='street1')return 'Улица';
   if(phase==='trip'||phase==='fall')return 'Провал';
   if(phase==='tunnel'||phase==='ladder')return 'Тоннель';
+  if(phase==='route'){ var zz=sZ; if(zz<Z_TUNB_A) return 'Тоннель'; if(zz<Z_BRIDGE_B+4) return 'Мост'; if(zz<Z_BRIDGE_A) return 'Мост'; return 'Поворот'; }
   return 'Улица';
 }
 
@@ -1882,6 +2089,10 @@ function updateCamera(dt){
     y=TUN.y+1.7+(EYE-TUN.y-1.7)*easeOut(k3);
     focusDy=2.6*(1-k3);
     z=TUN.z1+1.3;
+  } else if(phase==='route'){
+    y=routeY(z)+EYE+bob+jumpK*2.25-duckY;
+    focusDy=jumpK>0.03?-1.0*jumpK:-0.02;
+    x=routeX(z)+lane*laneLimitNow;
   } else if(phase==='done'){
     y=EYE+bob;
   }
@@ -1895,7 +2106,8 @@ function updateCamera(dt){
   camPos.set(x,y,z);
   camera.position.copy(camPos);
 
-  tmpF.set(x*1.25,y+focusDy,z-9);
+  if(phase==='route') tmpF.set(routeX(z-9)+lane*laneLimitNow*1.25, y+focusDy, z-9);
+  else tmpF.set(x*1.25,y+focusDy,z-9);
   lookAt.copy(tmpF);
   camera.lookAt(lookAt);
   camera.rotateZ(roll);
@@ -1957,14 +2169,15 @@ function updateCamera(dt){
   }
 
   // поле зрения: в тоннеле шире
-  var want=(phase==='tunnel'||phase==='ladder')?82:74;
+  var inTun=(phase==='tunnel'||phase==='ladder')||(phase==='route'&&inTunnelB(sZ));
+  var want=inTun?82:74;
   fovTarget+= (want-fovTarget)*Math.min(1,dt*3);
   if(Math.abs(camera.fov-fovTarget)>0.05){
     camera.fov=fovTarget; camera.updateProjectionMatrix();
   }
   // дымка: на улице мягче, в тоннеле плотнее
-  var dens=(phase==='tunnel'||phase==='ladder')?0.055:0.017;
-  var fogCol=(phase==='tunnel'||phase==='ladder')?0x27343a:0x3b4a52;
+  var dens=inTun?0.055:0.017;
+  var fogCol=inTun?0x27343a:0x3b4a52;
   scene.fog.density+= (dens-scene.fog.density)*Math.min(1,dt*2.5);
   scene.fog.color.lerp(new THREE.Color(fogCol),Math.min(1,dt*2.5));
 }
@@ -2009,7 +2222,11 @@ function step(dt){
   } else if(phase==='street2'){
     var dz3=RUN_SPEED*dt; sZ-=dz3; travelled+=dz3;
     FOCUS_Z=sZ; RAIN_ON=true;
-    if(sZ<=Z_END+8) finish();
+    if(sZ<=Z_TURN){ phase='route'; phaseT=0; showAlert('Поворот на мост'); }
+  } else if(phase==='route'){
+    var dz4=RUN_SPEED_B*dt; sZ-=dz4; travelled+=dz4;
+    FOCUS_Z=sZ; RAIN_ON=!inTunnelB(sZ);
+    if(sZ<=Z_FINISH) finish();
   }
 
   if(tRun>=DURATION&&!finished) finish();
@@ -2142,16 +2359,19 @@ function tick(){
 function observeStep(dt){
   obsT+=dt;
   PROG+=(PROG_T-PROG)*Math.min(1,dt*3.0);
-  var z=Z_START-(Z_START-Z_END)*(PROG/100);
+  var z=Z_START-(Z_START-Z_FINISH)*(PROG/100);
   FOCUS_Z=z; RAIN_ON=(PROG<39||PROG>72);
   if(PROG>24) birthPit();
   // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
   // видно и самого Бегуна, и препятствия перед ним
   var camZ=z+9;
   if(camZ>Z_START+20) camZ=Z_START+20;
-  if(camZ<Z_END+14) camZ=Z_END+14;
-  camera.position.set(0,5.2,camZ);
-  camera.lookAt(0,0.7,z-28);
+  if(camZ<Z_FINISH+10) camZ=Z_FINISH+10;
+  // в тоннеле камера опускается под потолок, иначе смотрит на его крышу
+  var inT = inTunnelB(camZ)||inTunnelB(z);
+  if(inT && camZ>z+6) camZ=z+6;
+  camera.position.set(routeX(camZ),routeY(camZ)+(inT?3.2:5.2),camZ);
+  camera.lookAt(routeX(z-26),routeY(z-26)+(inT?1.3:0.7),z-26);
   if(scene.fog) scene.fog.density=0.0028;
   updateObserverMarkers(dt,z);
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
@@ -2217,6 +2437,7 @@ function reset(){
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
   CAPSULE_DMG=-1; tintCapsuleModel(0);
+  ROUTE_BUILT=false;
   updateHud(); showAlert('');
 }
 
@@ -2390,5 +2611,5 @@ function unmount(){
 
 return {mount:mount, unmount:unmount, version:VER,
   setStage:setStage, setHint:setHint, setProgress:setProgress, setRunnerName:setRunnerName,
-  mode:function(){ return MODE; }, stage:function(){ return STAGE; }};
+  mode:function(){ return MODE; }, stage:function(){ return STAGE; } };
 })();
