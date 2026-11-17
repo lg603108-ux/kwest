@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326d';
+var VER='0326e';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -533,12 +533,9 @@ function setHint(h){
     if(parts.length>1) OBS_PHASE=parts[0].toLowerCase();
     return;
   }
-  var box=shadow('t7-obs-hint'); if(!box) return;
-  box.textContent=String(h.text).toUpperCase();
-  box.classList.remove('hidden');
-  box.classList.remove('flash');
-  void box.offsetWidth;
-  box.classList.add('flash');
+  // плашку сверху убрали по просьбе автора: она закрывала препятствия,
+  // всё нужное теперь написано рядом с самими препятствиями
+  return;
 }
 function setProgress(p){
   PROG_T=Math.max(0,Math.min(100,p||0));
@@ -1404,25 +1401,23 @@ function buildObserverMarkers(){
   if(!scene) return;
   OBS_PULSE.length=0; OBS_MARKS.length=0;
   OBS_HUMAN=buildHuman();
-  var g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute([
-    0,0,-0.55,  -0.40,0,0.40,   0.40,0,0.40
-  ],3));
-  g.computeVertexNormals();
-  var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xff2f2a,transparent:true,
-    opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
-  m.visible=false;
-  OBS_ARROW=m; scene.add(m);
-
-  // подпись и красная стрелка у каждого препятствия: наблюдатель видит их раньше бегуна
+  OBS_ARROW=null;                 // стрелка не нужна: остаются только надписи у препятствий
   OBS_TAGS.length=0;
+  syncObsTags();
+}
+
+// надписи ставятся у всех препятствий, включая появившиеся позже (в тоннеле)
+function syncObsTags(){
+  if(!OBSERVE||!scene) return;
   events.forEach(function(e){
+    if(e.tag) return;
     var word={pit:'ПРОВАЛ',beam:'БАЛКА',debris:'ОБЛОМКИ',pipe:'ТРУБА'}[e.type]||'ОПАСНО';
     var y=(e.baseY||0)+(e.type==='debris'?4.6:(e.type==='beam'?3.1:1.6));
-    obsTag('▼ '+word,e.z,0,y,'#ff3b30',e);
+    e.tag=obsTag('▼ '+word,e.z,0,y,'#ff3b30',e);
   });
   crystals.forEach(function(c){
-    obsTag('▼ КРИСТАЛЛ',c.z,c.x,(c.yBase||1.2)+1.7,'#38efe4',null,c);
+    if(c.tag) return;
+    c.tag=obsTag('▼ КРИСТАЛЛ',c.z,c.x,(c.yBase||1.2)+1.7,'#38efe4',null,c);
   });
 }
 
@@ -1453,8 +1448,9 @@ function updateObsTags(z){
     var t=OBS_TAGS[i];
     var alive=t.e?(!t.e.done):(!t.c||!t.c.taken);
     var d=z-t.z;                       // >0 — препятствие ещё впереди
-    t.s.visible=alive && d>-3 && d<58;
-    if(t.s.visible) t.s.material.opacity=d>42?0.55:0.95;
+    // показываем только ближайшие препятствия: иначе надписи наезжают друг на друга
+    t.s.visible=alive && d>-3 && d<32;
+    if(t.s.visible) t.s.material.opacity=d>22?0.6:0.95;
   }
 }
 
@@ -2470,7 +2466,9 @@ function observeStep(dt){
     z=OBS_ZS;
   }
   var inPitTun=(z<TUN.z0-1 && z>TUN.z1+1);
-  if(inPitTun) buildTunnel();          // тоннель нужен и наблюдателю: он едет следом за Бегуном
+  if(inPitTun){                        // тоннель и его препятствия нужны и наблюдателю
+    buildTunnel(); buildTunnelEvents(); syncObsTags();
+  }
   FOCUS_Z=z; RAIN_ON=(PROG<39||PROG>72);
   if(PROG>24) birthPit();
   // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
