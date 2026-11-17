@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0325a';
+var VER='0326a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -31,7 +31,12 @@ var RAIN=[], RAIN_DUST=[], RAIN_ON=true, FOCUS_Z=Z_START;
 var OBS_HUMAN=null;
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
-var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_LIGHT=null, CAPSULE_CORE=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
+var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
+// капсула в руках рисуется отдельной сценой с узким объективом (30°): широкий объектив улицы
+// раздувает предмет вблизи и делает его форму «не той», как на превью
+var CAPSCENE=null, CAPCAM=null, CAPDIST=3.2, CAPEMIS=null, CAPBASEY=0, CAPSIZE=null;
+// руки бегуна остаются в позе «держит капсулу» — анимация бега их не машет
+var RUNNER_ARMS=[];
 // отрезок Б: поворот с боковой улицы, мост по референсу, спуск к тоннелю
 var SEG='A', ROUND=0, CHANGED=false, VOICE=null;
 var RB={curve:null,len:0,built:false};
@@ -848,61 +853,80 @@ function placeCapsule(){
   camera.add(capPlane);
   capPlane.userData.tex='capsule';
   // бирюзовое свечение вокруг капсулы — включается на время восстановления
-  capGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ffcf2,
-    transparent:true,opacity:0,depthWrite:false,depthTest:false,
-    blending:THREE.AdditiveBlending}));
-  capGlow.scale.set(1.3,1.3,1);
-  capGlow.position.set(0,-0.58,-1.06);
-  capGlow.renderOrder=1000;
-  camera.add(capGlow);
+  // свечение вокруг капсулы отдельным ореолом не нужно: светится только кристалл в модели
+  capGlow=null;
   if(MODELS.capsule) buildCapsuleModel();
 }
 
 // ——— капсула в руках: настоящая 3D-модель по картинке автора ———
+// Рисуется отдельной сценой с узким объективом (30°), чтобы форма была ровно как на превью:
+// камера улицы снимает широко и вблизи, от этого корпус выгибается «бочкой».
 function buildCapsuleModel(){
-  if(!MODELS.capsule||!MODELS.capsule.scene||!camera||CAPSULE3D) return;
+  if(!MODELS.capsule||!MODELS.capsule.scene||CAPSULE3D) return;
   var m=MODELS.capsule.scene;
-  var box=new THREE.Box3().setFromObject(m), size=new THREE.Vector3();
-  box.getSize(size);
-  var k=0.52/Math.max(0.001,size.x);      // ширина как у прежней картинки (0,52 м)
-  m.scale.setScalar(k); m.updateMatrixWorld(true); box.setFromObject(m);
-  m.position.set(-(box.min.x+box.max.x)/2,-(box.min.y+box.max.y)/2,-(box.min.z+box.max.z)/2);
-  m.rotation.y=Math.PI;                    // руки и корпус лицом к камере
-  var holder=new THREE.Group();
-  holder.add(m);
-  holder.position.set(0,-0.60,-1.0);
-  holder.renderOrder=999;
-  CAPSULE3D=holder;
+  var box=new THREE.Box3().setFromObject(m), size=new THREE.Vector3(), cen=new THREE.Vector3();
+  box.getSize(size); box.getCenter(cen);
+  m.position.set(-cen.x,-cen.y,-cen.z);    // модель по центру своей сцены
+  m.rotation.set(0,0,0);                   // лицом к камере, как на превью
+  CAPSIZE=size.clone();
+  CAPSULE3D=new THREE.Group();
+  CAPSULE3D.renderOrder=999;
+  CAPSULE3D.add(m);
+
+  CAPSCENE=new THREE.Scene();
+  CAPCAM=new THREE.PerspectiveCamera(30,1,0.05,50);
+  // ровный свет как на превью: общий, небо/земля, мягкий ключевой и подсветка ядра
+  CAPSCENE.add(new THREE.AmbientLight(0xffffff,0.55));
+  CAPSCENE.add(new THREE.HemisphereLight(0xdfeef4,0x2a3236,0.85));
+  var key=new THREE.DirectionalLight(0xffffff,0.95); key.position.set(0.6,1.0,1.6); CAPSCENE.add(key);
+  var rim=new THREE.DirectionalLight(0x9ffcf2,0.28); rim.position.set(-1.2,0.25,-0.9); CAPSCENE.add(rim);
+  var core=new THREE.PointLight(0x7df0e6,0.55,Math.max(0.8,size.x*0.5)); core.position.set(0,0,size.z*0.5); CAPSCENE.add(core);
+  CAPSCENE.add(CAPSULE3D);
+
   CAPSULE_MATS=[];
+  var needEmis=[];
   m.traverse(function(o){
     if(o.isMesh&&o.material){
       var mats=Array.isArray(o.material)?o.material:[o.material];
       for(var i=0;i<mats.length;i++){
         var mt=mats[i];
-        if(mt&&mt.color){ mt.userData.baseColor=mt.color.clone(); CAPSULE_MATS.push(mt);
-          if(mt.map&&mt.emissive!==undefined){ mt.emissiveMap=mt.map; mt.needsUpdate=true; } }
+        if(!mt) continue;
+        // без окружения металл в модели даёт чёрные пятна — убираем
+        if(mt.metalness!==undefined){ mt.metalness=0; mt.metalnessMap=null; }
+        if(mt.emissive){ mt.emissive.setRGB(0,0,0); }
+        if(mt.color){ mt.userData.baseColor=mt.color.clone(); CAPSULE_MATS.push(mt); needEmis.push(mt); }
       }
       o.frustumCulled=false;
     }
   });
-  camera.add(holder);
-  // бирюзовое свечение ядра: подсветка рук и мягкий ореол вокруг капсулы
-  if(!CAPSULE_LIGHT){
-    CAPSULE_LIGHT=new THREE.PointLight(0x54f0e6,0.75,2.6);
-    CAPSULE_LIGHT.position.set(0,-0.52,-0.86);
-    camera.add(CAPSULE_LIGHT);
-  }
-  // свечение ядра капсулы — маленький бирюзовый ореол перед корпусом
-  CAPSULE_CORE=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ffcf2,
-    transparent:true,opacity:0.6,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  CAPSULE_CORE.scale.set(0.46,0.62,1);
-  CAPSULE_CORE.position.set(0,-0.52,-0.94);
-  camera.add(CAPSULE_CORE);
+  // Свечение даём точечным бирюзовым светом у самого окна: раскраска модели остаётся как на превью,
+  // а не «мажется» свечением по рукам (маска по цвету задевала кисти рук).
+  frameCapsule();
   CAPSULE_DMG=-1;
   // прежняя картинка остаётся невидимой «логикой»: видимость, покачивание и урон считаются по ней
-  capPlane.material.opacity=0;
-  capPlane.userData.model3d=true;
+  if(capPlane){ capPlane.material.opacity=0; capPlane.userData.model3d=true; }
 }
+
+// капсула целиком в кадре, нижняя часть у нижнего края: сверху и по бокам видно улицу
+function frameCapsule(){
+  if(!CAPSCENE||!CAPCAM||!CAPSIZE) return;
+  var sz=CAPSIZE;
+  var aspect=Math.max(0.4,window.innerWidth/Math.max(1,window.innerHeight));
+  CAPCAM.aspect=aspect;
+  var tv=Math.tan(CAPCAM.fov*Math.PI/360);
+  var fill=0.62;                                  // доля высоты кадра под модель
+  var dH=(sz.y*0.5)/(tv*fill);
+  var dW=(sz.x*0.5)/(tv*aspect*0.90);             // на узком экране держим руки в кадре
+  CAPDIST=(aspect>=1.2)?dH:Math.max(dH,dW);
+  CAPCAM.near=Math.max(0.05,CAPDIST-sz.z*1.2);
+  CAPCAM.far=CAPDIST+sz.z*2+2;
+  CAPCAM.position.set(0,0,CAPDIST);
+  CAPCAM.lookAt(0,0,0);
+  CAPCAM.updateProjectionMatrix();
+  CAPBASEY=(-CAPDIST*tv*0.88)+(sz.y*0.5);         // модель стоит у нижнего края, низ не срезан
+  CAPSULE3D.position.set(0,CAPBASEY,0);
+}
+
 
 // повреждение капсулы показываем цветом: целая — как на картинке, дальше темнее и с красным оттенком
 function tintCapsuleModel(lvl){
@@ -922,7 +946,7 @@ function setCapsuleEmissive(cf){
     var mt=CAPSULE_MATS[i];
     if(!mt.emissive) continue;
     if(cf>0) mt.emissive.setRGB(cf*1.1,cf*1.7,cf*1.7);
-    else mt.emissive.setRGB(0.04,0.34,0.31);
+    else mt.emissive.setRGB(0,0,0);
   }
 }
 
@@ -1406,6 +1430,8 @@ function updateObserverMarkers(dt,z){
     var H=OBS_HUMAN, ph=obsT*9.5;
     if(RUNNER_MIXER){
       RUNNER_MIXER.update(dt||0.016);
+      // руки не машут: возвращаем их в позу «держит капсулу», ноги бегут как в клипе
+      for(var ai=0;ai<RUNNER_ARMS.length;ai++){ RUNNER_ARMS[ai].b.quaternion.copy(RUNNER_ARMS[ai].q); }
       // анимация бега тянет персонажа вперёд — возвращаем его на место (движение задаёт игра)
       if(RUNNER_HIPS){
         if(!RUNNER_HIPS_BASE) RUNNER_HIPS_BASE=RUNNER_HIPS.position.clone();
@@ -1651,8 +1677,24 @@ function buildHuman(){
     // размер задаёт сам скелет (в файле перевод из сантиметров), внешний масштаб только мешает
     model.scale.setScalar(1); model.updateMatrixWorld(true);
     model.position.set(0,0,0);
-    model.rotation.y=Math.PI; model.traverse(function(o){ if(o.isMesh){ o.frustumCulled=false; } });
+    model.rotation.y=Math.PI; model.traverse(function(o){
+      if(o.isMesh){
+        o.frustumCulled=false;
+        // без окружения металл даёт чёрные пятна — бегун должен быть виден, а не силуэтом
+        var ms=Array.isArray(o.material)?o.material:[o.material];
+        for(var mi=0;mi<ms.length;mi++){ var mm=ms[mi]; if(mm&&mm.metalness!==undefined){ mm.metalness=0; mm.metalnessMap=null;
+          // лёгкая собственная подсветка материала: человек виден в тумане, но без ореола и лампы
+          if(mm.emissive){ mm.emissive.setRGB(0.05,0.05,0.055); }
+          mm.needsUpdate=true; } }
+      }
+    });
     g.add(model);
+    // руки держат капсулу: запоминаем позу покоя (в ней модель и сделана — с капсулой в руках)
+    RUNNER_ARMS=[];
+    ['LeftShoulder','LeftArm','LeftForeArm','LeftHand','RightShoulder','RightArm','RightForeArm','RightHand'].forEach(function(nm){
+      var bn=model.getObjectByName(nm);
+      if(bn) RUNNER_ARMS.push({b:bn,q:bn.quaternion.clone()});
+    });
     if(MODELS.runner.animations && MODELS.runner.animations.length){
       RUNNER_MIXER=new THREE.AnimationMixer(model);
       RUNNER_HIPS=model.getObjectByName('Hips')||null; RUNNER_HIPS_BASE=null;
@@ -1696,19 +1738,10 @@ function buildHuman(){
     cap.position.set(0,1.06,-0.30); g.add(cap);
   }
 
-  var capGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x9ffcf2,transparent:true,
-    opacity:0.85,depthWrite:false,blending:THREE.AdditiveBlending}));
-  capGlow.scale.set(1.9,1.9,1); capGlow.position.set(0,1.06,-0.32); g.add(capGlow);
-
-  var ring=new THREE.Mesh(new THREE.RingGeometry(1.3,1.9,36),
-    new THREE.MeshBasicMaterial({color:0x9ffcf2,transparent:true,opacity:0.5,
-      side:THREE.DoubleSide,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  ring.rotation.x=-Math.PI/2; ring.position.y=0.06; g.add(ring);
-  OBS_PULSE.push({m:ring,base:0.5});
-
+  // Никакого ореола и кольца вокруг бегуна: он должен выглядеть как живой человек на улице.
   g.scale.setScalar((MODELS.runner&&MODELS.runner.scene)?1.0:1.3);
   scene.add(g);
-  return {g:g,armL:armL,armR:armR,legL:legL,legR:legR,ring:ring};
+  return {g:g,armL:armL,armR:armR,legL:legL,legR:legR,ring:null};
 }
 
 // модель бегуна подгрузилась позже — пересобираем фигуру наблюдателя
@@ -2151,11 +2184,11 @@ function updateCamera(dt){
       capPlane.material.needsUpdate=true;
       capPlane.userData.tex=wantTex;
     }
-    // если загрузилась настоящая 3D-капсула с руками — она повторяет положение плоскости
+    // если загрузилась настоящая 3D-капсула с руками — покачивание берём от плоскости
     if(CAPSULE3D){
       CAPSULE3D.visible=capPlane.visible;
-      if(CAPSULE_CORE) CAPSULE_CORE.visible=capPlane.visible;
-      CAPSULE3D.position.copy(capPlane.position);
+      var dy=(capPlane.position.y+0.60)*0.22;
+      CAPSULE3D.position.set(capPlane.position.x*0.22,CAPBASEY+dy,0);
       CAPSULE3D.rotation.z=capPlane.rotation.z;
       var dmgLvl=integrity>60?0:(integrity>30?1:2);
       if(dmgLvl!==CAPSULE_DMG){ CAPSULE_DMG=dmgLvl; tintCapsuleModel(dmgLvl); }
@@ -2364,6 +2397,13 @@ function tick(){
   updateCamera(dt);
   updateWorldFx(dt);
   renderer.render(scene,camera);
+  // капсула в руках — поверх сцены, своей сценой с узким объективом
+  if(CAPSCENE&&CAPCAM&&CAPSULE3D&&CAPSULE3D.visible){
+    renderer.autoClear=false;
+    renderer.clearDepth();
+    renderer.render(CAPSCENE,CAPCAM);
+    renderer.autoClear=true;
+  }
 }
 
 // Экран наблюдателя: камера чуть позади и выше Бегуна, под углом вперёд —
@@ -2376,14 +2416,14 @@ function observeStep(dt){
   if(PROG>24) birthPit();
   // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
   // видно и самого Бегуна, и препятствия перед ним
-  var camZ=z+9;
+  var camZ=z+2.8;
   if(camZ>Z_START+20) camZ=Z_START+20;
   if(camZ<Z_END+14) camZ=Z_END+14;
   // в тоннеле камера опускается под потолок, иначе смотрит на его крышу
   var inT = inTunnelB(camZ)||inTunnelB(z);
-  if(inT && camZ>z+6) camZ=z+6;
-  camera.position.set(routeX(camZ),routeY(camZ)+(inT?3.2:5.2),camZ);
-  camera.lookAt(routeX(z-26),routeY(z-26)+(inT?1.3:0.7),z-26);
+  if(inT && camZ>z+3) camZ=z+3;
+  camera.position.set(routeX(camZ),routeY(camZ)+(inT?1.95:1.9),camZ);
+  camera.lookAt(routeX(z-14),routeY(z-14)+(inT?1.0:0.95),z-14);
   if(scene.fog) scene.fog.density=0.0028;
   updateObserverMarkers(dt,z);
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
@@ -2564,6 +2604,7 @@ function bootScene(){
       if(!camera||!renderer) return;
       camera.aspect=window.innerWidth/Math.max(1,window.innerHeight);
       camera.updateProjectionMatrix();
+      if(CAPSCENE) frameCapsule();
       renderer.setSize(window.innerWidth,window.innerHeight,false);
     });
   }
@@ -2618,6 +2659,7 @@ function unmount(){
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
   OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1;
+  CAPSCENE=null; CAPCAM=null; CAPSIZE=null; CAPBASEY=0; RUNNER_ARMS=[];
   if(RUNNER_MIXER){ try{ RUNNER_MIXER.stopAllAction(); }catch(e){} RUNNER_MIXER=null; }
 }
 
