@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326a';
+var VER='0326b';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -1683,8 +1683,8 @@ function buildHuman(){
         // без окружения металл даёт чёрные пятна — бегун должен быть виден, а не силуэтом
         var ms=Array.isArray(o.material)?o.material:[o.material];
         for(var mi=0;mi<ms.length;mi++){ var mm=ms[mi]; if(mm&&mm.metalness!==undefined){ mm.metalness=0; mm.metalnessMap=null;
-          // лёгкая собственная подсветка материала: человек виден в тумане, но без ореола и лампы
-          if(mm.emissive){ mm.emissive.setRGB(0.05,0.05,0.055); }
+          // одежда остаётся чёрной, как на превью: без подсветки материала
+          if(mm.emissive){ mm.emissive.setRGB(0,0,0); }
           mm.needsUpdate=true; } }
       }
     });
