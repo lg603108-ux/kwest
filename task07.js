@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326b';
+var VER='0326c';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -29,6 +29,7 @@ var OBS_RUNNER_GRP=null, OBS_PULSE=[], OBS_MARKS=[], OBS_ICON_TEX={};
 var ASPHALT_TEX=null, PIT_COVER=null, PIT_EDGE=null, PIT_BORN=false, pitFx=null, pitPlates=[];
 var RAIN=[], RAIN_DUST=[], RAIN_ON=true, FOCUS_Z=Z_START;
 var OBS_HUMAN=null;
+var OBS_Z_TARGET=null, OBS_ZS=null, OBS_Z_AT=-99;   // живая точка Бегуна, приходит от него самого
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
 var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
@@ -516,7 +517,13 @@ function setStage(s){
   STAGE=s; applyStage();
 }
 function setHint(h){
-  var box=shadow('t7-obs-hint'); if(!box||!h||!h.text) return;
+  if(!h||!h.text) return;
+  if(h.kind==='pos'){                       // живая точка Бегуна на маршруте
+    var v=parseFloat(h.text);
+    if(isFinite(v)){ OBS_Z_TARGET=v; OBS_Z_AT=obsT; }
+    return;
+  }
+  var box=shadow('t7-obs-hint'); if(!box) return;
   box.textContent=String(h.text).toUpperCase();
   box.classList.remove('hidden');
   box.classList.remove('flash');
@@ -914,16 +921,18 @@ function frameCapsule(){
   var aspect=Math.max(0.4,window.innerWidth/Math.max(1,window.innerHeight));
   CAPCAM.aspect=aspect;
   var tv=Math.tan(CAPCAM.fov*Math.PI/360);
-  var fill=0.62;                                  // доля высоты кадра под модель
+  // размер и место — как у прежней плоской картинки: капсула у нижнего края, руки в кадре
+  var fill=0.36;                                  // высота модели — треть кадра
   var dH=(sz.y*0.5)/(tv*fill);
-  var dW=(sz.x*0.5)/(tv*aspect*0.90);             // на узком экране держим руки в кадре
+  var dW=(sz.x*0.5)/(tv*aspect*0.34);
   CAPDIST=(aspect>=1.2)?dH:Math.max(dH,dW);
   CAPCAM.near=Math.max(0.05,CAPDIST-sz.z*1.2);
   CAPCAM.far=CAPDIST+sz.z*2+2;
   CAPCAM.position.set(0,0,CAPDIST);
   CAPCAM.lookAt(0,0,0);
   CAPCAM.updateProjectionMatrix();
-  CAPBASEY=(-CAPDIST*tv*0.88)+(sz.y*0.5);         // модель стоит у нижнего края, низ не срезан
+  // верх модели на 43% ниже середины экрана, как было у картинки; низ уходит за край
+  CAPBASEY=-(0.43+fill)*CAPDIST*tv;
   CAPSULE3D.position.set(0,CAPBASEY,0);
 }
 
@@ -1377,50 +1386,42 @@ function obsZone(z,y,width,depth,color,op){
   scene.add(m); obsMark(m,z,null); return m;
 }
 
-// Метки для вида наблюдателя: где бегун и что впереди — провал, балка, обломки, кристаллы.
+// Метки для вида наблюдателя: своих значков не рисуем — препятствия на дороге те же,
+// что у Бегуна (обломки, балки, кристаллы). Остаётся одна маленькая красная стрелка:
+// она показывает, куда уходить от того, что впереди, и ничего не перекрывает.
+var OBS_ARROW=null;
 function buildObserverMarkers(){
   if(!scene) return;
   OBS_PULSE.length=0; OBS_MARKS.length=0;
-
-  // сам бегун: человек с капсулой в руках
   OBS_HUMAN=buildHuman();
+  var g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute([
+    0,0,-0.55,  -0.40,0,0.40,   0.40,0,0.40
+  ],3));
+  g.computeVertexNormals();
+  var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xff2f2a,transparent:true,
+    opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
+  m.visible=false;
+  OBS_ARROW=m; scene.add(m);
+}
 
-  // препятствия
-  events.forEach(function(e){
-    var y=(e.baseY||0);
-    if(e.type==='pit'){
-      obsRing(PIT.z,0,0,PIT.rx+1.8,0xff6b6b,0.85);
-      obsIconSprite('warn',5.0,PIT.z,0,5.2,0.95);
-    }else if(e.type==='beam'){
-      obsZone(e.z,y,ROAD_W,3.4,0xffb347,0.30);
-      var bar=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W,0.7,0.7),
-        new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.75}));
-      bar.position.set(0,y+2.4,e.z); scene.add(bar); obsMark(bar,e.z,null);
-      var barGlow=new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W,3.0),
-        new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.18,
-          side:THREE.DoubleSide,depthWrite:false}));
-      barGlow.position.set(0,y+2.4,e.z); scene.add(barGlow); obsMark(barGlow,e.z,null);
-      obsIconSprite('duck',3.6,e.z,0,y+4.4,0.95);
-      obsRing(e.z,y,0,4.6,0xffb347,0.55);
-    }else if(e.type==='pipe'){
-      obsZone(e.z,y,ROAD_W,2.6,0xffb347,0.30);
-      obsIconSprite('duck',2.8,e.z,0,y+2.6,0.95);
-      obsRing(e.z,y,0,3.2,0xffb347,0.5);
-    }else if(e.type==='debris'){
-      obsZone(e.z,y,ROAD_W,6.0,0xff6b6b,0.26);
-      obsIconSprite('warn',3.8,e.z,0,y+4.8,0.95);
-      var safe=(e.need==='left')?'left':'right';
-      var sx=(e.need==='left')?-1:1;
-      obsIconSprite(safe,2.8,e.z+2.2,sx*4.8,y+3.2,0.9);
-      obsIconSprite(safe,2.8,e.z-2.2,sx*4.8,y+3.2,0.9);
-      obsRing(e.z,y,0,5.2,0xff6b6b,0.5);
-    }
-  });
-  crystals.forEach(function(c){
-    var y=(c.yBase!==undefined?c.yBase:1.2);
-    obsRing(c.z,y-1.0,c.x,2.0,0x35e8dc,0.7);
-    obsIconSprite('crystal',1.9,c.z,c.x,y+1.7,0.9);
-  });
+// красная стрелка: куда уходить от препятствия, которое впереди
+function updateObsArrow(z){
+  if(!OBS_ARROW) return;
+  var next=null;
+  for(var i=0;i<events.length;i++){
+    var e=events[i];
+    if(!e.done && e.z<z-1 && (z-e.z)<42){ next=e; break; }
+  }
+  if(!next){ OBS_ARROW.visible=false; return; }
+  OBS_ARROW.visible=true;
+  var side=(next.need==='left')?-1:(next.need==='right'?1:0);
+  // ставим сбоку от линии бега, чтобы не закрывать самого Бегуна
+  var ax=side?side*2.6:1.7;
+  var ay=(next.baseY||0)+0.35;
+  OBS_ARROW.position.set(ax,ay,Math.max(next.z+3,z-13));
+  OBS_ARROW.rotation.y=side?(side*Math.PI*0.42):0;
+  OBS_ARROW.scale.setScalar(1.15+0.10*Math.sin(obsT*5));
 }
 
 // Метки живут: кольца пульсируют, подсветка бегуна едет по маршруту,
@@ -1438,7 +1439,7 @@ function updateObserverMarkers(dt,z){
         RUNNER_HIPS.position.x=RUNNER_HIPS_BASE.x;
         RUNNER_HIPS.position.z=RUNNER_HIPS_BASE.z;
       }
-      H.g.position.set(routeX(z),routeY(z)+0.02,z);
+      H.g.position.set(routeX(z),(z<TUN.z0-1 && z>TUN.z1+1?TUN.y:routeY(z))+0.02,z);
     } else {
       if(H.legL&&H.legR&&H.armL&&H.armR){
         H.legL.rotation.x=Math.sin(ph)*0.92;
@@ -1449,14 +1450,7 @@ function updateObserverMarkers(dt,z){
       H.g.position.set(routeX(z),routeY(z)+0.04+Math.abs(Math.sin(ph))*0.07,z);
     }
   }
-  for(var i=0;i<OBS_MARKS.length;i++){
-    var m=OBS_MARKS[i];
-    m.o.visible=(m.z<=z+2);
-  }
-  for(var j=0;j<OBS_PULSE.length;j++){
-    var o=OBS_PULSE[j];
-    o.m.material.opacity=o.base*(0.62+0.38*Math.sin(obsT*3.4+j*0.7));
-  }
+  if(OBS_ARROW) updateObsArrow(z);
 }
 
 // ——— отрезок Б: поворот на боковую улицу, мост по референсу, спуск в тоннель ———
@@ -2384,6 +2378,8 @@ function step(dt){
   if(ONPROG&&(tRun-lastProgAt)>1){
     lastProgAt=tRun;
     try{ ONPROG(Math.min(100,Math.round(travelled/pathTotal*100))); }catch(e){}
+    // где именно находится Бегун: по одним процентам провал и тоннель у наблюдателя не видны
+    try{ if(ONHINT) ONHINT({text:sZ.toFixed(1),kind:'pos'}); }catch(e){}
   }
 }
 
@@ -2412,6 +2408,14 @@ function observeStep(dt){
   obsT+=dt;
   PROG+=(PROG_T-PROG)*Math.min(1,dt*3.0);
   var z=Z_START-(Z_START-Z_END)*(PROG/100);
+  // Бегун присылает свою настоящую точку: провал и тоннель у наблюдателя встают на место
+  if(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10){
+    if(OBS_ZS===null || Math.abs(OBS_ZS-OBS_Z_TARGET)>25) OBS_ZS=OBS_Z_TARGET;
+    else OBS_ZS+=(OBS_Z_TARGET-OBS_ZS)*Math.min(1,dt*5);
+    z=OBS_ZS;
+  }
+  var inPitTun=(z<TUN.z0-1 && z>TUN.z1+1);
+  if(inPitTun) buildTunnel();          // тоннель нужен и наблюдателю: он едет следом за Бегуном
   FOCUS_Z=z; RAIN_ON=(PROG<39||PROG>72);
   if(PROG>24) birthPit();
   // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
@@ -2422,8 +2426,9 @@ function observeStep(dt){
   // в тоннеле камера опускается под потолок, иначе смотрит на его крышу
   var inT = inTunnelB(camZ)||inTunnelB(z);
   if(inT && camZ>z+3) camZ=z+3;
-  camera.position.set(routeX(camZ),routeY(camZ)+(inT?1.95:1.9),camZ);
-  camera.lookAt(routeX(z-14),routeY(z-14)+(inT?1.0:0.95),z-14);
+  var baseCam=inPitTun?TUN.y:routeY(camZ), baseRun=inPitTun?TUN.y:routeY(z-14);
+  camera.position.set(routeX(camZ),baseCam+(inT?1.95:1.9),camZ);
+  camera.lookAt(routeX(z-14),baseRun+(inT?1.0:0.95),z-14);
   if(scene.fog) scene.fog.density=0.0028;
   updateObserverMarkers(dt,z);
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
@@ -2563,7 +2568,10 @@ window.__t7dbg=function(){ return {tex:capPlane?capPlane.userData.tex:null,
   ev:events.map(function(e){return e.z+':'+e.type+':'+e.need+(e.done?'+':'-');}),
   cr:crystals.map(function(c){return Math.round(c.z)+'/'+c.side+(c.high?'H':'L')+'/'+(c.taken?'T':'F')+
     '/'+(c.grp.visible?'V':'H')+'/'+c.grp.scale.x.toFixed(2)+'/'+c.grp.position.x.toFixed(1)+'/'+c.grp.position.y.toFixed(1);}),
-  picks:(window.__t7pick||0)}; };
+  picks:(window.__t7pick||0),
+  arrow:OBS_ARROW?[OBS_ARROW.visible,+OBS_ARROW.position.x.toFixed(1),+OBS_ARROW.position.y.toFixed(2),+OBS_ARROW.position.z.toFixed(1),
+    (function(){var v=OBS_ARROW.position.clone().project(camera);return [+(v.x*0.5+0.5).toFixed(2),+(0.5-v.y*0.5).toFixed(2),+v.z.toFixed(2)];})()]:null,
+  evN:events.length, obsZ:OBS_Z_TARGET, obsZS:(OBS_ZS===null?null:+OBS_ZS.toFixed(1))}; };
 
 // ——— запуск сцены ———
 function bootScene(){
