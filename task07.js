@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0327a';
+var VER='0328a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -609,7 +609,7 @@ function streetAddBuilding(x,z,h,dep,w,tex,key,baseY,yaw){
 
 // фонари: тёмная стойка и холодная лампа со свечением
 // (строитель вынесен, чтобы отрезок Б ставил ТЕ ЖЕ фонари, а не свои)
-function streetAddLamp(x,z,side,yaw){
+function streetAddLamp(x,z,side,yaw,y){
   var lg=new THREE.Group();
   var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.11,6.2,7),
     new THREE.MeshLambertMaterial({color:0x3d464b}));
@@ -623,7 +623,7 @@ function streetAddLamp(x,z,side,yaw){
   var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xbdf6f0,
     transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
   gl.scale.set(3.4,3.4,1); gl.position.copy(lampBox.position); lg.add(gl);
-  lg.position.set(x,0,z);
+  lg.position.set(x,y||0,z);
   if(yaw) lg.rotation.y=yaw;
   scene.add(lg);
   return lg;
@@ -1581,7 +1581,7 @@ function updateObserverMarkers(dt,z,zTag){
 // Дома, асфальт и стены тоннеля — те же материалы, что на первом участке.
 // Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
 var Z_TURN=-318, Z_TURN_SPAN=24, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
-    Z_TUNB_B=-556, Z_FINISH=-554;
+    Z_TUNB_B=-556, Z_STAIR_B=20, Z_FINISH=-580;
 var ROUTE_X=-45, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
 
 function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
@@ -1616,7 +1616,12 @@ function routeY(z){
   if(z>Z_BRIDGE_B-22) return BRIDGE_Y*(1-smooth((Z_BRIDGE_B-z)/22));
   if(z>Z_VAULT) return 0;
   if(z>Z_TUNB_A) return TUNB_Y*smooth((Z_VAULT-z)/(Z_VAULT-Z_TUNB_A));
-  return TUNB_Y;
+  if(z>Z_TUNB_B) return TUNB_Y;
+  return TUNB_Y*(1-smooth((Z_TUNB_B-z)/Z_STAIR_B));   // подъём из тоннеля по лестнице
+}
+// зона лестниц: спуск в тоннель и подъём из него
+function inStairsB(z){
+  return (z<Z_VAULT && z>Z_TUNB_A) || (z<Z_TUNB_B && z>Z_TUNB_B-Z_STAIR_B);
 }
 function onBridge(z){ return z<Z_BRIDGE_A-2 && z>Z_BRIDGE_B+2; }
 function inTunnelB(z){ return z<Z_TUNB_A && z>Z_TUNB_B; }
@@ -1654,8 +1659,10 @@ function buildRouteB(){
     return new THREE.MeshPhongMaterial({map:t,shininess:20,specular:0x6c8186,side:THREE.DoubleSide});
   })();
 
-  // ——— дорога: от конца второй улицы через поворот, мост и спуск до конца тоннеля
-  routeRibbon(Z_TURN+10,Z_FINISH-6,3,ROAD_W,0.02,roadMat,9);
+  // ——— дорога: от конца второй улицы через поворот и мост до лестницы в тоннель;
+  // участки лестниц и сам тоннель дорогу не получают — там свои полы и ступени
+  routeRibbon(Z_TURN+10,Z_VAULT,3,ROAD_W,0.02,roadMat,9);
+  routeRibbon(Z_TUNB_B-Z_STAIR_B,Z_FINISH-4,3,ROAD_W,0.02,roadMat,9);
   // тротуары с двух сторон
   // ——— тротуары и бордюры по обоим краям, как на первом участке:
   // плитка тротуара и бетонный бордюр у самой дороги. Раньше здесь лежала
@@ -1687,9 +1694,48 @@ function buildRouteB(){
     return new THREE.Mesh(g,mat);
   }
   [1,-1].forEach(function(s){
-    scene.add(routeKerb(Z_TURN+8,Z_FINISH-4,3, s*(ROAD_W/2),      s*(ROAD_W/2+0.35), 0.30, curbMat, 3));
-    scene.add(routeKerb(Z_TURN+8,Z_FINISH-4,3, s*(ROAD_W/2+0.35), s*(ROAD_W/2+WALK), 0.22, walkMat2, 4));
+    // бордюры и тротуары только там, где идёт улица: у лестниц и в тоннеле их нет
+    [[Z_TURN+8,Z_VAULT],[Z_TUNB_B-Z_STAIR_B,Z_FINISH-4]].forEach(function(rg){
+      scene.add(routeKerb(rg[0],rg[1],3, s*(ROAD_W/2),      s*(ROAD_W/2+0.35), 0.30, curbMat, 3));
+      scene.add(routeKerb(rg[0],rg[1],3, s*(ROAD_W/2+0.35), s*(ROAD_W/2+WALK), 0.22, walkMat2, 4));
+    });
   });
+
+  // ——— лестницы: спуск в тоннель на входе и подъём на улицу на выходе ———
+  // Ширина — по коридору тоннеля, с боковыми стенами: получается лестничная
+  // шахта, а не наклонная дорога (автор: «в тоннель спускаемся по лестнице»).
+  function buildStairsB(zFrom,zTo){
+    var total=Math.abs(routeY(zFrom)-routeY(zTo));
+    var steps=Math.max(10,Math.round(total/0.34));
+    var step=Math.abs(zFrom-zTo)/steps;
+    var treadMat=new THREE.MeshLambertMaterial({color:0x76807f});
+    var noseMat=new THREE.MeshLambertMaterial({color:0x9aa4a6});
+    var sw=TUN.w+0.9;   // ширина шахты по коридору тоннеля
+    for(var i=0;i<steps;i++){
+      var zc=zFrom-step*(i+0.5), a=yawAt(zc);
+      var tread=new THREE.Mesh(new THREE.BoxGeometry(sw,0.3,step*1.04),treadMat);
+      tread.position.set(routeX(zc),routeY(zc)+0.02,zc); tread.rotation.y=a; scene.add(tread);
+      var nose=new THREE.Mesh(new THREE.BoxGeometry(sw,0.07,0.14),noseMat);
+      nose.position.set(routeX(zc),routeY(zc)+0.18,zc+step/2); nose.rotation.y=a; scene.add(nose);
+    }
+    // боковые стены шахты
+    var wallMat=new THREE.MeshLambertMaterial({color:0x59646a});
+    for(var z=zFrom; z>zTo; z-=2){
+      var d=routeDir(z), a2=yawAt(z), y2=routeY(z);
+      [-1,1].forEach(function(s){
+        var wb=new THREE.Mesh(new THREE.BoxGeometry(0.4,2.4,2.1),wallMat);
+        wb.position.set(routeX(z)+d.nx*s*(sw/2+0.2), y2+1.2, z+d.nz*s*(sw/2+0.2));
+        wb.rotation.y=a2; scene.add(wb);
+      });
+    }
+    // лампы по краям лестницы
+    for(var lz=zFrom-2; lz>zTo+1; lz-=7){
+      var d3=routeDir(lz);
+      streetAddLamp(routeX(lz)+d3.nx*(sw/2+0.5), lz+d3.nz*(sw/2+0.5), 1, yawAt(lz), routeY(lz));
+    }
+  }
+  buildStairsB(Z_VAULT,Z_TUNB_A);            // спуск в тоннель
+  buildStairsB(Z_TUNB_B,Z_TUNB_B-Z_STAIR_B); // подъём из тоннеля
 
   // ——— застройка: ровные ряды, как на первом участке
   // Шаг 21 м, те же фасады, размеры и зазор до дороги, основание на земле.
@@ -1715,8 +1761,8 @@ function buildRouteB(){
   }
   // боковая улица после поворота: два ровных ряда вдоль нового направления,
   // без вращения — кварталы как на первом участке
-  for(var z2=Z_TURN-32; z2>Z_TUNB_B+10; z2-=21){
-    if(inTunnelB(z2)) continue;
+  for(var z2=Z_TURN-32; z2>Z_FINISH-6; z2-=21){
+    if(inTunnelB(z2) || inStairsB(z2)) continue;   // в тоннеле и в шахтах домов нет
     bRow(ROUTE_X, 1, z2); bRow(ROUTE_X,-1,z2);
   }
 
@@ -2244,6 +2290,8 @@ function laneLimit(){
   // в шахте выхода и у лестницы коридор узкий (2,5 м) — иначе влево/вправо уносит за стены, в пустоту
   if(phase==='ladder') return 0.55;
   if(phase==='tunnel') return (sZ<TUN.z1+5)?0.55:1.45;
+  // отрезок Б: в тоннеле и на лестницах коридор узкий — не даём уйти за стены
+  if(SEG==='B' && (inTunnelB(sZ)||inStairsB(sZ))) return 0.9;
   return LANE_X;
 }
 var laneLimitNow=LANE_X;
