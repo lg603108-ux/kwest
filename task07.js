@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0331a';
+var VER='0330a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -1042,27 +1042,15 @@ function buildTunnel(cfg){
   }
 
   var wallMap=TEX.wall?TEX.wall.clone():null;
-  if(cfg!==TUN){                      // переход: светлая плитка, как на референсе
-    wallMap=walkTexture(); wallMap.needsUpdate=true;
-    wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(len/3.2,1.4);
-  } else if(wallMap){
-    wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(len/5,1);
-  }
-  var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:(cfg===TUN?0x5d686d:0xa7b0b3),
-    emissive:new THREE.Color(cfg===TUN?0x000000:0x1a2024)});
+  if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(len/5,1); }
+  var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x5d686d});
   [-1,1].forEach(function(s){
     var w=new THREE.Mesh(new THREE.BoxGeometry(0.4,cfg.h,len),wallMat);
     w.position.set(s*(cfg.w/2+0.2),cfg.h/2,cz); g.add(w);
   });
   var ceil=new THREE.Mesh(new THREE.BoxGeometry(cfg.w+0.8,0.3,len-2.9),
-    new THREE.MeshLambertMaterial({color:(cfg===TUN?0x3a4348:0x8b9498),
-      emissive:new THREE.Color(cfg===TUN?0x000000:0x141a1e)}));
+    new THREE.MeshLambertMaterial({color:0x3a4348}));
   ceil.position.set(0,cfg.h+0.15,cz+1.45); g.add(ceil);
-  if(cfg!==TUN){   // сверху перехода — дорожное покрытие, иначе видна «столешница» потолка
-    var roof=new THREE.Mesh(new THREE.BoxGeometry(cfg.w+1.0,0.08,len-2.7),
-      new THREE.MeshPhongMaterial({color:0x4c575c,shininess:35,specular:0x5f7c82}));
-    roof.position.set(0,cfg.h+0.34,cz+1.45); g.add(roof);
-  }
 
   for(var pz=cfg.z0; pz>cfg.z1; pz-=9){
     [-1,1].forEach(function(s){
@@ -1078,22 +1066,19 @@ function buildTunnel(cfg){
     var pm=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,10),mat);
     pm.rotation.x=Math.PI/2; pm.position.set(x,y,cz); g.add(pm);
   }
-  if(cfg===TUN){
-    [-1,1].forEach(function(s){
-      pipeAlong(s*(cfg.w/2-0.26),0.52,0.17,pipeMat);
-      pipeAlong(s*(cfg.w/2-0.16),2.40,0.09,pipeMat2);
-      pipeAlong(s*(cfg.w/2-0.12),2.68,0.06,pipeMat2);
-    });
-    pipeAlong(-0.7,cfg.h-0.22,0.10,pipeMat2);
-    pipeAlong(0.7,cfg.h-0.18,0.08,pipeMat2);
-  }
+  [-1,1].forEach(function(s){
+    pipeAlong(s*(cfg.w/2-0.26),0.52,0.17,pipeMat);
+    pipeAlong(s*(cfg.w/2-0.16),2.40,0.09,pipeMat2);
+    pipeAlong(s*(cfg.w/2-0.12),2.68,0.06,pipeMat2);
+  });
+  pipeAlong(-0.7,cfg.h-0.22,0.10,pipeMat2);
+  pipeAlong(0.7,cfg.h-0.18,0.08,pipeMat2);
 
   var lowZ=cfg.z0-16;
   var lowPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,cfg.w+0.4,12),pipeMat);
   lowPipe.rotation.z=Math.PI/2; lowPipe.position.set(0,1.30,lowZ); g.add(lowPipe);
 
-  var lampStep=(cfg===TUN)?7:3.6;      // в переходе лампы чаще: коридор должен быть светлым
-  for(var lz2=cfg.z0-5; lz2>cfg.z1; lz2-=lampStep){
+  for(var lz2=cfg.z0-5; lz2>cfg.z1; lz2-=7){
     var lampBox=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.1,0.24),
       new THREE.MeshBasicMaterial({color:0xcffbf5}));
     lampBox.position.set(0,cfg.h-0.12,lz2); g.add(lampBox);
@@ -1107,13 +1092,13 @@ function buildTunnel(cfg){
       g.add(pl3); tunnelLightPool.push(pl3);
     } else {
       // второй тоннель: приглушённые статичные лампы (пул привязан к тоннелю под провалом)
-      for(var bz=cfg.z0-4; bz>cfg.z1; bz-=9){
-        var bl=new THREE.PointLight(0xbdf6f0,0.55,11);
+      for(var bz=cfg.z0-4; bz>cfg.z1; bz-=20){
+        var bl=new THREE.PointLight(0x9ff4ec,0.28,9);
         bl.position.set(0,cfg.h-0.4,bz); g.add(bl);
       }
     }
 
-  for(var d=0;d<(cfg===TUN?18:0);d++){
+  for(var d=0;d<18;d++){
     var bs=0.25+r()*0.5;
     var ch=new THREE.Mesh(new THREE.BoxGeometry(bs,bs*0.7,bs),
       new THREE.MeshLambertMaterial({color:0x6a757a}));
@@ -1596,8 +1581,8 @@ function updateObserverMarkers(dt,z,zTag){
 // Дома, асфальт и стены тоннеля — те же материалы, что на первом участке.
 // Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
 var Z_TURN=-318, Z_TURN_SPAN=24, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
-    Z_TUNB_B=-556, Z_STAIR_B=11, Z_STAIR_TOP=-462, Z_FINISH=-580;
-var ROUTE_X=-45, BRIDGE_Y=10, TUNB_Y=-5.5, ROUTE_BUILT=false;
+    Z_TUNB_B=-556, Z_STAIR_B=20, Z_FINISH=-580;
+var ROUTE_X=-45, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
 
 function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
 function routeX(z){
@@ -1629,14 +1614,14 @@ function routeY(z){
   if(z>Z_BRIDGE_A-26) return BRIDGE_Y*smooth((Z_BRIDGE_A-z)/26);
   if(z>Z_BRIDGE_B) return BRIDGE_Y;
   if(z>Z_BRIDGE_B-22) return BRIDGE_Y*(1-smooth((Z_BRIDGE_B-z)/22));
-  if(z>Z_STAIR_TOP) return 0;
-  if(z>Z_TUNB_A) return TUNB_Y*smooth((Z_STAIR_TOP-z)/(Z_STAIR_TOP-Z_TUNB_A));
+  if(z>Z_VAULT) return 0;
+  if(z>Z_TUNB_A) return TUNB_Y*smooth((Z_VAULT-z)/(Z_VAULT-Z_TUNB_A));
   if(z>Z_TUNB_B) return TUNB_Y;
   return TUNB_Y*(1-smooth((Z_TUNB_B-z)/Z_STAIR_B));   // подъём из тоннеля по лестнице
 }
-// зона лестниц: спуск в переход и подъём из него
+// зона лестниц: спуск в тоннель и подъём из него
 function inStairsB(z){
-  return (z<Z_STAIR_TOP && z>Z_TUNB_A) || (z<Z_TUNB_B && z>Z_TUNB_B-Z_STAIR_B);
+  return (z<Z_VAULT && z>Z_TUNB_A) || (z<Z_TUNB_B && z>Z_TUNB_B-Z_STAIR_B);
 }
 function onBridge(z){ return z<Z_BRIDGE_A-2 && z>Z_BRIDGE_B+2; }
 function inTunnelB(z){ return z<Z_TUNB_A && z>Z_TUNB_B; }
@@ -1676,7 +1661,7 @@ function buildRouteB(){
 
   // ——— дорога: от конца второй улицы через поворот и мост до лестницы в тоннель;
   // участки лестниц и сам тоннель дорогу не получают — там свои полы и ступени
-  routeRibbon(Z_TURN+10,Z_STAIR_TOP,3,ROAD_W,0.02,roadMat,9);
+  routeRibbon(Z_TURN+10,Z_VAULT,3,ROAD_W,0.02,roadMat,9);
   routeRibbon(Z_TUNB_B-Z_STAIR_B,Z_FINISH-4,3,ROAD_W,0.02,roadMat,9);
   // тротуары с двух сторон
   // ——— тротуары и бордюры по обоим краям, как на первом участке:
@@ -1710,7 +1695,7 @@ function buildRouteB(){
   }
   [1,-1].forEach(function(s){
     // бордюры и тротуары только там, где идёт улица: у лестниц и в тоннеле их нет
-    [[Z_TURN+8,Z_STAIR_TOP],[Z_TUNB_B-Z_STAIR_B,Z_FINISH-4]].forEach(function(rg){
+    [[Z_TURN+8,Z_VAULT],[Z_TUNB_B-Z_STAIR_B,Z_FINISH-4]].forEach(function(rg){
       scene.add(routeKerb(rg[0],rg[1],3, s*(ROAD_W/2),      s*(ROAD_W/2+0.35), 0.30, curbMat, 3));
       scene.add(routeKerb(rg[0],rg[1],3, s*(ROAD_W/2+0.35), s*(ROAD_W/2+WALK), 0.22, walkMat2, 4));
     });
@@ -1755,88 +1740,66 @@ function buildRouteB(){
     }
   }
 
-  // ——— спуск в подземный переход по референсу: неглубокий, лестница с поручнями,
-  // кирпичные стены с бетонным оголовком, над тоннелем улица продолжается
+  // ——— спуск в тоннель: той же лестницей, что и подъём (её автор принял),
+  // плюс кирпичный парапет, поручни и портал тоннеля по референсу
   function buildDescendB(zFrom,zTo){
-    var sw=6.6, parapet=1.0, depth=Math.abs(TUNB_Y);
+    var sw=5.4, parapet=1.05;   // как на подъёме: узкая шахта, ступени читаются
+    buildStairsB(zFrom,zTo,sw);          // ступени, стены шахты и фонари — как на подъёме
     var wallMap=TEX.wall?TEX.wall.clone():null;
-    if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(4,2); }
-    var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x747f84,emissive:new THREE.Color(0x1d252a)});
-    var capMat=new THREE.MeshLambertMaterial({color:0x5f6a6e,emissive:new THREE.Color(0x141a1d)});
-    var railMat=new THREE.MeshLambertMaterial({color:0x8d979a,emissive:new THREE.Color(0x222a2d)});
-    var treadMat=new THREE.MeshLambertMaterial({color:0x4f585c,emissive:new THREE.Color(0x101518)});
-    var riserMat=new THREE.MeshLambertMaterial({color:0x4c5558});
-    var noseMat=new THREE.MeshLambertMaterial({color:0x98a3a6,emissive:new THREE.Color(0x242c30)});
-    var wallH=parapet+depth+0.8, panel=2.1;
-    // стены перехода: верх на 1 м над улицей, низ на дно
+    if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(3,1); }
+    var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x6b767b,emissive:new THREE.Color(0x1c2429)});
+    var capMat=new THREE.MeshLambertMaterial({color:0x9aa5aa,emissive:new THREE.Color(0x222a2e)});
+    var railMat=new THREE.MeshLambertMaterial({color:0xa6b0b3,emissive:new THREE.Color(0x2a3236)});
+    var panel=2.1, wallH=parapet+Math.abs(TUNB_Y)+1.4;
+    // кирпичный парапет по краям спуска — ровный верх на уровне улицы
     [-1,1].forEach(function(sd){
       for(var z=zFrom; z>zTo-panel-0.001; z-=panel){
         var zc=z-panel/2, d=routeDir(zc);
-        var wb=new THREE.Mesh(new THREE.BoxGeometry(0.5,wallH,panel+0.15),wallMat);
-        wb.position.set(routeX(zc)+d.nx*sd*(sw/2+0.25), parapet-wallH/2, zc+d.nz*sd*(sw/2+0.25));
+        var wb=new THREE.Mesh(new THREE.BoxGeometry(0.45,wallH,panel+0.15),wallMat);
+        wb.position.set(routeX(zc)+d.nx*sd*(sw/2+0.22), parapet-wallH/2, zc+d.nz*sd*(sw/2+0.22));
         wb.rotation.y=yawAt(zc); scene.add(wb);
-        var cp=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.1,panel+0.15),capMat);
-        cp.position.set(routeX(zc)+d.nx*sd*(sw/2+0.25), parapet+0.07, zc+d.nz*sd*(sw/2+0.25));
+        var cp=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.14,panel+0.15),capMat);
+        cp.position.set(routeX(zc)+d.nx*sd*(sw/2+0.22), parapet+0.07, zc+d.nz*sd*(sw/2+0.22));
         cp.rotation.y=yawAt(zc); scene.add(cp);
       }
     });
-    // поручни: труба на кронштейнах прямо по стене, с загибом внизу и вверху
+    // поручни вдоль спуска
     [-1,1].forEach(function(sd){
-      var pts=[];
-      for(var z=zFrom+1; z>zTo-0.5; z-=1.1){
+      var prev=null;
+      for(var z=zFrom; z>zTo; z-=2.2){
         var d=routeDir(z);
-        pts.push({x:routeX(z)+d.nx*sd*(sw/2-0.16), y:routeY(z)+0.85, z:z+d.nz*sd*(sw/2-0.16)});
-      }
-      for(var i=1;i<pts.length;i++){
-        var a1=pts[i-1], a2=pts[i];
-        var dx=a2.x-a1.x, dy=a2.y-a1.y, dzv=a2.z-a1.z, len=Math.hypot(dx,dy,dzv);
-        var rg=new THREE.CylinderGeometry(0.045,0.045,len,8); rg.rotateX(Math.PI/2);
-        var rail=new THREE.Mesh(rg,railMat);
-        rail.rotation.order='YXZ';
-        rail.rotation.y=Math.atan2(dx,dzv);
-        rail.rotation.x=-Math.atan2(dy,Math.hypot(dx,dzv));
-        rail.position.set((a1.x+a2.x)/2,(a1.y+a2.y)/2,(a1.z+a2.z)/2);
-        scene.add(rail);
-        // кронштейн к стене
-        var br=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.22,6),railMat);
-        br.rotation.z=Math.PI/2; br.rotation.y=yawAt(a2.z);
-        br.position.set(a2.x+ (sd>0?0.1:-0.1), a2.y, a2.z);
-        scene.add(br);
+        var px=routeX(z)+d.nx*sd*(sw/2-0.42), pz=z+d.nz*sd*(sw/2-0.42), py=routeY(z);
+        var post=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.95,8),railMat);
+        post.position.set(px,py+0.48,pz); scene.add(post);
+        if(prev){
+          var dx=px-prev.x, dy=py-prev.y, dzv=pz-prev.z, len=Math.hypot(dx,dy,dzv);
+          var rg=new THREE.CylinderGeometry(0.05,0.05,len,8); rg.rotateX(Math.PI/2);
+          var rail=new THREE.Mesh(rg,railMat);
+          rail.rotation.order='YXZ';
+          rail.rotation.y=Math.atan2(dx,dzv);
+          rail.rotation.x=-Math.atan2(dy,Math.hypot(dx,dzv));
+          rail.position.set((px+prev.x)/2,(py+prev.y)/2+0.95,(pz+prev.z)/2);
+          scene.add(rail);
+        }
+        prev={x:px,y:py,z:pz};
       }
     });
-    // бортовой камень поперёк входа на лестницу, как на референсе
-    var kerbTop=new THREE.Mesh(new THREE.BoxGeometry(sw+1.0,0.18,0.5),capMat);
-    kerbTop.position.set(routeX(zFrom+0.25),0.09,zFrom+0.25); kerbTop.rotation.y=yawAt(zFrom+0.25);
-    scene.add(kerbTop);
-    // ступени
-    var steps=Math.max(8,Math.round(depth/0.24));
-    var dz=(zFrom-zTo)/steps;
-    for(var i2=0;i2<steps;i2++){
-      var za2=zFrom-dz*i2, zc2=za2-dz/2, a2=yawAt(zc2), yTop=routeY(zc2);
-      var tread=new THREE.Mesh(new THREE.BoxGeometry(sw,0.2,dz*1.03),treadMat);
-      tread.position.set(routeX(zc2),yTop+0.02,zc2); tread.rotation.y=a2; scene.add(tread);
-      var rz=new THREE.Mesh(new THREE.BoxGeometry(sw,0.24,0.08),riserMat);
-      rz.position.set(routeX(za2),yTop-0.10,za2); rz.rotation.y=a2; scene.add(rz);
-      var nose=new THREE.Mesh(new THREE.BoxGeometry(sw,0.05,0.1),noseMat);
-      nose.position.set(routeX(za2),yTop+0.08,za2); nose.rotation.y=a2; scene.add(nose);
-    }
-    // над самим переходом улица продолжается: настил вровень с дорогой,
-    // чтобы проём читался как вход в подземный переход, а не как яма с крышей
-    var deckLen=Math.abs(zTo-Z_TUNB_B);
-    var deckMat=new THREE.MeshPhongMaterial({color:0x505b60,shininess:40,specular:0x5f7c82});
-    // два боковых настила, а не плита над лестницей: иначе с лестницы видна
-    // «столешница» на ножках вместо улицы над переходом
-    var st=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W+2*WALK,0.3,deckLen),deckMat);
-    st.position.set(routeX(zTo),-0.13,zTo-deckLen/2);
-    scene.add(st);
-    // парапеты по краям настила над переходом
+    // портал тоннеля: кирпичный проём с перемычкой
+    var pz0=TUNB_Y, pw=TUN.w, ph=TUN.h, topY=parapet, sideW=(sw-pw)/2, wallHt=topY-pz0;
     [-1,1].forEach(function(sd){
-      var pp=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.85,deckLen),capMat);
-      pp.position.set(routeX(zTo)+sd*(ROAD_W/2+WALK-0.2), 0.42, zTo-deckLen/2);
-      scene.add(pp);
+      var pil=new THREE.Mesh(new THREE.BoxGeometry(sideW,wallHt,0.6),wallMat);
+      pil.position.set(routeX(zTo)+sd*(pw/2+sideW/2), pz0+wallHt/2, zTo);
+      pil.rotation.y=yawAt(zTo); scene.add(pil);
     });
+    var overH=0.55;
+    var lint=new THREE.Mesh(new THREE.BoxGeometry(pw,overH,0.6),wallMat);
+    lint.position.set(routeX(zTo), pz0+ph+overH/2, zTo); lint.rotation.y=yawAt(zTo); scene.add(lint);
+    var lintCap=new THREE.Mesh(new THREE.BoxGeometry(pw+0.5,0.12,0.7),capMat);
+    lintCap.position.set(routeX(zTo), pz0+ph+overH+0.06, zTo); lintCap.rotation.y=yawAt(zTo); scene.add(lintCap);
+    var doorGlow=new THREE.PointLight(0x9ff4ec,0.8,14);
+    doorGlow.position.set(routeX(zTo),pz0+ph-0.6,zTo); scene.add(doorGlow);
   }
-  buildDescendB(Z_STAIR_TOP,Z_TUNB_A);           // спуск в тоннель по лестнице
+  buildDescendB(Z_VAULT,Z_TUNB_A);           // спуск в тоннель по лестнице
   buildStairsB(Z_TUNB_B,Z_TUNB_B-Z_STAIR_B); // подъём из тоннеля
 
   // ——— застройка: ровные ряды, как на первом участке
