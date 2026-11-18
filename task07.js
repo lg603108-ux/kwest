@@ -1574,7 +1574,7 @@ function updateObserverMarkers(dt,z,zTag){
 // Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
 var Z_TURN=-318, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
     Z_TUNB_B=-556, Z_FINISH=-554;
-var ROUTE_X=22, BRIDGE_Y=7, TUNB_Y=-9, ROUTE_BUILT=false;
+var ROUTE_X=22, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
 
 function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
 function routeX(z){
@@ -1652,7 +1652,7 @@ function buildRouteB(){
   for(var fi=0;fi<A.facades.length;fi++) if(TEX['facade'+fi]) facades.push(TEX['facade'+fi]);
   // застройка по обе стороны, шаг 21 м — как на прежней улице, без наложений
   var zi=0;
-  for(var z=Z_TURN-48; z>Z_TUNB_B+10; z-=21){
+  for(var z=Z_TURN+10; z>Z_TUNB_B+10; z-=21){
     if(inTunnelB(z)){ zi++; continue; }   // домов нет только внутри тоннеля; вокруг моста город продолжается
     var xi=routeX(z);
     var yaw=Math.atan2(routeX(z-2)-routeX(z+2),-4);   // дома разворачиваются вдоль поворота
@@ -1661,7 +1661,7 @@ function buildRouteB(){
         var dep=14+r()*5, w=14+r()*5, h=16+r()*14;
         var tex=facades.length?facades[Math.floor(r()*facades.length)%facades.length]:null;
         var off=(ROAD_W/2+WALK+dep/2)*s;
-        streetAddBuilding(xx+Math.cos(ya)*off, zz-Math.sin(ya)*off, h, dep, w, tex, 'b'+(idx*2)+(s>0?'r':'l'), routeY(zz), ya);
+        streetAddBuilding(xx+Math.cos(ya)*off, zz-Math.sin(ya)*off, h, dep, w, tex, 'b'+(idx*2)+(s>0?'r':'l'), 0, ya);
       });
     })(z,xi,yaw,zi);
     zi++;
