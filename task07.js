@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326i';
+var VER='0326j';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -41,7 +41,7 @@ function obsUnder(z){
 }
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
-var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
+var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, CAP_OK=false, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
 // капсула в руках рисуется отдельной сценой с узким объективом (30°): широкий объектив улицы
 // раздувает предмет вблизи и делает его форму «не той», как на превью
 var CAPSCENE=null, CAPCAM=null, CAPDIST=3.2, CAPEMIS=null, CAPBASEY=0, CAPSIZE=null;
@@ -894,7 +894,12 @@ function placeCapsule(){
 // камера улицы снимает широко и вблизи, от этого корпус выгибается «бочкой».
 function buildCapsuleModel(){
   if(!MODELS.capsule||!MODELS.capsule.scene||CAPSULE3D) return;
-  var m=MODELS.capsule.scene;
+  // Берём КОПИЮ модели, а не саму: исходная копия одна на всю игру, её положение и наклон
+  // уже менялись при прошлых входах — из-за этого капсула каждый раз вставала по-новому
+  // и на втором-третьем входе уезжала из кадра. Копия каждый раз чистая.
+  var m=MODELS.capsule.scene.clone(true);
+  m.position.set(0,0,0); m.rotation.set(0,0,0); m.scale.set(1,1,1);
+  m.updateMatrixWorld(true);
   var box=new THREE.Box3().setFromObject(m), size=new THREE.Vector3(), cen=new THREE.Vector3();
   box.getSize(size); box.getCenter(cen);
   m.position.set(-cen.x,-cen.y,-cen.z);    // модель по центру своей сцены
@@ -903,6 +908,7 @@ function buildCapsuleModel(){
   CAPSULE3D=new THREE.Group();
   CAPSULE3D.renderOrder=999;
   CAPSULE3D.add(m);
+  CAP_OK=false;
 
   CAPSCENE=new THREE.Scene();
   CAPCAM=new THREE.PerspectiveCamera(30,1,0.05,50);
@@ -933,9 +939,18 @@ function buildCapsuleModel(){
   // Свечение даём точечным бирюзовым светом у самого окна: раскраска модели остаётся как на превью,
   // а не «мажется» свечением по рукам (маска по цвету задевала кисти рук).
   frameCapsule();
+  // Страховка «пусто не бывает»: проверяем, что модель действительно встала в свою область кадра.
+  // Если нет — оставляем видимой прежнюю плоскую картинку капсулы, она точно работала.
+  try{
+    CAPSULE3D.updateMatrixWorld(true);
+    var chk=new THREE.Vector3();
+    new THREE.Box3().setFromObject(m).getCenter(chk);
+    var dx=Math.abs(chk.x-CAPSULE3D.position.x), dy=Math.abs(chk.y-CAPSULE3D.position.y);
+    CAP_OK=(dx<0.35 && dy<0.35);
+  }catch(e){ CAP_OK=false; }
   CAPSULE_DMG=-1;
-  // прежняя картинка остаётся невидимой «логикой»: видимость, покачивание и урон считаются по ней
-  if(capPlane){ capPlane.material.opacity=0; capPlane.userData.model3d=true; }
+  // прежняя картинка остаётся невидимой «логикой» только при уверенно поставленной модели
+  if(capPlane && CAP_OK){ capPlane.material.opacity=0; capPlane.userData.model3d=true; }
 }
 
 // капсула целиком в кадре, нижняя часть у нижнего края: сверху и по бокам видно улицу
@@ -2246,7 +2261,7 @@ function updateCamera(dt){
                           -0.60+bob*0.6+jumpK*0.05-duckK*0.75+(shake>0?(Math.random()-0.5)*shake*0.05:0),
                           -1.0);
     capPlane.rotation.z=Math.sin(tRun*5.2)*0.014-lane*0.05;
-    capPlane.material.opacity=CAPSULE3D?0:1;
+    capPlane.material.opacity=(CAPSULE3D&&CAP_OK)?0:1;
     // вспышка бирюзовым при восстановлении от кристалла
     var cf=capFlash>0?(capFlash/CAP_FLASH):0;
     if(cf>0){
@@ -2269,7 +2284,8 @@ function updateCamera(dt){
     }
     // если загрузилась настоящая 3D-капсула с руками — покачивание берём от плоскости
     if(CAPSULE3D){
-      CAPSULE3D.visible=capPlane.visible;
+      // если модель не встала в кадр (CAP_OK=false) — показываем плоскую картинку, а не пустое место
+      CAPSULE3D.visible=capPlane.visible&&CAP_OK;
       var dy=(capPlane.position.y+0.60)*0.22;
       CAPSULE3D.position.set(capPlane.position.x*0.22,CAPBASEY+dy,0);
       CAPSULE3D.rotation.z=capPlane.rotation.z;
@@ -2767,7 +2783,7 @@ function unmount(){
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
-  OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1;
+  OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1; CAP_OK=false;
   CAPSCENE=null; CAPCAM=null; CAPSIZE=null; CAPBASEY=0; RUNNER_ARMS=[];
   tunnelBuilt=false; tunnelEventsDone=false; tunnelGroup=null; tunnelLamps=[]; tunnelLightPool=[];
   events.length=0; crystals.length=0; bEvents.length=0; bCrystals.length=0;
