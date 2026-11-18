@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0329a';
+var VER='0330a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -1704,19 +1704,24 @@ function buildRouteB(){
   // ——— лестницы: спуск в тоннель на входе и подъём на улицу на выходе ———
   // Ширина — по коридору тоннеля, с боковыми стенами: получается лестничная
   // шахта, а не наклонная дорога (автор: «в тоннель спускаемся по лестнице»).
-  function buildStairsB(zFrom,zTo){
+  function buildStairsB(zFrom,zTo,width){
     var total=Math.abs(routeY(zFrom)-routeY(zTo));
     var steps=Math.max(10,Math.round(total/0.34));
     var step=Math.abs(zFrom-zTo)/steps;
     var treadMat=new THREE.MeshLambertMaterial({color:0x76807f});
     var noseMat=new THREE.MeshLambertMaterial({color:0x9aa4a6});
-    var sw=TUN.w+0.9;   // ширина шахты по коридору тоннеля
+    var riserMat=new THREE.MeshLambertMaterial({color:0x4c5558});
+    var sw=width||(TUN.w+0.9);   // ширина шахты: по умолчанию по коридору тоннеля
     for(var i=0;i<steps;i++){
       var zc=zFrom-step*(i+0.5), a=yawAt(zc);
       var tread=new THREE.Mesh(new THREE.BoxGeometry(sw,0.3,step*1.04),treadMat);
       tread.position.set(routeX(zc),routeY(zc)+0.02,zc); tread.rotation.y=a; scene.add(tread);
       var nose=new THREE.Mesh(new THREE.BoxGeometry(sw,0.07,0.14),noseMat);
       nose.position.set(routeX(zc),routeY(zc)+0.18,zc+step/2); nose.rotation.y=a; scene.add(nose);
+      // подступенок: без него сверху виден только настил ступеней и лестница читается скатом
+      var riserH=Math.max(0.3,(total/steps)+0.12);
+      var rz=new THREE.Mesh(new THREE.BoxGeometry(sw-0.02,riserH,0.1),riserMat);
+      rz.position.set(routeX(zc),routeY(zc)+0.17-riserH/2,zc+step/2); rz.rotation.y=a; scene.add(rz);
     }
     // боковые стены шахты
     var wallMat=new THREE.MeshLambertMaterial({color:0x59646a});
@@ -1735,55 +1740,64 @@ function buildRouteB(){
     }
   }
 
-  // ——— спуск в тоннель: коридор со стенами и потолком как в тоннеле,
-  // внутри нормальная лестница (ступень + подступенок), а не наклонная плита
+  // ——— спуск в тоннель: той же лестницей, что и подъём (её автор принял),
+  // плюс кирпичный парапет, поручни и портал тоннеля по референсу
   function buildDescendB(zFrom,zTo){
-    var w=TUN.w+0.2, h=TUN.h+0.3;
+    var sw=5.4, parapet=1.05;   // как на подъёме: узкая шахта, ступени читаются
+    buildStairsB(zFrom,zTo,sw);          // ступени, стены шахты и фонари — как на подъёме
     var wallMap=TEX.wall?TEX.wall.clone():null;
     if(wallMap){ wallMap.needsUpdate=true; wallMap.wrapS=wallMap.wrapT=THREE.RepeatWrapping; wallMap.repeat.set(3,1); }
-    var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x5d686d});
-    var ceilMat=new THREE.MeshLambertMaterial({color:0x3a4348});
-    var treadMat=new THREE.MeshLambertMaterial({color:0x76807f});
-    var riserMat=new THREE.MeshLambertMaterial({color:0x5c6669});
-    var pipeMat=new THREE.MeshLambertMaterial({color:0x2f373b});
-    var stepLen=2.1;
-    // стены — сплошные панели, повторяют уклон, как стены коридора тоннеля
-    [-1,1].forEach(function(s){
-      for(var z=zFrom; z>zTo-0.001; z-=stepLen){
-        var zc=z-stepLen/2, d=routeDir(zc), yc=routeY(zc);
-        // верх стен ровно на уровне улицы: силуэт траншеи прямой, без ступенек
-        var wallH=Math.abs(TUNB_Y)+1.8;
-        var wb=new THREE.Mesh(new THREE.BoxGeometry(0.4,wallH,stepLen+0.15),wallMat);
-        wb.position.set(routeX(zc)+d.nx*s*(w/2+0.2), 0.2-wallH/2, zc+d.nz*s*(w/2+0.2));
+    var wallMat=new THREE.MeshLambertMaterial({map:wallMap,color:0x6b767b,emissive:new THREE.Color(0x1c2429)});
+    var capMat=new THREE.MeshLambertMaterial({color:0x9aa5aa,emissive:new THREE.Color(0x222a2e)});
+    var railMat=new THREE.MeshLambertMaterial({color:0xa6b0b3,emissive:new THREE.Color(0x2a3236)});
+    var panel=2.1, wallH=parapet+Math.abs(TUNB_Y)+1.4;
+    // кирпичный парапет по краям спуска — ровный верх на уровне улицы
+    [-1,1].forEach(function(sd){
+      for(var z=zFrom; z>zTo-panel-0.001; z-=panel){
+        var zc=z-panel/2, d=routeDir(zc);
+        var wb=new THREE.Mesh(new THREE.BoxGeometry(0.45,wallH,panel+0.15),wallMat);
+        wb.position.set(routeX(zc)+d.nx*sd*(sw/2+0.22), parapet-wallH/2, zc+d.nz*sd*(sw/2+0.22));
         wb.rotation.y=yawAt(zc); scene.add(wb);
-
+        var cp=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.14,panel+0.15),capMat);
+        cp.position.set(routeX(zc)+d.nx*sd*(sw/2+0.22), parapet+0.07, zc+d.nz*sd*(sw/2+0.22));
+        cp.rotation.y=yawAt(zc); scene.add(cp);
       }
     });
-    // потолка нет: лестница идёт открытой траншеей, как спуск в подземный переход,
-    // иначе плита перекрытия перерезает кадр (замечание автора по кадру -459)
-    // лампы — на стенах
-    for(var lz=zFrom-4; lz>zTo; lz-=7){
-      var dL=routeDir(lz);
-      var lb=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,0.24),
-        new THREE.MeshBasicMaterial({color:0xcffbf5}));
-      lb.position.set(routeX(lz)+dL.nx*(w/2-0.35),routeY(lz)+h-0.5,lz+dL.nz*(w/2-0.35));
-      lb.rotation.y=yawAt(lz); scene.add(lb);
-      var lg=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0x8ff2ea,
-        transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending}));
-      lg.scale.set(4,4,1); lg.position.copy(lb.position); scene.add(lg);
-      var pl=new THREE.PointLight(0x9ff4ec,0.35,9);
-      pl.position.set(routeX(lz),routeY(lz)+h-0.5,lz); scene.add(pl);
-    }
-    // сама лестница: ступень и подступенок, без щелей
-    var steps=Math.max(10,Math.round(Math.abs(routeY(zFrom)-routeY(zTo))/0.34));
-    var dz=Math.abs(zFrom-zTo)/steps;
-    for(var i=0;i<steps;i++){
-      var za=zFrom-i*dz, zc3=za-dz/2, a3=yawAt(zc3);
-      var tread=new THREE.Mesh(new THREE.BoxGeometry(w,0.26,dz*1.04),treadMat);
-      tread.position.set(routeX(zc3),routeY(zc3)+0.02,zc3); tread.rotation.y=a3; scene.add(tread);
-      var riser=new THREE.Mesh(new THREE.BoxGeometry(w,0.62,0.12),riserMat);
-      riser.position.set(routeX(za),routeY(zc3)-0.30,za); riser.rotation.y=a3; scene.add(riser);
-    }
+    // поручни вдоль спуска
+    [-1,1].forEach(function(sd){
+      var prev=null;
+      for(var z=zFrom; z>zTo; z-=2.2){
+        var d=routeDir(z);
+        var px=routeX(z)+d.nx*sd*(sw/2-0.42), pz=z+d.nz*sd*(sw/2-0.42), py=routeY(z);
+        var post=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.95,8),railMat);
+        post.position.set(px,py+0.48,pz); scene.add(post);
+        if(prev){
+          var dx=px-prev.x, dy=py-prev.y, dzv=pz-prev.z, len=Math.hypot(dx,dy,dzv);
+          var rg=new THREE.CylinderGeometry(0.05,0.05,len,8); rg.rotateX(Math.PI/2);
+          var rail=new THREE.Mesh(rg,railMat);
+          rail.rotation.order='YXZ';
+          rail.rotation.y=Math.atan2(dx,dzv);
+          rail.rotation.x=-Math.atan2(dy,Math.hypot(dx,dzv));
+          rail.position.set((px+prev.x)/2,(py+prev.y)/2+0.95,(pz+prev.z)/2);
+          scene.add(rail);
+        }
+        prev={x:px,y:py,z:pz};
+      }
+    });
+    // портал тоннеля: кирпичный проём с перемычкой
+    var pz0=TUNB_Y, pw=TUN.w, ph=TUN.h, topY=parapet, sideW=(sw-pw)/2, wallHt=topY-pz0;
+    [-1,1].forEach(function(sd){
+      var pil=new THREE.Mesh(new THREE.BoxGeometry(sideW,wallHt,0.6),wallMat);
+      pil.position.set(routeX(zTo)+sd*(pw/2+sideW/2), pz0+wallHt/2, zTo);
+      pil.rotation.y=yawAt(zTo); scene.add(pil);
+    });
+    var overH=0.55;
+    var lint=new THREE.Mesh(new THREE.BoxGeometry(pw,overH,0.6),wallMat);
+    lint.position.set(routeX(zTo), pz0+ph+overH/2, zTo); lint.rotation.y=yawAt(zTo); scene.add(lint);
+    var lintCap=new THREE.Mesh(new THREE.BoxGeometry(pw+0.5,0.12,0.7),capMat);
+    lintCap.position.set(routeX(zTo), pz0+ph+overH+0.06, zTo); lintCap.rotation.y=yawAt(zTo); scene.add(lintCap);
+    var doorGlow=new THREE.PointLight(0x9ff4ec,0.8,14);
+    doorGlow.position.set(routeX(zTo),pz0+ph-0.6,zTo); scene.add(doorGlow);
   }
   buildDescendB(Z_VAULT,Z_TUNB_A);           // спуск в тоннель по лестнице
   buildStairsB(Z_TUNB_B,Z_TUNB_B-Z_STAIR_B); // подъём из тоннеля
@@ -2400,7 +2414,10 @@ function updateCamera(dt){
     // проезжает через кадр, а не прилипает к центру — из-за этого он и читался прямой
     var near=(z<Z_TURN+10 && z>Z_TURN-34);
     var lp=routePoint(z, near?9:18), ld=routeDir(lp.z);
-    tmpF.set(lp.x+ld.nx*lane*laneLimitNow*1.25, y+focusDy, lp.z);
+    // высоту цели берём с дороги впереди, а не с камеры: иначе на спуске
+    // камера смотрит горизонтально и лестница уходит за нижний край кадра
+    var lpY=routeY(lp.z)+EYE+bob*0.5;
+    tmpF.set(lp.x+ld.nx*lane*laneLimitNow*1.25, lpY+focusDy, lp.z);
   }
   else tmpF.set(x*1.25,y+focusDy,z-9);
   lookAt.copy(tmpF);
