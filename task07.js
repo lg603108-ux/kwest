@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326f';
+var VER='0326g';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -36,8 +36,8 @@ var OBS_Z_TARGET=null, OBS_ZS=null, OBS_Z_AT=-99, OBS_PHASE='';   // живая 
 // в тоннельный промежуток, хотя он остаётся наверху (было: наблюдатель вёл его в тоннеле).
 function obsUnder(z){
   var ph=String(OBS_PHASE||'').toLowerCase();
-  if(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10 && ph) return (ph==='tunnel'||ph==='ladder');
-  return (z<TUN.z0-1 && z>TUN.z1+1);          // этап ещё не пришёл — как раньше, по координате
+  if(OBS_Z_TARGET!==null && ph) return (ph==='tunnel'||ph==='ladder');
+  return (z<TUN.z0-1 && z>TUN.z1+1);          // этап ещё не приходил — по координате
 }
 // Надписи должны появляться РАНЬШЕ, чем Бегун получит своё предупреждение (оно за 34 м):
 // показываем за 10 секунд пути, в метрах по скорости текущего этапа.
@@ -543,11 +543,16 @@ function setStage(s){
 }
 function setHint(h){
   if(!h||!h.text) return;
-  if(h.kind==='pos'){                       // живая точка Бегуна на маршруте: участок|координата
-    var parts=String(h.text).split('|');
+  var t=String(h.text);
+  // Точка Бегуна: «POS|участок|координата». Раньше отправляли вид 'pos',
+  // но правила базы разрешают у подсказки только 'hazard' и 'crystal' — запись отклонялась,
+  // и наблюдатель точки не получал вовсе (отсюда «бежит по улице» / «бежит в тоннеле»).
+  if(h.kind==='pos' || /^pos\|/i.test(t)){
+    var parts=t.split('|');
+    if(/^pos$/i.test(String(parts[0]||'').trim())) parts.shift();
     var v=parseFloat(parts[parts.length-1]);
     if(isFinite(v)){ OBS_Z_TARGET=v; OBS_Z_AT=obsT; }
-    if(parts.length>1) OBS_PHASE=parts[0].toLowerCase();
+    if(parts.length>1) OBS_PHASE=String(parts[0]||'').toLowerCase();
     return;
   }
   // плашку сверху убрали по просьбе автора: она закрывала препятствия,
@@ -2453,8 +2458,10 @@ function step(dt){
   if(ONPROG&&(tRun-lastProgAt)>1){
     lastProgAt=tRun;
     try{ ONPROG(Math.min(100,Math.round(travelled/pathTotal*100))); }catch(e){}
-    // где именно находится Бегун: по одним процентам провал и тоннель у наблюдателя не видны
-    try{ if(ONHINT) ONHINT({text:phase+'|'+sZ.toFixed(1),kind:'pos'}); }catch(e){}
+    // где именно находится Бегун: по одним процентам провал и тоннель у наблюдателя не видны.
+    // Вид подсказки база разрешает только 'hazard' и 'crystal', поэтому точку кладём
+    // в текст с меткой POS| — с видом 'pos' запись отклонялась и наблюдатель её не получал.
+    try{ if(ONHINT) ONHINT({text:'POS|'+phase+'|'+sZ.toFixed(1),kind:'crystal'}); }catch(e){}
   }
 }
 
@@ -2488,6 +2495,9 @@ function observeStep(dt){
     if(OBS_ZS===null || Math.abs(OBS_ZS-OBS_Z_TARGET)>25) OBS_ZS=OBS_Z_TARGET;
     else OBS_ZS+=(OBS_Z_TARGET-OBS_ZS)*Math.min(1,dt*5);
     z=OBS_ZS;
+  } else if(OBS_Z_TARGET!==null){
+    // точка на секунду пропала — держим последнюю, а не прыгаем по процентам
+    z=OBS_Z_TARGET;
   }
   // под землёй — только если Бегун сам на этапе тоннеля или лестницы,
   // по одной координате нельзя: улица идёт над тоннелем
