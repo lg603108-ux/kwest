@@ -2633,7 +2633,10 @@ window.__t7=function(mode){
   else if(mode==='tundebris'){ travelled=126; buildTunnel(); buildTunnelEvents();
     phase='tunnel'; phaseT=0; sZ=TUN.z0-26; }
   else if(mode==='tunelexit'){ travelled=126; buildTunnel(); buildTunnelEvents();
-    phase='tunnel'; phaseT=0; sZ=TUN.z1+4; }
+      phase='tunnel'; phaseT=0; sZ=TUN.z1+4; }
+    else if(mode==='turn'){ phase='route'; phaseT=0; sZ=-322; buildRouteB(); }
+    else if(mode==='bridge'){ phase='route'; phaseT=0; sZ=-390; buildRouteB(); }
+    else if(mode==='tunb'){ phase='route'; phaseT=0; sZ=-510; buildRouteB(); }
   // при переходе в отладке считаем пройденные события уже сработавшими
   events.forEach(function(e){ if(e.z>sZ) e.done=true; e.warned=false; });
   updateHud();
