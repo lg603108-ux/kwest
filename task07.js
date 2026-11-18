@@ -391,11 +391,13 @@ function build(){
   tunnelBuilt=false; tunnelEventsDone=false; tunnelGroup=null; tunnelLamps=[]; tunnelLightPool=[];
   events.length=0; crystals.length=0; bEvents.length=0; bCrystals.length=0;
   pitFx=null; pitPlates.length=0; shards.length=0; frags.length=0;
-  PIT_BORN=false; PIT_COVER=null; PIT_EDGE=null;
+    PIT_BORN=false; PIT_COVER=null; PIT_EDGE=null;
+    ROUTE_BUILT=false;
 
-  buildStreet();
-  buildPit();
-  placeCapsule();
+    buildStreet();
+    buildPit();
+    buildRouteB();
+    placeCapsule();
   loadModels();
 }
 
@@ -1077,15 +1079,16 @@ function buildTunnel(cfg){
     gl.scale.set(4.2,4.2,1); gl.position.set(0,cfg.h-0.2,lz2); g.add(gl);
     if(cfg===TUN) tunnelLamps.push(lz2);
   }
-  var pl3=new THREE.PointLight(0x9ff4ec,0.55,9);
-  g.add(pl3); if(cfg===TUN) tunnelLightPool.push(pl3);
-  if(cfg!==TUN){
-    // у второго тоннеля — свои статичные лампы вдоль коридора (пул — только у тоннеля под провалом)
-    for(var bz=cfg.z0-4; bz>cfg.z1; bz-=16){
-      var bl=new THREE.PointLight(0x9ff4ec,0.55,9);
-      bl.position.set(0,cfg.h-0.4,bz); g.add(bl);
+  if(cfg===TUN){
+      var pl3=new THREE.PointLight(0x9ff4ec,0.55,9);
+      g.add(pl3); tunnelLightPool.push(pl3);
+    } else {
+      // второй тоннель: приглушённые статичные лампы (пул привязан к тоннелю под провалом)
+      for(var bz=cfg.z0-4; bz>cfg.z1; bz-=20){
+        var bl=new THREE.PointLight(0x9ff4ec,0.28,9);
+        bl.position.set(0,cfg.h-0.4,bz); g.add(bl);
+      }
     }
-  }
 
   for(var d=0;d<18;d++){
     var bs=0.25+r()*0.5;
@@ -1650,7 +1653,7 @@ function buildRouteB(){
   // застройка по обе стороны, шаг 21 м — как на прежней улице, без наложений
   var zi=0;
   for(var z=Z_TURN-48; z>Z_TUNB_B+10; z-=21){
-    if(onBridge(z)||inTunnelB(z)){ zi++; continue; }   // на самом мосту и в тоннеле домов нет
+    if(inTunnelB(z)){ zi++; continue; }   // домов нет только внутри тоннеля; вокруг моста город продолжается
     var xi=routeX(z);
     var yaw=Math.atan2(routeX(z-2)-routeX(z+2),-4);   // дома разворачиваются вдоль поворота
     (function(zz,xx,ya,idx){
@@ -2326,7 +2329,7 @@ function step(dt){
   } else if(phase==='street2'){
     var dz3=RUN_SPEED*dt; sZ-=dz3; travelled+=dz3;
     FOCUS_Z=sZ; RAIN_ON=true;
-    if(sZ<=Z_END+8){ phase='route'; phaseT=0; buildRouteB(); }
+    if(sZ<=Z_END+8) finish();
       } else if(phase==='route'){
     var dz4=RUN_SPEED_B*dt; sZ-=dz4; travelled+=dz4;
     FOCUS_Z=sZ; RAIN_ON=!inTunnelB(sZ);
@@ -2541,9 +2544,14 @@ function updateOrient(){
 
 // ——— запуск ———
 function reset(){
-  phase='street1'; phaseT=0; sZ=Z_START; tRun=0; travelled=0;
-  pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
-  lane=0; laneTarget=0; holdT=0; jumpT=0; duckT=0; shake=0;
+  if(SEG==='B'){
+    phase='route'; phaseT=0; sZ=Z_TURN+10; tRun=0; travelled=0;
+    pathTotal=Math.abs(Z_TURN+10-Z_FINISH);
+  } else {
+    phase='street1'; phaseT=0; sZ=Z_START; tRun=0; travelled=0;
+    pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
+  }
+    lane=0; laneTarget=0; holdT=0; jumpT=0; duckT=0; shake=0;
   lastAct=''; lastActAt=-9; integrity=100; energy=100; passed=0; failed=0;
   finished=false; exitHint=false; pitWarned=false; topView=false; topMix=0;
   if(topBtn){ topBtn.classList.remove('on'); topBtn.textContent='Вид сверху'; }
@@ -2571,8 +2579,7 @@ function reset(){
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
   CAPSULE_DMG=-1; tintCapsuleModel(0);
-  ROUTE_BUILT=false;
-  updateHud(); showAlert('');
+    updateHud(); showAlert('');
 }
 
 function start(){
@@ -2676,8 +2683,9 @@ function bootScene(){
   if(playBtn) playBtn.disabled=true;
   loadAll(function(){
     build();
-    buildEvents();
-    if(OBSERVE){ buildObserverMarkers(); hideRunnerUI(); }
+        if(SEG==='A') buildEvents();
+        if(OBSERVE) hideRunnerUI();
+        if(OBSERVE&&SEG==='A') buildObserverMarkers();
     updateHud();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
@@ -2714,6 +2722,9 @@ function mount(container,opts){
   PROG=opts.progress||0;
   OBS_RUNNER_NAME=opts.runnerName||'';
   obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false;
+  ROUND=opts.round||0;
+  { var m=String(location.search||'').match(/[?&]round=(\d+)/); if(m) ROUND=parseInt(m[1],10); }
+  SEG=(ROUND%2===0)?'A':'B';
   ROOT=document.createElement('div');
   ROOT.className='t7-root'+(OBSERVE?' t7-observer':'');
   ROOT.innerHTML=T7_HTML;
