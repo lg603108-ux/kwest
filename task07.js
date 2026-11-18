@@ -1574,7 +1574,7 @@ function updateObserverMarkers(dt,z,zTag){
 // Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
 var Z_TURN=-318, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
     Z_TUNB_B=-556, Z_FINISH=-554;
-var ROUTE_X=28, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
+var ROUTE_X=35, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
 
 function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
 function routeX(z){
@@ -1660,7 +1660,8 @@ function buildRouteB(){
           var dep=14+r()*5, w=14+r()*5, h=16+r()*14;
           var tex=facades.length?facades[Math.floor(r()*facades.length)%facades.length]:null;
           var off=(ROAD_W/2+WALK+3.4+dep/2)*s;   // зазор 3,4 м как на участке 1
-          streetAddBuilding(xx+off, zz, h, dep, w, tex, 'b'+(idx*2)+(s>0?'r':'l'), 0, 0);
+                    var ya=Math.atan2(routeX(z-2)-routeX(z+2),4);   // вращение вдоль поворота (малый угол)
+                    streetAddBuilding(xx+off*Math.cos(ya), zz-off*Math.sin(ya), h, dep, w, tex, 'b'+(idx*2)+(s>0?'r':'l'), 0, ya);
         });
       })(z,xi,zi);
       zi++;
