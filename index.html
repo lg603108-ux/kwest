@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0326g">
+<link rel="stylesheet" href="task07.css?v=0326h">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0326g">
+<body data-build="0326h">
 <div id="app">
 
 <header id="topbar">
@@ -259,7 +259,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0326g"></script>
+<script src="task07.js?v=0326h"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -347,19 +347,27 @@ function t7role(){var list=t7online().filter(function(e){return e[0]!==t7runnerU
   var me=-1;for(var i=0;i<list.length;i++)if(list[i][0]===NET.uid)me=i;
   if(me<0)return 'all';if(list.length<=1)return 'all';
   return me===0?'hazard':'crystal';}
+// Локальная стадия задания 7: «завершено» вместе с итогом забега означает «смена бегуна»,
+// отдельного значения стадии для этого в схеме базы нет.
+function t7stageLocal(){
+  var n=t7node(), st=n.stage||'intro';
+  if(st==='done' && n.result && n.result.at) return 'change';
+  return st;
+}
 function t7ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');}
 function setStage07(s){try{t7ref().child('stage').set(s);}catch(e){}}
 function publishHint07(h){try{t7ref().child('hint').update({text:String(h.text||''),kind:String(h.kind||'hazard'),at:Date.now()});}catch(e){}}
 function publishProgress07(p){try{t7ref().child('progress').set(Math.max(0,Math.min(100,Math.round(p||0))));}catch(e){}}
 if(r.state.phase==='task07'){
-// Смена бегуна: время хода вышло — очередь двигает устройство капитана
-// (по правилам базы номер бегуна пишет только капитан).
+// Смена бегуна: забег закончен (есть итог) — очередь двигает устройство капитана
+// (по правилам базы номер бегуна пишет только капитан). Опорный признак — время итога,
+// а не отдельное значение стадии: его схема задания не предусматривает.
 var n07=t7node();
-if(n07.stage==='change'&&cap()){
-  var bumpKey=String((n07.result&&n07.result.at)||0);
+if(cap() && n07.result && n07.result.at){
+  var bumpKey=String(n07.result.at||0);
   if(window.__t7bumpKey!==bumpKey){
     window.__t7bumpKey=bumpKey;
-    try{t7ref().child('round').set((n07.round||0)+1);}catch(e){}
+    try{t7ref().child('round').set((n07.round||0)+1).catch(function(e){noteT7db('номер хода',e);});}catch(e){noteT7db('номер хода',e);}
   }
 }
 var el7=document.getElementById('task07-mount');
@@ -376,7 +384,7 @@ try{
 Task07.mount(el7,{
 mode:isRun?'runner':'observer',
 role:isRun?'runner':t7role(),
-stage:t7node().stage||'intro',
+stage:t7stageLocal(),
 round:+(t7node().round||0),
 progress:+(t7node().progress||0),
 isCaptain:cap(),
@@ -398,7 +406,7 @@ return;
 }
 // модуль уже смонтирован: догоняем состояние комнаты
 try{
-Task07.setStage(t7node().stage||'intro');
+Task07.setStage(t7stageLocal());
 var hh=t7node().hint;
 if(hh&&hh.text&&+(hh.at||0)>(window.__t7hintAt||0)){window.__t7hintAt=+hh.at;Task07.setHint(hh);}
 Task07.setProgress(+(t7node().progress||0));
@@ -414,13 +422,19 @@ if(el7b){el7b.classList.remove('active');el7b.innerHTML='';}
 }
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
+// Стадию пишем только значением «завершено» из схемы задания; экран «СМЕНА БЕГУНА» показываем
+// по факту появления итога (см. tryMount), чтобы не зависеть от значения, которого нет в схеме.
+function noteT7db(what,e){
+  try{ toastMsg('База не приняла: '+what+(e&&e.message?(' ('+e.message+')'):'')); }catch(_){}
+}
 function report07(data){
 try{
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.child('result').set({energy:data.energy|0,integrity:data.integrity|0,
-passed:data.passed|0,failed:data.failed|0,at:Date.now()});
-ref.child('stage').set('change');
-}catch(e){}
+passed:data.passed|0,failed:data.failed|0,at:Date.now()})
+  .catch(function(e){ noteT7db('итог забега',e); });
+ref.child('stage').set('done').catch(function(e){ noteT7db('стадия',e); });
+}catch(e){ noteT7db('итог забега',e); }
 }
 function addContinueButton(){
 if(!ready())return;
