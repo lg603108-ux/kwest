@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326e';
+var VER='0326f';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -30,6 +30,23 @@ var ASPHALT_TEX=null, PIT_COVER=null, PIT_EDGE=null, PIT_BORN=false, pitFx=null,
 var RAIN=[], RAIN_DUST=[], RAIN_ON=true, FOCUS_Z=Z_START;
 var OBS_HUMAN=null;
 var OBS_Z_TARGET=null, OBS_ZS=null, OBS_Z_AT=-99, OBS_PHASE='';   // живая точка Бегуна, приходит от него самого
+
+// «под землёй или наверху» решается по ЭТАПУ, который прислал Бегун, а не по одной координате:
+// улица проходит над тоннелем, поэтому после прыжка через провал его координата попадает
+// в тоннельный промежуток, хотя он остаётся наверху (было: наблюдатель вёл его в тоннеле).
+function obsUnder(z){
+  var ph=String(OBS_PHASE||'').toLowerCase();
+  if(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10 && ph) return (ph==='tunnel'||ph==='ladder');
+  return (z<TUN.z0-1 && z>TUN.z1+1);          // этап ещё не пришёл — как раньше, по координате
+}
+// Надписи должны появляться РАНЬШЕ, чем Бегун получит своё предупреждение (оно за 34 м):
+// показываем за 10 секунд пути, в метрах по скорости текущего этапа.
+var OBS_LEAD_S=10;
+function obsLeadM(){
+  var ph=String(OBS_PHASE||'').toLowerCase();
+  var sp=(ph==='tunnel'||ph==='ladder')?TUN_SPEED:(ph==='route'?RUN_SPEED_B:RUN_SPEED);
+  return sp*OBS_LEAD_S;
+}
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
 var CAPSULE3D=null, CAPSULE_MATS=null, CAPSULE_DMG=-1, RUNNER_HIPS=null, RUNNER_HIPS_BASE=null;
@@ -1444,13 +1461,19 @@ function obsTag(word,z,x,y,color,e,c){
 
 // показываем только то, что ещё впереди и не пройдено
 function updateObsTags(z){
+  var lead=obsLeadM(), cand=[];
   for(var i=0;i<OBS_TAGS.length;i++){
     var t=OBS_TAGS[i];
     var alive=t.e?(!t.e.done):(!t.c||!t.c.taken);
     var d=z-t.z;                       // >0 — препятствие ещё впереди
-    // показываем только ближайшие препятствия: иначе надписи наезжают друг на друга
-    t.s.visible=alive && d>-3 && d<32;
-    if(t.s.visible) t.s.material.opacity=d>22?0.6:0.95;
+    t.s.visible=false;
+    if(alive && d>-3 && d<lead) cand.push({t:t,d:d});
+  }
+  // одновременно — не больше трёх ближайших, иначе надписи наезжают друг на друга
+  cand.sort(function(a,b){ return a.d-b.d; });
+  for(var k=0;k<cand.length && k<3;k++){
+    var sp=cand[k].t.s; sp.visible=true;
+    sp.material.opacity=(cand[k].d>lead*0.55)?0.55:0.95;
   }
 }
 
@@ -1476,7 +1499,8 @@ function updateObsArrow(z){
 
 // Метки живут: кольца пульсируют, подсветка бегуна едет по маршруту,
 // пройденные препятствия скрываются — впереди остаётся только то, что ещё предстоит.
-function updateObserverMarkers(dt,z){
+function updateObserverMarkers(dt,z,zTag){
+  zTag=(zTag===undefined||zTag===null)?z:zTag;
   if(OBS_HUMAN){
     var H=OBS_HUMAN, ph=obsT*9.5;
     if(RUNNER_MIXER){
@@ -1489,7 +1513,7 @@ function updateObserverMarkers(dt,z){
         RUNNER_HIPS.position.x=RUNNER_HIPS_BASE.x;
         RUNNER_HIPS.position.z=RUNNER_HIPS_BASE.z;
       }
-      H.g.position.set(routeX(z),(z<TUN.z0-1 && z>TUN.z1+1?TUN.y:routeY(z))+0.02,z);
+      H.g.position.set(routeX(z),(obsUnder(z)?TUN.y:routeY(z))+0.02,z);
     } else {
       if(H.legL&&H.legR&&H.armL&&H.armR){
         H.legL.rotation.x=Math.sin(ph)*0.92;
@@ -1500,8 +1524,8 @@ function updateObserverMarkers(dt,z){
       H.g.position.set(routeX(z),routeY(z)+0.04+Math.abs(Math.sin(ph))*0.07,z);
     }
   }
-  if(OBS_ARROW) updateObsArrow(z);
-  if(OBS_TAGS.length) updateObsTags(z);
+  if(OBS_ARROW) updateObsArrow(zTag);
+  if(OBS_TAGS.length) updateObsTags(zTag);
 }
 
 // ——— отрезок Б: поворот на боковую улицу, мост по референсу, спуск в тоннель ———
@@ -2465,7 +2489,9 @@ function observeStep(dt){
     else OBS_ZS+=(OBS_Z_TARGET-OBS_ZS)*Math.min(1,dt*5);
     z=OBS_ZS;
   }
-  var inPitTun=(z<TUN.z0-1 && z>TUN.z1+1);
+  // под землёй — только если Бегун сам на этапе тоннеля или лестницы,
+  // по одной координате нельзя: улица идёт над тоннелем
+  var inPitTun=obsUnder(z);
   if(inPitTun){                        // тоннель и его препятствия нужны и наблюдателю
     buildTunnel(); buildTunnelEvents(); syncObsTags();
   }
@@ -2484,7 +2510,9 @@ function observeStep(dt){
   camera.position.set(routeX(camZ),baseCam+(inPitTun?1.7:(inT?2.4:2.9)),camZ);
   camera.lookAt(routeX(z-20),baseRun+(inPitTun?1.1:(inT?1.0:0.85)),z-20);
   if(scene.fog) scene.fog.density=0.0028;
-  updateObserverMarkers(dt,z);
+  // надписи считаем по свежей точке Бегуна (сглаженная отстаёт и задерживала подсказки)
+  var zTag=(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10)?OBS_Z_TARGET:z;
+  updateObserverMarkers(dt,z,zTag);
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
   if(capPlane) capPlane.visible=false;
   if(CAPSULE3D) CAPSULE3D.visible=false;
