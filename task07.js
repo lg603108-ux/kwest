@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326g';
+var VER='0326h';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -501,7 +501,7 @@ function showChange(){
         if(go.disabled) return;
         go.disabled=true;
         if(ONSTART){ try{ ONSTART(); }catch(e){} }
-        STAGE='run'; CHANGED=false;
+        STAGE='run'; CHANGED=false; STARTED=true;
         applyStage();
         start();
       };
@@ -568,7 +568,10 @@ function setProgress(p){
     if(box){ box.textContent='МАРШРУТ ПРОЙДЕН'; box.classList.remove('hidden'); }
   }
 }
-function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—'); }
+function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
+  // на экране смены имя обновляем следом: очередь двигается через полсекунды после итога
+  if(STAGE==='change'){ var nm=document.getElementById('t7-change-name');
+    if(nm) nm.textContent=OBS_RUNNER_NAME?('Новый бегун: '+OBS_RUNNER_NAME):''; } }
 
 // Бегун сообщает общему модулю подсказку и процент пути (координаты не передаются)
 function emitHint(text,kind){
@@ -1478,7 +1481,12 @@ function updateObsTags(z){
   cand.sort(function(a,b){ return a.d-b.d; });
   for(var k=0;k<cand.length && k<3;k++){
     var sp=cand[k].t.s; sp.visible=true;
-    sp.material.opacity=(cand[k].d>lead*0.55)?0.55:0.95;
+    // размер надписи одинаковый на экране: масштаб растёт вместе с расстоянием до камеры.
+    // Иначе надпись размером 1,15 м читается только в последние 20 м — «подсказки опаздывают».
+    var dc=camera.position.distanceTo(sp.position);
+    var hh=Math.max(1.15,dc*0.064);
+    sp.scale.set(hh*4.35,hh,1);
+    sp.material.opacity=(cand[k].d>lead*0.55)?0.6:0.95;
   }
 }
 
@@ -2507,8 +2515,8 @@ function observeStep(dt){
   }
   FOCUS_Z=z; RAIN_ON=(PROG<39||PROG>72);
   if(PROG>24) birthPit();
-  // камера всегда ПОЗАДИ Бегуна и выше него, смотрит вперёд и вниз:
-  // видно и самого Бегуна, и препятствия перед ним
+  // камера позади Бегуна и выше него, но смотрит дальше вперёд (на 46 м, было 20):
+  // в кадр попадает больше дороги, препятствия видны раньше, сам Бегун остаётся внизу кадра
   var camZ=z+5.5;
   if(camZ>Z_START+20) camZ=Z_START+20;
   if(camZ<Z_END+14) camZ=Z_END+14;
@@ -2516,9 +2524,9 @@ function observeStep(dt){
   var inT = inTunnelB(camZ)||inTunnelB(z);
   if(inT && camZ>z+3) camZ=z+3;
   if(inPitTun) camZ=z+3.0;                       // в тоннеле камера ближе: под потолком не развернуться
-  var baseCam=inPitTun?TUN.y:routeY(camZ), baseRun=inPitTun?TUN.y:routeY(z-14);
-  camera.position.set(routeX(camZ),baseCam+(inPitTun?1.7:(inT?2.4:2.9)),camZ);
-  camera.lookAt(routeX(z-20),baseRun+(inPitTun?1.1:(inT?1.0:0.85)),z-20);
+  var baseCam=inPitTun?TUN.y:routeY(camZ), baseRun=inPitTun?TUN.y:routeY(z-40);
+  camera.position.set(routeX(camZ),baseCam+(inPitTun?1.7:(inT?2.4:3.5)),camZ);
+  camera.lookAt(routeX(z-46),baseRun+(inPitTun?1.1:(inT?1.0:1.6)),z-46);
   if(scene.fog) scene.fog.density=0.0028;
   // надписи считаем по свежей точке Бегуна (сглаженная отстаёт и задерживала подсказки)
   var zTag=(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10)?OBS_Z_TARGET:z;
