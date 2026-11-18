@@ -1574,12 +1574,12 @@ function updateObserverMarkers(dt,z,zTag){
 // Новое здесь только мост: опоры, перила с бирюзовой полосой, фонари.
 var Z_TURN=-318, Z_BRIDGE_A=-352, Z_BRIDGE_B=-432, Z_VAULT=-452, Z_TUNB_A=-472,
     Z_TUNB_B=-556, Z_FINISH=-554;
-var ROUTE_X=35, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
+var ROUTE_X=45, BRIDGE_Y=10, TUNB_Y=-9, ROUTE_BUILT=false;
 
 function smooth(t){ return t<=0?0:(t>=1?1:t*t*(3-2*t)); }
 function routeX(z){
   if(z>=Z_TURN) return 0;
-  return ROUTE_X*smooth((Z_TURN-z)/22);
+  return ROUTE_X*smooth((Z_TURN-z)/16);
 }
 function routeY(z){
   if(z>Z_BRIDGE_A) return 0;
@@ -2211,7 +2211,7 @@ function updateCamera(dt){
   camPos.set(x,y,z);
   camera.position.copy(camPos);
 
-  if(phase==='route') tmpF.set(routeX(z-9)+lane*laneLimitNow*1.25, y+focusDy, z-9);
+  if(phase==='route') tmpF.set(routeX(z-18)+lane*laneLimitNow*1.25, y+focusDy, z-18);
   else tmpF.set(x*1.25,y+focusDy,z-9);
   lookAt.copy(tmpF);
   camera.lookAt(lookAt);
