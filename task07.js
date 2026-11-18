@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0326h';
+var VER='0326i';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -38,14 +38,6 @@ function obsUnder(z){
   var ph=String(OBS_PHASE||'').toLowerCase();
   if(OBS_Z_TARGET!==null && ph) return (ph==='tunnel'||ph==='ladder');
   return (z<TUN.z0-1 && z>TUN.z1+1);          // этап ещё не приходил — по координате
-}
-// Надписи должны появляться РАНЬШЕ, чем Бегун получит своё предупреждение (оно за 34 м):
-// показываем за 10 секунд пути, в метрах по скорости текущего этапа.
-var OBS_LEAD_S=10;
-function obsLeadM(){
-  var ph=String(OBS_PHASE||'').toLowerCase();
-  var sp=(ph==='tunnel'||ph==='ladder')?TUN_SPEED:(ph==='route'?RUN_SPEED_B:RUN_SPEED);
-  return sp*OBS_LEAD_S;
 }
 // 3D-модели, сделанные по картинкам автора (fal.ai / Meshy): бегун для наблюдателя и капсула в руках
 var MODELS={runner:null,capsule:null}, MODELS_LOADED=false, RUNNER_MIXER=null;
@@ -1310,22 +1302,22 @@ function addCrystal(z,side,high,baseY){
 
 function buildEvents(){
   if(events.length)return;
-  // улица 1
-  addCrystal(-20,'center',true,0);                       // высоко — только прыжком
-  addBeam(-30);
-  events.push({z:-30,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
-  addCrystal(-44,'left',false,0);                        // слева — манёвр влево
-  addDebris(-58,0,9,'left','Обломки сверху — уходите влево');
-  addCrystal(-78,'right',false,0);                       // справа — манёвр вправо
-  addDebris(-92,0,9,'right','Обломки сверху — уходите вправо');
+  // Препятствия расставлены РАВНОМЕРНО, примерно через 26–28 м. Раньше они шли кучками
+  // (кристалл, балка и обломки почти в одной точке), а потом была долгая тишина.
+  // улица 1 — от старта до провала
+  addCrystal(-26,'center',true,0);                       // высоко — только прыжком
+  addBeam(-52);
+  events.push({z:-52,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
+  addCrystal(-78,'left',false,0);                        // слева — манёвр влево
+  addDebris(-100,0,9,'left','Обломки сверху — уходите влево');
   events.push({z:Z_PIT_EDGE+1,type:'pit',need:'jump',text:'Впереди провал — перепрыгнуть',done:false,warned:false});
-  // улица 2
-  addDebris(-232,0,9,'left','Обломки сверху — уходите влево');
-  addCrystal(-246,'left',false,0);
-  addCrystal(-256,'center',true,0);                      // высоко — только прыжком
-  addBeam(-262);
-  events.push({z:-262,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
-  addDebris(-282,0,9,'right','Обломки сверху — уходите вправо');
+  // улица 2 — от провала до финиша
+  addDebris(-170,0,9,'right','Обломки сверху — уходите вправо');
+  addCrystal(-198,'right',false,0);                      // справа — манёвр вправо
+  addBeam(-226);
+  events.push({z:-226,type:'beam',need:'duck',text:'Впереди низкая балка — пригнуться',done:false,warned:false});
+  addCrystal(-252,'center',true,0);                      // высоко — только прыжком
+  addDebris(-272,0,9,'left','Обломки сверху — уходите влево');
 }
 
 // при повреждении на пути появляется кристалл
@@ -1348,10 +1340,10 @@ function ensureHealCrystal(){
 function buildTunnelEvents(){
   if(tunnelEventsDone)return;
   tunnelEventsDone=true;
-  events.push({z:TUN.z0-16,type:'pipe',need:'duck',text:'Впереди труба — пригнуться',done:false,warned:false});
-  addDebris(TUN.z0-36,TUN.y,2.7,'left','Обломки сверху — уходите влево',1.2,0.45);
-  addCrystal(TUN.z0-52,'right',false,TUN.y);
-  addDebris(TUN.z0-68,TUN.y,2.7,'right','Обломки сверху — уходите вправо',1.2,-0.45);
+  // в тоннеле тот же ровный шаг ~26 м между препятствиями
+  events.push({z:TUN.z0-20,type:'pipe',need:'duck',text:'Впереди труба — пригнуться',done:false,warned:false});
+  addDebris(TUN.z0-48,TUN.y,2.7,'left','Обломки сверху — уходите влево',1.2,0.45);
+  addCrystal(TUN.z0-66,'right',false,TUN.y);
 }
 
 // ——— вид наблюдателя: значение препятствий видно и без текста ———
@@ -1431,35 +1423,43 @@ function buildObserverMarkers(){
   syncObsTags();
 }
 
-// надписи ставятся у всех препятствий, включая появившиеся позже (в тоннеле)
+// Надписи для наблюдателя: одновременно одна — у ближайшего препятствия, и с действием,
+// которое надо сказать Бегуну («ПРОВАЛ — ПРЫЖОК», «ОБЛОМКИ — ВЛЕВО»).
 function syncObsTags(){
   if(!OBSERVE||!scene) return;
   events.forEach(function(e){
     if(e.tag) return;
-    var word={pit:'ПРОВАЛ',beam:'БАЛКА',debris:'ОБЛОМКИ',pipe:'ТРУБА'}[e.type]||'ОПАСНО';
+    var word={pit:'ПРОВАЛ — ПРЫЖОК',beam:'БАЛКА — ПРИГНУТЬСЯ',
+      debris:(e.need==='left'?'ОБЛОМКИ — ВЛЕВО':(e.need==='right'?'ОБЛОМКИ — ВПРАВО':'ОБЛОМКИ')),
+      pipe:'ТРУБА — ПРИГНУТЬСЯ'}[e.type]||'ОПАСНО';
     var y=(e.baseY||0)+(e.type==='debris'?4.6:(e.type==='beam'?3.1:1.6));
-    e.tag=obsTag('▼ '+word,e.z,0,y,'#ff3b30',e);
+    e.tag=obsTag(word,e.z,0,y,'#ff3b30',e);
   });
   crystals.forEach(function(c){
     if(c.tag) return;
-    c.tag=obsTag('▼ КРИСТАЛЛ',c.z,c.x,(c.yBase||1.2)+1.7,'#38efe4',null,c);
+    var word=c.high?'КРИСТАЛЛ — ПРЫЖОК':(c.side==='left'?'КРИСТАЛЛ — ВЛЕВО':
+      (c.side==='right'?'КРИСТАЛЛ — ВПРАВО':'КРИСТАЛЛ'));
+    c.tag=obsTag(word,c.z,c.x,(c.yBase||1.2)+1.7,'#38efe4',null,c);
   });
 }
 
 // подпись с треугольником-стрелкой, которая смотрит на само препятствие
 function obsTagTexture(word,color){
-  var c=document.createElement('canvas'); c.width=320; c.height=72;
-  var g=c.getContext('2d');
-  g.font='bold 40px Arial, Helvetica, sans-serif';
+  var W=640, H=96;
+  var c=document.createElement('canvas'); c.width=W; c.height=H;
+  var g=c.getContext('2d'), fs=52;
+  g.font='bold '+fs+'px Arial, Helvetica, sans-serif';
+  var w=g.measureText(word).width;
+  if(w>W-40){ fs=Math.max(26,Math.floor(fs*(W-40)/w)); g.font='bold '+fs+'px Arial, Helvetica, sans-serif'; }
   g.textAlign='center'; g.textBaseline='middle';
-  g.lineWidth=6; g.strokeStyle='rgba(6,12,14,0.85)'; g.strokeText(word,160,38);
-  g.fillStyle=color||'#ff3b30'; g.fillText(word,160,38);
+  g.lineWidth=8; g.strokeStyle='rgba(6,12,14,0.9)'; g.strokeText(word,W/2,H/2+2);
+  g.fillStyle=color||'#ff3b30'; g.fillText(word,W/2,H/2+2);
   var t=new THREE.CanvasTexture(c); t.needsUpdate=true; return t;
 }
 function obsTag(word,z,x,y,color,e,c){
   var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:obsTagTexture(word,color),transparent:true,
-    depthWrite:false,depthTest:false,opacity:0.95}));
-  sp.scale.set(5.0,1.15,1);
+    depthWrite:false,depthTest:false,opacity:0.97}));
+  sp.scale.set(10,1.5,1);
   sp.position.set(x||0,y||0,z||0);
   sp.visible=false;
   scene.add(sp);
@@ -1467,27 +1467,27 @@ function obsTag(word,z,x,y,color,e,c){
   return sp;
 }
 
-// показываем только то, что ещё впереди и не пройдено
+// Показываем ОДНУ надпись — у ближайшего ещё не пройденного препятствия.
+// Так наблюдатель не читает список: он видит только то, о чём говорить сейчас.
 function updateObsTags(z){
-  var lead=obsLeadM(), cand=[];
+  var best=null, bd=1e9;
   for(var i=0;i<OBS_TAGS.length;i++){
     var t=OBS_TAGS[i];
-    var alive=t.e?(!t.e.done):(!t.c||!t.c.taken);
-    var d=z-t.z;                       // >0 — препятствие ещё впереди
     t.s.visible=false;
-    if(alive && d>-3 && d<lead) cand.push({t:t,d:d});
+    var alive=t.e?(!t.e.done):(!t.c||!t.c.taken);
+    if(!alive) continue;
+    var d=z-t.z;                       // >0 — препятствие ещё впереди
+    if(d<=-3) continue;                // пройдено
+    if(d<bd){ bd=d; best=t; }
   }
-  // одновременно — не больше трёх ближайших, иначе надписи наезжают друг на друга
-  cand.sort(function(a,b){ return a.d-b.d; });
-  for(var k=0;k<cand.length && k<3;k++){
-    var sp=cand[k].t.s; sp.visible=true;
-    // размер надписи одинаковый на экране: масштаб растёт вместе с расстоянием до камеры.
-    // Иначе надпись размером 1,15 м читается только в последние 20 м — «подсказки опаздывают».
-    var dc=camera.position.distanceTo(sp.position);
-    var hh=Math.max(1.15,dc*0.064);
-    sp.scale.set(hh*4.35,hh,1);
-    sp.material.opacity=(cand[k].d>lead*0.55)?0.6:0.95;
-  }
+  if(!best) return;
+  var sp=best.s;
+  sp.visible=true;
+  // размер на экране постоянный и крупный: одинаково читается и вблизи, и за 30–40 м
+  var dc=camera.position.distanceTo(sp.position);
+  var hh=Math.max(2.0,dc*0.115);
+  sp.scale.set(hh*6.67,hh,1);
+  sp.material.opacity=0.97;
 }
 
 // красная стрелка: куда уходить от препятствия, которое впереди
@@ -1981,10 +1981,11 @@ function spark(pos,count){
 // последний участок: если просели энергия или корпус — добавляем кристаллы
 function endgameHeal(){
   if(integrity>=99&&energy>=99) return;
-  addCrystal(-226,'right',false,0);
-  addCrystal(-244,'left',false,0);
-  addCrystal(-258,'center',true,0);      // высоко — только прыжком
-  addCrystal(-276,'right',false,0);
+  // ставим между препятствиями второй улицы, чтобы не удваивать их в одной точке
+  addCrystal(-184,'right',false,0);
+  addCrystal(-210,'left',false,0);
+  addCrystal(-238,'center',true,0);      // высоко — только прыжком
+  addCrystal(-266,'right',false,0);
 }
 
 // обломок разлетается на мелкие куски
