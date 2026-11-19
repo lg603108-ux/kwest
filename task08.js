@@ -6,9 +6,9 @@
 window.Task08=(function(){
 const CODE='3971';
 const HINT=['','Ищите цифры в порядке: пробирка, бейдж, часы, сектор.','На часах нужна именно цифра часа — сколько часов показывают стрелки.','Код — 3971. Запомните его для финала.'];
-const BUILD='0342a';
-const SRC_INTRO='assets/v08_intro.mp4';
-const SRC_VIEW='assets/lab_cctv.mp4';
+const BUILD='0343a';
+const SRC_INTRO='assets/v08_intro.mp4?v=0343a';   // 16 МБ (сжатый файл автора, 19.11)
+const SRC_VIEW='assets/lab_cctv.mp4?v=0343a';     // 6,9 МБ (сжатый файл автора, 19.11)
 let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
 let tickTimer=null,startTimer=null,watchdogTimer=null,mediaKey='',mediaRetries=0,pbKey='',resKey='',stageKey='';
 let tOff=0,offRef=null,endedLocal=false;
