@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0334a';
+var VER='0335a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -61,7 +61,7 @@ var T7_HTML='<div id="t7-stage">'+
 '<div class="t7-pill"><small>Время</small><b id="t7-time">30</b></div>'+
 '<div class="t7-pill"><small>Энергия</small><b id="t7-energy">100%</b></div>'+
 '<div class="t7-pill"><small>Корпус</small><b id="t7-integrity">100%</b></div>'+
-'<div class="t7-pill t7-zone"><small>Участок</small><b id="t7-zone">Улица</b></div>'+
+'<div class="t7-pill t7-zone"><small id="t7-sec">Участок 1 из 10</small><b id="t7-zone">Улица</b></div>'+
 '</div>'+
 '<div id="t7-alert" class="t7-alert"></div>'+
 '<div id="t7-damage"><div class="t7-dmg-title">Капсула повреждена</div><div class="t7-dmg-val">15%</div></div>'+
@@ -95,6 +95,7 @@ var T7_HTML='<div id="t7-stage">'+
 '</div>'+
 '<div id="t7-obs" class="hidden">'+
 '<div class="t7-obs-top">'+
+'<span id="t7-obs-sec">УЧАСТОК 1 ИЗ 10</span>'+
 '<span class="t7-obs-role">НАБЛЮДАТЕЛЬ</span>'+
 '<span id="t7-obs-runner">Бегун: —</span>'+
 '<span class="t7-obs-remind">Подсказывайте голосом: что впереди и что делать</span>'+
@@ -114,7 +115,14 @@ var T7_HTML='<div id="t7-stage">'+
 '<div class="t7-card">'+
 '<h1 id="t7-end-title">Участок пройден</h1>'+
 '<p id="t7-end-text"></p>'+
+'<button type="button" id="t7-lab" class="t7-primary hidden">Войти в лабораторию</button>'+
 '<button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>'+
+'</div>'+
+'</div>'+
+'<div id="t7-lab-screen" class="t7-screen hidden">'+
+'<div class="t7-card">'+
+'<h1>ВХОД В ЛАБОРАТОРИЮ</h1>'+
+'<p id="t7-lab-text">Дверь открыта. Следующее задание начинается внутри лаборатории.</p>'+
 '</div>'+
 '</div>'+
 '</div>';
@@ -211,6 +219,8 @@ function fillDom(){
   el={prog:document.getElementById('t7-progress'),time:document.getElementById('t7-time'),
     energy:document.getElementById('t7-energy'),integrity:document.getElementById('t7-integrity'),
     zone:document.getElementById('t7-zone'),alert:document.getElementById('t7-alert'),
+    sec:document.getElementById('t7-sec'),obsSec:document.getElementById('t7-obs-sec'),
+    lab:document.getElementById('t7-lab'),labScreen:document.getElementById('t7-lab-screen'),
     flash:document.getElementById('t7-flash'),dark:document.getElementById('t7-dark'),
     start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
     endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
@@ -492,6 +502,8 @@ function applyStage(){
   if(STAGE==='change'){ if(ch) ch.classList.remove('hidden'); showChange(); return; }
   if(ch) ch.classList.add('hidden');
   CHANGED=false;
+  // десятый участок: забег закончен в дверях лаборатории — показываем «МАРШРУТ ПРОЙДЕН»
+  if(SEG==='C' && (STAGE==='done')){ showLabEnd(MODE==='runner'); return; }
   if(OBSERVE){ showObserver(); return; }
   if(!STARTED){ if(el.start) el.start.classList.remove('hidden'); return; }
   if(el.start) el.start.classList.add('hidden');
@@ -541,6 +553,7 @@ function showObserver(){
   ov.classList.remove('hidden');
   var rn=shadow('t7-obs-runner'), pr=shadow('t7-obs-progress');
   if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
+  if(el.obsSec) el.obsSec.textContent='УЧАСТОК '+Math.min(10,ROUND+1)+' ИЗ 10';
   if(pr) pr.textContent='Путь: '+Math.round(PROG)+'%';
 }
 var OBS_RUNNER_NAME='';
@@ -577,10 +590,8 @@ function setProgress(p){
   PROG_T=Math.max(0,Math.min(100,p||0));
   var pr=shadow('t7-obs-progress');
   if(pr) pr.textContent='Путь: '+Math.round(PROG_T)+'%';
-  if(OBSERVE&&PROG_T>=99){
-    var box=shadow('t7-obs-hint');
-    if(box){ box.textContent='МАРШРУТ ПРОЙДЕН'; box.classList.remove('hidden'); }
-  }
+  // надписи «МАРШРУТ ПРОЙДЕН» на промежуточных участках больше нет:
+  // она появляется только у двери лаборатории на десятом участке
 }
 function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
   // на экране смены имя обновляем следом: очередь двигается через полсекунды после итога
@@ -2516,13 +2527,15 @@ function zoneName(){
 
 function updateHud(){
   if(el.prog) el.prog.textContent=Math.round(Math.min(1,Math.max(0,travelled/pathTotal))*100)+'%';
-  if(el.time) el.time.textContent=Math.max(0,Math.ceil(DURATION-tRun));
+  if(el.time) el.time.textContent=(SEG==='C')?'—':Math.max(0,Math.ceil(DURATION-tRun));
   if(el.energy) el.energy.textContent=Math.round(energy)+'%';
   if(el.integrity){
     el.integrity.textContent=Math.round(integrity)+'%';
     el.integrity.className=integrity<=30?'bad':(integrity<=60?'warn':'');
   }
   if(el.zone) el.zone.textContent=zoneName();
+  // номер участка дороги: всего десять ходов, каждый — свой участок
+  if(el.sec) el.sec.textContent='Участок '+Math.min(10,ROUND+1)+' из 10';
 }
 
 // ——— камера ———
@@ -2724,7 +2737,7 @@ function step(dt){
     if(sZ<=Z_FINISH) finish();
   }
 
-  if(tRun>=DURATION&&!finished) finish();
+  if(tRun>=DURATION&&!finished&&SEG!=='C') finish();   // десятый участок идёт до двери, время его не обрывает
 
   // события по расстоянию
   events.forEach(function(e){
@@ -2959,7 +2972,10 @@ function reset(){
     if(e.pieces) e.pieces.forEach(function(p){ p.visible=false; });
   });
   crystals.forEach(function(c){ c.taken=false; c.pop=0; c.grp.visible=true;
-    c.grp.scale.setScalar(1); c.grp.position.set(c.x,c.yBase,c.z); c.grp.rotation.set(0,0,0);
+    // c.x — это СМЕЩЕНИЕ от оси маршрута, а не мировая координата:
+    // на участках Б и В ось уходит в сторону (routeX ≈ −45), и без routeX(z)
+    // кристаллы после нажатия «Начать бег» уезжали с дороги — их не было видно совсем
+    c.grp.scale.setScalar(1); c.grp.position.set(routeX(c.z)+c.x,c.yBase,c.z); c.grp.rotation.set(0,0,0);
     c.shell.opacity=0.82; c.core.opacity=0.92; c.glow.material.opacity=0.30; });
   capFlash=0; window.__t7pick=0; laneLimitNow=LANE_X;
   if(capGlow){ capGlow.material.opacity=0; capGlow.visible=true; }
@@ -2969,6 +2985,10 @@ function reset(){
   if(dmgBox){ dmgBox.className=''; dmgBox.style.display='none'; }
   dmgUntil=0; critPlayed=false;
   if(el.dark) el.dark.style.opacity=0;
+  // повторный забег: карточка лаборатории убирается, кнопка «Пройти ещё раз» возвращается
+  if(el.labScreen) el.labScreen.classList.add('hidden');
+  if(el.lab) el.lab.classList.add('hidden');
+  if(againBtn) againBtn.classList.remove('hidden');
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
   CAPSULE_DMG=-1; tintCapsuleModel(0);
@@ -2992,14 +3012,34 @@ function finish(){
   // капсула и энергия растут только от собранных кристаллов
   try{ SFX.amb.pause(); }catch(e){}
   try{ SFX.music.pause(); }catch(e){}
-  if(el.endTitle) el.endTitle.textContent=failed===0?'Маршрут пройден без ошибок':'Маршрут пройден';
-  if(el.endText) el.endText.textContent='Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
-    Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.';
-  if(el.end) el.end.classList.remove('hidden');
+  var last=(SEG==='C');                 // десятый участок — дверь лаборатории
+  if(last){ showLabEnd(true); }
+  else{
+    if(el.endTitle) el.endTitle.textContent='Участок пройден';
+    if(el.endText) el.endText.textContent='Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
+      Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.';
+    if(el.lab) el.lab.classList.add('hidden');
+    if(againBtn) againBtn.classList.remove('hidden');
+    if(el.end) el.end.classList.remove('hidden');
+  }
   if(onFinishCb){
     try{ onFinishCb({energy:Math.round(energy),integrity:Math.round(integrity),
       passed:passed,failed:failed}); }catch(e){}
   }
+}
+
+// Дошли до двери лаборатории: «МАРШРУТ ПРОЙДЕН» и кнопка входа.
+// Показывается только на десятом участке; у наблюдателей — та же карточка без кнопок.
+function showLabEnd(isRunner){
+  if(el.labScreen) el.labScreen.classList.add('hidden');
+  if(el.endTitle) el.endTitle.textContent='МАРШРУТ ПРОЙДЕН';
+  if(el.endText) el.endText.textContent=isRunner
+    ? ('Дверь лаборатории открыта. Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
+       Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.')
+    : 'Бегун дошёл до двери лаборатории.';
+  if(againBtn) againBtn.classList.add('hidden');
+  if(el.lab) el.lab.classList.toggle('hidden',!isRunner);
+  if(el.end) el.end.classList.remove('hidden');
 }
 
 function bindButtons(){
@@ -3007,6 +3047,30 @@ function bindButtons(){
   againBtn=document.getElementById('t7-again');
   if(playBtn) playBtn.addEventListener('click',beginRun);
   if(againBtn) againBtn.addEventListener('click',start);
+  // «Войти в лабораторию» — единственная дверь на десятом участке, ведёт к следующему заданию
+  var lb=document.getElementById('t7-lab');
+  if(lb) lb.addEventListener('click',function(){
+    if(el.end) el.end.classList.add('hidden');
+    if(el.labScreen) el.labScreen.classList.remove('hidden');
+  });
+  keepAwake();
+}
+
+// ——— телефон не должен гасить экран, пока открыто задание ———
+// Наблюдатель минутами ничего не нажимает, и телефон уходил в сон: экран гас у него.
+var WAKE=null;
+function keepAwake(){
+  try{
+    if(WAKE) return;
+    if(!navigator||!navigator.wakeLock||!navigator.wakeLock.request) return;
+    navigator.wakeLock.request('screen').then(function(s){
+      WAKE=s;
+      try{ s.addEventListener('release',function(){ WAKE=null; }); }catch(e){}
+    })['catch'](function(){});
+  }catch(e){}
+}
+function releaseAwake(){
+  try{ if(WAKE){ var w=WAKE; WAKE=null; w.release(); } }catch(e){}
 }
 
 // Бегун нажал «Начать бег» на экране «Ты Бегун»: сообщаем команде стадию бега и стартуем.
@@ -3093,6 +3157,8 @@ function bootScene(){
 
   if(!listenersBound){
     listenersBound=true;
+    // возврат к вкладке — снова держим экран включённым (после сна он сбрасывается)
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) keepAwake(); });
     window.addEventListener('orientationchange',function(){ setTimeout(updateOrient,220); });
     window.addEventListener('resize',function(){
       updateOrient();
@@ -3133,6 +3199,9 @@ function mount(container,opts){
   ['contextmenu','selectstart','dragstart'].forEach(function(ev){
     ROOT.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
   });
+  // любое касание — повод снова попросить «не гасить экран» (браузеры требуют нажатие)
+  ROOT.addEventListener('touchstart',keepAwake,{passive:true});
+  ROOT.addEventListener('click',keepAwake,{passive:true});
   alive=true;
   fillDom();
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
@@ -3150,7 +3219,9 @@ function unmount(){
   try{ if(SFX.amb) SFX.amb.pause(); }catch(e){}
   try{ if(SFX.music) SFX.music.pause(); }catch(e){}
   running=false; finished=false;
-  if(renderer){ try{ renderer.dispose(); }catch(e){} renderer=null; }
+  releaseAwake();
+  if(renderer){ try{ renderer.dispose(); }catch(e){}
+    try{ if(renderer.forceContextLoss) renderer.forceContextLoss(); }catch(e){} renderer=null; }
   scene=null; camera=null; clock=null; booted=false;
   if(ROOT&&ROOT.parentNode) ROOT.parentNode.removeChild(ROOT);
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;

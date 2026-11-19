@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0334a">
+<link rel="stylesheet" href="task07.css?v=0335a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0334a">
+<body data-build="0335a">
 <div id="app">
 
 <header id="topbar">
@@ -259,7 +259,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0334a"></script>
+<script src="task07.js?v=0335a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -353,7 +353,12 @@ function t7role(){var list=t7online().filter(function(e){return e[0]!==t7runnerU
 // отдельного значения стадии для этого в схеме базы нет.
 function t7stageLocal(){
   var n=t7node(), st=n.stage||'intro';
-  if(st==='done' && n.result && n.result.at) return 'change';
+  if(st==='done' && n.result && n.result.at){
+    // десятый участок заканчивается у двери лаборатории: ход больше не передаётся,
+    // поэтому экран «СМЕНА БЕГУНА» там не показываем
+    if((+n.round||0)>=9) return 'done';
+    return 'change';
+  }
   return st;
 }
 function t7ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');}
@@ -365,7 +370,7 @@ if(r.state.phase==='task07'){
 // (по правилам базы номер бегуна пишет только капитан). Опорный признак — время итога,
 // а не отдельное значение стадии: его схема задания не предусматривает.
 var n07=t7node();
-if(cap() && n07.result && n07.result.at){
+if(cap() && n07.result && n07.result.at && (+n07.round||0)<9){   // на десятом участке ход не передаётся
   var bumpKey=String(n07.result.at||0);
   if(window.__t7bumpKey!==bumpKey){
     window.__t7bumpKey=bumpKey;

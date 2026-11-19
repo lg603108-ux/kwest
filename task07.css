@@ -24,8 +24,9 @@
 .t7-pill b{font-size:17px;color:#fff;margin-top:2px}
 .t7-pill b.warn{color:#ffb35c}
 .t7-pill b.bad{color:#ff6b6b}
-.t7-zone{min-width:80px}
+.t7-zone{min-width:104px}
 .t7-zone b{font-size:14px;color:#30e5dc}
+.t7-zone small{white-space:nowrap}
 
 /* ——— плашка сообщения: чёрная, белый шрифт ——— */
 .t7-alert{position:absolute;left:50%;top:74px;transform:translate(-50%,-8px);z-index:7;
@@ -130,6 +131,7 @@
 .t7-obs-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));
   display:flex;flex-direction:column;gap:2px;font-size:12px;letter-spacing:.06em;color:#9fd8d8}
 .t7-obs-role{color:#30e5dc;font-weight:700;font-size:14px;letter-spacing:.12em}
+#t7-obs-sec{color:#30e5dc;font-weight:700;font-size:13px;letter-spacing:.12em}
 .t7-obs-remind{color:#9fd8d8;font-size:12px;max-width:min(70vw,420px)}
 #t7-obs-hint{position:absolute;left:50%;top:12%;transform:translateX(-50%);
   max-width:min(86vw,760px);padding:16px 26px;border-radius:12px;background:rgba(0,0,0,.94);
