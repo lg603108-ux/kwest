@@ -14,10 +14,11 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0338a';
+var VER='0345a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
+var ONENTERLAB=null;            // переход в восьмое задание по кнопке «Войти в лабораторию»
 // режим работы модуля: 'runner' — экран Бегуна, 'observer' — экран наблюдателя (вид сверху и подсказки)
 var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0, ISCAP=false;
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
@@ -83,16 +84,6 @@ var T7_HTML='<div id="t7-stage">'+
 '<div id="t7-rotate"><div>Поверните телефон горизонтально</div></div>'+
 '<div id="t7-dark"></div>'+
 '<div id="t7-flash"></div>'+
-'<div id="t7-start" class="t7-screen">'+
-'<div class="t7-card">'+
-'<h1 id="t7-start-title">Ты Бегун</h1>'+
-'<p id="t7-start-text">В руках капсула. Беги вперёд: перепрыгни провал, пригнись под балкой, уйди в сторону от обломков и собирай кристаллы. Наблюдатели подскажут, что впереди.</p>'+
-'<p class="t7-hint">Управление: кнопки внизу или свайпы по экрану. Свайп вверх — прыжок, вниз — пригнуться, влево или вправо — уйти в сторону.</p>'+
-'<button type="button" id="t7-play" class="t7-primary">Начать бег</button>'+
-'<button type="button" id="t7-full" class="t7-second">Во весь экран</button>'+
-'<p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>'+
-'</div>'+
-'</div>'+
 '<div id="t7-intro" class="hidden">'+
 '<video id="t7-intro-video" playsinline preload="auto" controlslist="nodownload" disablepictureinpicture src="assets/v07_intro.mp4"></video>'+
 '<button type="button" id="t7-intro-next" class="t7-primary hidden">Продолжить →</button>'+
@@ -109,8 +100,12 @@ var T7_HTML='<div id="t7-stage">'+
 '</div>'+
 '<div id="t7-change" class="t7-screen hidden">'+
 '<div class="t7-card">'+
-'<h1 class="t7-change-title">ТЫ — БЕГУН</h1>'+
+'<h1 id="t7-change-title" class="t7-change-title">ТЫ — БЕГУН</h1>'+
+'<p id="t7-change-name"></p>'+
+'<p class="t7-hint" id="t7-change-note"></p>'+
 '<button type="button" id="t7-change-go" class="t7-primary">Я — готов</button>'+
+'<button type="button" id="t7-full" class="t7-second">Во весь экран</button>'+
+'<p class="t7-note" id="t7-loadnote">Загрузка улицы…</p>'+
 '</div>'+
 '</div>'+
 '</div>';
@@ -448,7 +443,7 @@ function shadow(id){ return document.getElementById(id); }
 function showIntro(){
   var box=shadow('t7-intro'); if(!box) return;
   box.classList.remove('hidden');
-  if(el.start) el.start.classList.add('hidden');
+  hideChange();
   var next=shadow('t7-intro-next');
   if(!introV) introV=box.querySelector('#t7-intro-video');
   if(next){
@@ -459,7 +454,7 @@ function showIntro(){
       next.disabled=true; next.classList.add('hidden');
       stopIntroVideo(); hideIntro();
       STARTED=false;
-      if(el.start) el.start.classList.remove('hidden');   // короткий экран «Ты Бегун» с кнопкой «Начать бег»
+      applyStage();   // экран «ТЫ — БЕГУН» с кнопкой «Я — готов»
     };
   }
   if(introV){
@@ -482,26 +477,26 @@ function hideIntro(){
   stopIntroVideo();
   var box=shadow('t7-intro'); if(box) box.classList.add('hidden');
 }
+function hideChange(){ var ch=document.getElementById('t7-change'); if(ch) ch.classList.add('hidden'); }
 function applyStage(){
   if(STAGE==='intro'){ showIntro(); return; }
   hideIntro();
-  var ch=document.getElementById('t7-change');
-  if(STAGE==='change'){ if(ch) ch.classList.remove('hidden'); showChange(); return; }
-  if(ch) ch.classList.add('hidden');
+  if(STAGE==='change'){ showChange(); return; }
   CHANGED=false;
   if(STAGE==='run') RUN_SEEN=true;
   // десятый участок: финал только после реального забега (иначе старый итог включал бы его сразу),
   // иначе — обычный экран смены бегуна, где новый бегун нажимает «Ты — бегун»
-  if(SEG==='C' && STAGE==='done' && RUN_SEEN){ showLabEnd(MODE==='runner'); return; }
-  if(OBSERVE){ showObserver(); return; }
-  if(!STARTED){ if(el.start) el.start.classList.remove('hidden'); return; }
-  if(el.start) el.start.classList.add('hidden');
+  if(SEG==='C' && STAGE==='done'){ showLabEnd(MODE==='runner'); return; }
+  if(OBSERVE){ hideChange(); showObserver(); return; }
+  if(!STARTED){ showChange(); return; }   // экран «ТЫ — БЕГУН» с кнопкой «Я — готов»
+  hideChange();
 }
 // Смена бегуна: крупная надпись, голос из папки автора, кнопка «Ты — бегун» у нового бегуна
 function showChange(){
   var box=document.getElementById('t7-change'); if(!box) return;
   box.classList.remove('hidden');
-  if(el.start) el.start.classList.add('hidden');
+  var ttl=document.getElementById('t7-change-title');
+  if(ttl) ttl.textContent=(MODE==='runner')?'ТЫ — БЕГУН':'СМЕНА БЕГУНА';
   var nm=document.getElementById('t7-change-name');
   if(nm) nm.textContent=OBS_RUNNER_NAME?('Новый бегун: '+OBS_RUNNER_NAME):'';
   var go=document.getElementById('t7-change-go');
@@ -521,10 +516,11 @@ function showChange(){
       };
     }else{
       go.classList.add('hidden');
-      if(note) note.textContent='Ждём, когда '+(OBS_RUNNER_NAME||'новый бегун')+' нажмёт «Ты — бегун».';
+      if(note) note.textContent='Ждём, когда '+(OBS_RUNNER_NAME||'новый бегун')+' нажмёт «Я — готов».';
     }
   }
-  playChangeVoice();
+  // голос «смена бегуна» — только на настоящей смене, не перед первым забегом
+  if(STAGE==='change') playChangeVoice();
 }
 function playChangeVoice(){
   if(CHANGED) return;
@@ -3037,11 +3033,15 @@ function finish(){
 // заряд капсулы и остальные надписи.
 function showLabEnd(isRunner){
   finished=true; running=false;
-  if(el.start) el.start.classList.add('hidden');
+  hideChange();
   if(el.plate){ el.plate.textContent='МАРШРУТ ПРОЙДЕН';
     el.plate.classList.remove('hidden'); }
-  if(el.lab){ el.lab.classList.remove('hidden'); el.lab.disabled=false;
-    el.lab.textContent='Войти в лабораторию'; }
+  if(el.lab){
+    el.lab.classList.remove('hidden');
+    // Переход в восьмое задание делает капитан: писать фазу комнаты может только он.
+    if(ISCAP){ el.lab.disabled=false; el.lab.textContent='Войти в лабораторию'; }
+    else{ el.lab.disabled=true; el.lab.textContent='Капитан ведёт команду в лабораторию'; }
+  }
   var ctr=document.getElementById('t7-controls'); if(ctr) ctr.classList.add('hidden');
   updateHud();
   return isRunner;
@@ -3055,8 +3055,10 @@ function bindButtons(){
   var lb=document.getElementById('t7-lab');
   if(lb) lb.addEventListener('click',function(){
     if(lb.disabled) return;
-    lb.disabled=true; lb.textContent='Дверь открыта';
+    if(!ISCAP) return;
+    lb.disabled=true; lb.textContent='Переводим в лабораторию…';
     if(el.plate) el.plate.textContent='ЛАБОРАТОРИЯ — СЛЕДУЮЩЕЕ ЗАДАНИЕ ВНУТРИ';
+    if(ONENTERLAB){ try{ ONENTERLAB(); }catch(e){} }
   });
   keepAwake();
 }
@@ -3154,6 +3156,12 @@ function bootScene(){
         if(SEG==='A') buildEvents(); else buildEventsB();
         if(OBSERVE) hideRunnerUI();
         if(OBSERVE) buildObserverMarkers();
+    // Десятый участок уже завершён (состояние «done»): ставим камеру к двери лаборатории,
+    // а не в начало участка — иначе вместо двери показывался вид начала коридора.
+    if(SEG==='C' && STAGE==='done' && !OBSERVE){
+      phase='tunnel'; phaseT=0; sZ=Z_LAB_STOP; travelled=Math.abs((Z_TURN+10)-Z_LAB_STOP);
+      finished=true; running=false;
+    }
     updateHud();
     if(note)note.textContent='';
     if(playBtn) playBtn.disabled=false;
@@ -3184,6 +3192,7 @@ function mount(container,opts){
   ONHINT=opts.onHint||null;
   ONPROG=opts.onProgress||null;
   ONSTART=opts.onStartRun||null;
+  ONENTERLAB=opts.onEnterLab||null;
   MODE=(opts.mode==='observer')?'observer':'runner';
   OBSERVE=(MODE==='observer');
   ROLE=opts.role||MODE;
@@ -3233,7 +3242,7 @@ function unmount(){
   scene=null; camera=null; clock=null; booted=false;
   if(ROOT&&ROOT.parentNode) ROOT.parentNode.removeChild(ROOT);
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
-  onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
+  onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; ONENTERLAB=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
   RUN_SEEN=false;

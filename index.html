@@ -95,7 +95,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0344a">
+<body data-build="0345a">
 <div id="app">
 
 <header id="topbar">
@@ -264,7 +264,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0338a"></script>
+<script src="task07.js?v=0345a"></script>
 <script src="task08.js?v=0344a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
@@ -417,6 +417,13 @@ runnerName:t7runnerName(),
 onHint:publishHint07,
 onProgress:publishProgress07,
 onStartRun:function(){setStage07('run');},
+onEnterLab:function(){
+var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');
+ref.update({stage:'intro',startsAt:Date.now()+1200,playbackId:1,playing:true,pausedAt:0,fullViewed:false,codeDraft:'',codeAccepted:false,attempts:0,hintLevel:0,completedAt:0})
+.then(function(){return NET.setPhase('task08',Date.now()+1500);})
+.then(function(){setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);})
+.catch(function(e){toastMsg('Ошибка перехода к заданию 8: '+(e&&e.message||e));});
+},
 onFinish:report07
 });
 }catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
@@ -620,35 +627,8 @@ ref.update({stage:'intro',startsAt:Date.now()+1500,round:0})
 });
 done.appendChild(btn);
 }
-// Переход 7 → 8: кнопка «Продолжить» на экране «Вход в лабораторию» задания 7.
-// Сам task07.js не правим — подтверждённый модуль; кнопку добавляем снаружи, как 5 → 6 и 6 → 7.
-function task07Done(){try{var r=NET.room;return !!(r&&r.state&&r.state.phase==='task07'&&r.tasks&&r.tasks.task07&&r.tasks.task07.stage==='done');}catch(e){return false;}}
-function wireTask08(){
-if(!ready()||!task07Done())return;
-var lab=document.getElementById('t7-lab-screen');if(!lab)return;
-var card=lab.querySelector('.t7-card');if(!card)return;
-if(!cap()){
-if(!card.querySelector('#t8-waitnext')){var p=document.createElement('p');p.id='t8-waitnext';p.className='t7-hint';p.textContent='Капитан переведёт команду к заданию 8…';card.appendChild(p);}
-return;
-}
-var old=card.querySelector('#t8-waitnext');if(old)old.parentNode.removeChild(old);
-if(document.getElementById('t8-continue'))return;
-var btn=document.createElement('button');btn.id='t8-continue';btn.className='t7-primary';btn.type='button';
-btn.textContent='Продолжить →';btn.style.marginTop='10px';
-btn.addEventListener('click',function(){
-if(!cap()||btn.disabled)return;
-btn.disabled=true;
-toastMsg('Переводим команду к записи камер…');
-var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');
-ref.update({stage:'intro',startsAt:Date.now()+1200,playbackId:1,playing:true,pausedAt:0,fullViewed:false,codeDraft:'',codeAccepted:false,attempts:0,hintLevel:0,completedAt:0})
-.then(function(){return NET.setPhase('task08',Date.now()+1500);})
-.then(function(){setTimeout(tryMount,500);setTimeout(tryMount,1500);setTimeout(tryMount,3000);})
-.catch(function(e){btn.disabled=false;toastMsg('Ошибка перехода: '+(e&&e.message||e));});
-});
-card.appendChild(btn);
-}
 var wasCap=null;
-setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();wireTask07();wireTask08();tryMount();},500);
+setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();wireTask07();tryMount();},500);
 })();
 </script>
 <script>
