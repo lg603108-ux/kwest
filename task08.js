@@ -6,7 +6,7 @@
 window.Task08=(function(){
 const CODE='3971';
 const HINT=['','Ищите цифры в порядке: пробирка, бейдж, часы, сектор.','На часах нужна именно цифра часа — сколько часов показывают стрелки.','Код — 3971. Запомните его для финала.'];
-const BUILD='0350a';
+const BUILD='0351a';
 const SRC_INTRO='assets/v08_intro.mp4?v=0344a';   // 16 МБ
 const SRC_VIEW='assets/lab_cctv.mp4?v=0344a';     // 6,9 МБ
 let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
@@ -47,8 +47,7 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<video class="t8-video" playsinline preload="auto"></video>'+
 '<section class="t8-screen t8-wait"><p class="t8-eyebrow">ЗАДАНИЕ 8</p><h1>Место искажения</h1>'+
 '<button id="t8-start" class="t8-primary" type="button">▶ Включить инструкцию</button>'+
-'<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит инструкцию…</p>'+
-'<button id="t8-to9" class="t8-secondary" type="button" hidden>▶ К заданию 9</button></section>'+
+'<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<section class="t8-screen t8-ready" id="t8-ready" hidden><p class="t8-eyebrow">ИНСТРУКЦИЯ ПРОСМОТРЕНА</p><h1>Мы у места первого прорыва</h1>'+
 '<p class="t8-note">Здесь осталась запись камер. Смотрите её вместе: в записи четыре цифры кода и плакат на стене с протоколом запуска — его нужно запомнить для финала.</p>'+
 '<button id="t8-show" class="t8-primary" type="button">▶ Показать запись команде</button>'+
@@ -81,13 +80,11 @@ err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
 hintLabel:root.querySelector('#t8-hint-label'),hintText:root.querySelector('#t8-hint-text'),
 done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),
 watchagain:root.querySelector('#t8-watchagain'),donenote:root.querySelector('#t8-donenote'),cont:root.querySelector('#t8-continue'),
-to9:root.querySelector('#t8-to9'),
 replaywrap:root.querySelector('#t8-replaywrap'),replayvid:root.querySelector('#t8-replayvid'),replayclose:root.querySelector('#t8-replayclose')};
 els.start.addEventListener('click',startIntro);
 els.watchagain.addEventListener('click',openReplay);
 els.replayclose.addEventListener('click',closeReplay);
 els.cont.addEventListener('click',continueTo9);
-els.to9.addEventListener('click',jumpToDone);
 els.show.addEventListener('click',startView);
 els.toggle.addEventListener('click',togglePlay);
 els.restart.addEventListener('click',restartView);
@@ -227,13 +224,6 @@ if(!els.replaywrap||!els.replayvid)return;
 els.replaywrap.hidden=true;
 try{els.replayvid.pause();els.replayvid.removeAttribute('src');els.replayvid.load();}catch(e){}
 }
-// Кнопка на первом экране задания 8: сразу финальный экран задания 8 (для проверки перехода).
-function jumpToDone(){
-if(!cap()||!task||(task.stage||'wait')!=='wait')return;
-if(els.to9)els.to9.disabled=true;
-write({stage:'done',codeAccepted:true,fullViewed:true,playing:false,pausedAt:0,completedAt:Date.now()})
-.catch(function(){if(els.to9)els.to9.disabled=false;});
-}
 function continueTo9(){
 if(!cap()||!task||task.stage!=='done')return;
 if(els.cont)els.cont.disabled=true;
@@ -255,7 +245,6 @@ const inIntro=stage==='intro',inView=stage==='view',inCode=stage==='code',inDone
 const introDone=inIntro&&endedLocal;
 els.wait.hidden=stage!=='wait';
 els.start.hidden=!c;els.waitnote.hidden=c;
-if(els.to9)els.to9.hidden=!c;
 els.ready.hidden=!introDone;
 els.show.hidden=!(c&&introDone);els.readynote.hidden=c||!introDone;
 if(video){
