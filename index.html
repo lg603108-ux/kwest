@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
 <link rel="stylesheet" href="task07.css?v=0338a">
-<link rel="stylesheet" href="task08.css?v=0342a">
+<link rel="stylesheet" href="task08.css?v=0343a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -95,7 +95,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0342a">
+<body data-build="0343a">
 <div id="app">
 
 <header id="topbar">
@@ -265,7 +265,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0338a"></script>
-<script src="task08.js?v=0342a"></script>
+<script src="task08.js?v=0343a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -676,8 +676,8 @@ if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
 // Технический переход к заданию 7 из пролога и ранних этапов (только капитан).
-if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j7');}
-// Отдельная тестовая кнопка восьмого задания: показывается ближе к концу цепочки.
+if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j7');on('j8');}
+// На поздних этапах остаётся только кнопка восьмого задания.
 if(ph==='task05'||ph==='task06'||ph==='task07'){on('j8');}
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
