@@ -28,6 +28,23 @@
 .t7-zone b{font-size:14px;color:#30e5dc}
 .t7-zone small{white-space:nowrap}
 
+/* ——— финал десятого участка: небольшая плашка сверху и кнопка внизу ———
+   Полноэкранных карточек нет: дверь лаборатории и верхние надписи остаются видны. */
+.t7-lab-plate{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:9;
+  padding:8px 20px;border-radius:10px;background:rgba(0,0,0,.92);
+  border:1px solid rgba(48,229,220,.5);color:#30e5dc;
+  font-size:16px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  white-space:nowrap;pointer-events:none}
+.t7-lab-plate.hidden{display:none}
+.t7-lab-btn{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:9;
+  -webkit-appearance:none;appearance:none;border:0;border-radius:12px;
+  min-width:260px;max-width:86vw;min-height:52px;padding:12px 30px;
+  background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;
+  font-family:inherit;font-size:17px;font-weight:700}
+.t7-lab-btn.hidden{display:none}
+.t7-lab-btn[disabled]{opacity:.55}
+
 /* ——— плашка сообщения: чёрная, белый шрифт ——— */
 .t7-alert{position:absolute;left:50%;top:74px;transform:translate(-50%,-8px);z-index:7;
   padding:10px 20px;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:.01em;

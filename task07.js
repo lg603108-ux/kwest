@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0335a';
+var VER='0336a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -64,6 +64,8 @@ var T7_HTML='<div id="t7-stage">'+
 '<div class="t7-pill t7-zone"><small id="t7-sec">Участок 1 из 10</small><b id="t7-zone">Улица</b></div>'+
 '</div>'+
 '<div id="t7-alert" class="t7-alert"></div>'+
+'<div id="t7-lab-plate" class="t7-lab-plate hidden">МАРШРУТ ПРОЙДЕН</div>'+
+'<button type="button" id="t7-lab" class="t7-lab-btn hidden">Войти в лабораторию</button>'+
 '<div id="t7-damage"><div class="t7-dmg-title">Капсула повреждена</div><div class="t7-dmg-val">15%</div></div>'+
 '<button id="t7-topview" type="button">Вид сверху</button>'+
 '<div id="t7-controls">'+
@@ -115,14 +117,7 @@ var T7_HTML='<div id="t7-stage">'+
 '<div class="t7-card">'+
 '<h1 id="t7-end-title">Участок пройден</h1>'+
 '<p id="t7-end-text"></p>'+
-'<button type="button" id="t7-lab" class="t7-primary hidden">Войти в лабораторию</button>'+
 '<button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>'+
-'</div>'+
-'</div>'+
-'<div id="t7-lab-screen" class="t7-screen hidden">'+
-'<div class="t7-card">'+
-'<h1>ВХОД В ЛАБОРАТОРИЮ</h1>'+
-'<p id="t7-lab-text">Дверь открыта. Следующее задание начинается внутри лаборатории.</p>'+
 '</div>'+
 '</div>'+
 '</div>';
@@ -220,7 +215,7 @@ function fillDom(){
     energy:document.getElementById('t7-energy'),integrity:document.getElementById('t7-integrity'),
     zone:document.getElementById('t7-zone'),alert:document.getElementById('t7-alert'),
     sec:document.getElementById('t7-sec'),obsSec:document.getElementById('t7-obs-sec'),
-    lab:document.getElementById('t7-lab'),labScreen:document.getElementById('t7-lab-screen'),
+    lab:document.getElementById('t7-lab'),plate:document.getElementById('t7-lab-plate'),
     flash:document.getElementById('t7-flash'),dark:document.getElementById('t7-dark'),
     start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
     endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
@@ -2985,9 +2980,12 @@ function reset(){
   if(dmgBox){ dmgBox.className=''; dmgBox.style.display='none'; }
   dmgUntil=0; critPlayed=false;
   if(el.dark) el.dark.style.opacity=0;
-  // повторный забег: карточка лаборатории убирается, кнопка «Пройти ещё раз» возвращается
-  if(el.labScreen) el.labScreen.classList.add('hidden');
-  if(el.lab) el.lab.classList.add('hidden');
+  // повторный забег: плашка и кнопка лаборатории убираются, управление возвращается
+  if(el.plate) el.plate.classList.add('hidden');
+  if(el.lab){ el.lab.classList.add('hidden'); el.lab.disabled=false;
+    el.lab.textContent='Войти в лабораторию'; }
+  var ctrR=document.getElementById('t7-controls');
+  if(ctrR && !OBSERVE) ctrR.classList.remove('hidden');
   if(againBtn) againBtn.classList.remove('hidden');
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
@@ -3028,18 +3026,20 @@ function finish(){
   }
 }
 
-// Дошли до двери лаборатории: «МАРШРУТ ПРОЙДЕН» и кнопка входа.
-// Показывается только на десятом участке; у наблюдателей — та же карточка без кнопок.
+// Дошли до двери лаборатории: небольшая плашка «МАРШРУТ ПРОЙДЕН» сверху и кнопка входа внизу.
+// Экран не перекрываем: бегун должен видеть саму дверь, а вверху остаются номер участка,
+// заряд капсулы и остальные надписи.
 function showLabEnd(isRunner){
-  if(el.labScreen) el.labScreen.classList.add('hidden');
-  if(el.endTitle) el.endTitle.textContent='МАРШРУТ ПРОЙДЕН';
-  if(el.endText) el.endText.textContent=isRunner
-    ? ('Дверь лаборатории открыта. Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
-       Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.')
-    : 'Бегун дошёл до двери лаборатории.';
-  if(againBtn) againBtn.classList.add('hidden');
-  if(el.lab) el.lab.classList.toggle('hidden',!isRunner);
-  if(el.end) el.end.classList.remove('hidden');
+  finished=true; running=false;
+  if(el.end) el.end.classList.add('hidden');          // полноэкранной карточки больше нет
+  if(el.start) el.start.classList.add('hidden');
+  if(el.plate){ el.plate.textContent='МАРШРУТ ПРОЙДЕН';
+    el.plate.classList.remove('hidden'); }
+  if(el.lab){ el.lab.classList.remove('hidden'); el.lab.disabled=false;
+    el.lab.textContent='Войти в лабораторию'; }
+  var ctr=document.getElementById('t7-controls'); if(ctr) ctr.classList.add('hidden');
+  updateHud();
+  return isRunner;
 }
 
 function bindButtons(){
@@ -3047,11 +3047,13 @@ function bindButtons(){
   againBtn=document.getElementById('t7-again');
   if(playBtn) playBtn.addEventListener('click',beginRun);
   if(againBtn) againBtn.addEventListener('click',start);
-  // «Войти в лабораторию» — единственная дверь на десятом участке, ведёт к следующему заданию
+  // «Войти в лабораторию» — дверь на десятом участке. Экран не перекрываем:
+  // когда задание 8 появится, здесь будет переход в него.
   var lb=document.getElementById('t7-lab');
   if(lb) lb.addEventListener('click',function(){
-    if(el.end) el.end.classList.add('hidden');
-    if(el.labScreen) el.labScreen.classList.remove('hidden');
+    if(lb.disabled) return;
+    lb.disabled=true; lb.textContent='Дверь открыта';
+    if(el.plate) el.plate.textContent='ЛАБОРАТОРИЯ — СЛЕДУЮЩЕЕ ЗАДАНИЕ ВНУТРИ';
   });
   keepAwake();
 }
