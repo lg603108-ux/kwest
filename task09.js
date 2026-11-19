@@ -8,7 +8,7 @@
 // ориентируются по пульсирующему кольцу: иначе десять телефонов дают эхо.
 // Стадии: wait → intro (инструкция Вольта) → charge → done.
 window.Task09=(function(){
-const BUILD='0351a';
+const BUILD='0352a';
 const PERIOD=0.57259;      // секунд между ударами (104,79 уд/мин)
 const OFFSET=0.2186;       // первый удар от начала трека, секунд
 const TRACK_LEN=120.08;    // длина файла, секунд
@@ -61,8 +61,9 @@ root=document.createElement('div');root.id='t9';root.innerHTML=
 '<p class="t9-hint2">Кольцо вспыхивает на каждый удар</p></div></div>'+
 '<div class="t9-fb" id="t9-fb" hidden></div>'+
 '<section class="t9-done" id="t9-done" hidden>'+
-'<p class="t9-eyebrow">СТАБИЛИЗАТОР ЗАРЯЖЕН</p><h1>100% — установка готова</h1>'+
-'<p class="t9-note">Капсула вставлена, ритм запуска задан. Дальше — «Закрытие портала»; это задание появится в следующем обновлении.</p></section>'+
+'<p class="t9-eyebrow">СТАБИЛИЗАТОР ЗАРЯЖЕН</p><h1>ЗАРЯДКА 100 %</h1><p class="t9-donebig">УСТАНОВКА ГОТОВА</p>'+
+'<button id="t9-continue" class="t9-primary" type="button">Продолжить →</button>'+
+'<p class="t9-donewait" id="t9-donewait">ЖДЁМ КАПИТАНА</p></section>'+
 '<div class="t9-status" id="t9-status" role="status" hidden></div>'+
 '<button class="t9-primary t9-mediabtn" id="t9-media" type="button" hidden></button>'+
 '<p class="t9-build">Сборка '+BUILD+'</p>';
@@ -72,8 +73,10 @@ els={wait:root.querySelector('.t9-wait'),start:root.querySelector('#t9-start'),w
 hud:root.querySelector('#t9-hud'),pct:root.querySelector('#t9-pct'),fill:root.querySelector('#t9-fill'),
 zone:root.querySelector('#t9-zone'),ring:root.querySelector('#t9-ring'),fb:root.querySelector('#t9-fb'),
 done:root.querySelector('#t9-done'),status:root.querySelector('#t9-status'),media:root.querySelector('#t9-media'),
+cont:root.querySelector('#t9-continue'),donewait:root.querySelector('#t9-donewait'),
 leftnote:root.querySelector('#t9-leftnote')};
 els.start.addEventListener('click',startIntro);
+els.cont.addEventListener('click',continueTo10);
 els.zone.addEventListener('pointerdown',onTap);
 els.zone.addEventListener('contextmenu',function(e){e.preventDefault();});
 try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
@@ -183,6 +186,20 @@ if((ch>=100||t>=TRACK_LEN+0.3))finish();
 }
 }
 render();
+}
+// ——— переход к заданию 10 (модуля ещё нет, экран-заглушка в главной странице) ———
+function continueTo10(){
+if(!task||task.stage!=='done')return;
+if(!cap()){
+status('Продолжит капитан.');
+setTimeout(function(){if(status()==='Продолжит капитан.')status('');},2500);
+return;
+}
+if(els.cont)els.cont.disabled=true;
+NET.setPhase('task10',now()+800).catch(function(e){
+if(els.cont)els.cont.disabled=false;
+status('Не удалось перейти к заданию 10: '+(e&&e.message||e));
+});
 }
 // ——— музыка (только капитан) ———
 function ensureTrack(){
@@ -305,6 +322,8 @@ const inIntro=st==='intro'&&!endedLocal;
 if(video)video.hidden=!inIntro;
 els.hud.hidden=!(st==='intro'||st==='charge');
 els.done.hidden=st!=='done';
+if(els.cont)els.cont.hidden=!c;
+if(els.donewait)els.donewait.hidden=c;
 const ch=st==='done'?100:Math.max(0,Math.min(100,+task.charge||0));
 if(els.pct)els.pct.textContent=String(ch);
 if(els.fill)els.fill.style.width=ch+'%';

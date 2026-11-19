@@ -11,8 +11,8 @@
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
 <link rel="stylesheet" href="task07.css?v=0349a">
-<link rel="stylesheet" href="task08.css?v=0351a">
-<link rel="stylesheet" href="task09.css?v=0351a">
+<link rel="stylesheet" href="task08.css?v=0352a">
+<link rel="stylesheet" href="task09.css?v=0352a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -96,7 +96,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0351a">
+<body data-build="0352a">
 <div id="app">
 
 <header id="topbar">
@@ -233,6 +233,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="task07-mount"></div>
 <div id="task08-mount"></div>
 <div id="task09-mount"></div>
+<div id="task10-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -268,8 +269,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0349a"></script>
-<script src="task08.js?v=0351a"></script>
-<script src="task09.js?v=0351a"></script>
+<script src="task08.js?v=0352a"></script>
+<script src="task09.js?v=0352a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -531,6 +532,19 @@ mounted09=false;
 if(window.Task09){try{Task09.unmount();}catch(e){}}
 var el9b=document.getElementById('task09-mount');
 if(el9b){el9b.classList.remove('active');el9b.innerHTML='';}
+}
+// Задание 10: модуля ещё нет — честный экран-заглушка, чтобы кнопка «Продолжить» не вела в пустоту.
+if(r.state.phase==='task10'){
+var el10=document.getElementById('task10-mount');
+if(el10&&el10.getAttribute('data-on')!=='1'){
+el10.setAttribute('data-on','1');el10.classList.add('active');document.body.dataset.screen='task10';
+el10.innerHTML='<div class="t10ph"><p class="t10ph-eyebrow">ЗАДАНИЕ 10</p><h1>ЗАКРЫТИЕ ПОРТАЛА</h1>'+
+'<p class="t10ph-note">ЭТО ЗАДАНИЕ ПОЯВИТСЯ В СЛЕДУЮЩЕМ ОБНОВЛЕНИИ</p></div>';
+}
+}
+if(r.state.phase!=='task10'){
+var el10b=document.getElementById('task10-mount');
+if(el10b&&el10b.getAttribute('data-on')==='1'){el10b.removeAttribute('data-on');el10b.classList.remove('active');el10b.innerHTML='';}
 }
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
