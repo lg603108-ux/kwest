@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0345a';
+var VER='0346a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -22,6 +22,7 @@ var ONENTERLAB=null;            // переход в восьмое задани
 // режим работы модуля: 'runner' — экран Бегуна, 'observer' — экран наблюдателя (вид сверху и подсказки)
 var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0, ISCAP=false;
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
+var INTRO_PASSED=false;          // инструкция уже просмотрена: повторно не открываем
 var introV=null, introDone=false;
 var STARTED=false;              // бегун нажал «Начать бег» после инструкции
 // На десятом участке финал показываем только если этот забег действительно шёл:
@@ -454,7 +455,8 @@ function showIntro(){
       next.disabled=true; next.classList.add('hidden');
       stopIntroVideo(); hideIntro();
       STARTED=false;
-      applyStage();   // экран «ТЫ — БЕГУН» с кнопкой «Я — готов»
+      INTRO_PASSED=true;   // инструкция пройдена: повторно её не открываем
+      applyStage();        // экран «ТЫ — БЕГУН» с кнопкой «Я — готов»
     };
   }
   if(introV){
@@ -479,7 +481,7 @@ function hideIntro(){
 }
 function hideChange(){ var ch=document.getElementById('t7-change'); if(ch) ch.classList.add('hidden'); }
 function applyStage(){
-  if(STAGE==='intro'){ showIntro(); return; }
+  if(STAGE==='intro' && !INTRO_PASSED){ showIntro(); return; }
   hideIntro();
   if(STAGE==='change'){ showChange(); return; }
   CHANGED=false;
@@ -3200,7 +3202,7 @@ function mount(container,opts){
   STAGE=opts.stage||'intro';
   PROG=opts.progress||0;
   OBS_RUNNER_NAME=opts.runnerName||'';
-  obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false;
+  obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false; INTRO_PASSED=false;
   ROUND=opts.round||0;
   { var m=String(location.search||'').match(/[?&]round=(\d+)/); if(m) ROUND=parseInt(m[1],10); }
   SEG=(ROUND>=9)?'C':((ROUND%2===0)?'A':'B');   // десятый ход — завершающий участок к лаборатории
@@ -3244,7 +3246,7 @@ function unmount(){
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; ONENTERLAB=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
-  STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
+  STARTED=false; INTRO_PASSED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
   RUN_SEEN=false;
   OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1; CAP_OK=false;
   CAPSCENE=null; CAPCAM=null; CAPSIZE=null; CAPBASEY=0; RUNNER_ARMS=[];
