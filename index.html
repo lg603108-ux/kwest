@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0338a">
+<link rel="stylesheet" href="task07.css?v=0349a">
 <link rel="stylesheet" href="task08.css?v=0344a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
@@ -95,7 +95,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0348a">
+<body data-build="0349a">
 <div id="app">
 
 <header id="topbar">
@@ -246,7 +246,6 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <button class="sk" data-act="t6b" type="button">⏭ 6: танец → сборка</button>
 <!-- Тестовая кнопка перехода к заданию 7 (вместо прежних тестовых переходов к заданиям 5 и 6). -->
 <button class="sk" data-act="j7" type="button">▶ Тест: сразу к заданию 7</button>
-<button class="sk" data-act="j8" type="button">▶ Тест: сразу к заданию 8</button>
 <button class="sk" data-act="t8a" type="button">⏭ 8: пропустить инструкцию</button>
 <button class="sk" data-act="t8b" type="button">⏭ 8: запись → ввод кода</button>
 </div>
@@ -264,7 +263,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0348a"></script>
+<script src="task07.js?v=0349a"></script>
 <script src="task08.js?v=0344a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
@@ -700,9 +699,8 @@ if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
 // Технический переход к заданию 7 из пролога и ранних этапов (только капитан).
-if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j7');on('j8');}
-// На поздних этапах остаётся только кнопка восьмого задания.
-if(ph==='task05'||ph==='task06'||ph==='task07'){on('j8');}
+if(ph==='cinema'||ph==='intro'||ph==='brief'||ph==='battle'||ph==='result'||ph==='task02'||ph==='task03'||ph==='task04'){on('j7');}
+// Переход к заданию 8 делается только из задания 7 — отдельной тестовой кнопки больше нет.
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
 if(ph==='task05'){if(t5==='intro')on('t5a');}
@@ -749,14 +747,7 @@ r7.update({stage:'intro',startsAt:now+800,round:0})
 .then(function(){return NET.setPhase('task07',now+800);})
 .catch(function(e){err('Не удалось перейти к заданию 7 (проверьте правила базы): '+(e&&e.message||e));});
 }
-// Технический переход к заданию 8 из любого раннего этапа.
-if(a==='j8'&&cap()){
-silenceAll();
-var r8=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');
-r8.update({stage:'intro',startsAt:now+1200,playbackId:1,playing:true,pausedAt:0,fullViewed:false,codeDraft:'',codeAccepted:false,attempts:0,hintLevel:0,completedAt:0})
-.then(function(){return NET.setPhase('task08',now+800);})
-.catch(function(e){err('Не удалось перейти к заданию 8 (проверьте правила базы): '+(e&&e.message||e));});
-}
+// Техническая кнопка перехода к заданию 8 убрана совсем: переход идёт только из задания 7.
 });
 setInterval(refresh,500);
 })();

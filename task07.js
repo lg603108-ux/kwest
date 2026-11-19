@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0348a';
+var VER='0349a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -496,9 +496,10 @@ function applyStage(){
   if(STAGE==='change'){ showChange(); return; }
   CHANGED=false;
   if(STAGE==='run') RUN_SEEN=true;
-  // десятый участок: финал только после реального забега (иначе старый итог включал бы его сразу),
-  // иначе — обычный экран смены бегуна, где новый бегун нажимает «Ты — бегун»
-  if(SEG==='C' && STAGE==='done'){ showLabEnd(MODE==='runner'); return; }
+  // Десятый участок: финал показываем ТОЛЬКО после реального забега на этом участке.
+  // Раньше плашка «МАРШРУТ ПРОЙДЕН» и строка про капитана загорались у наблюдателя
+  // сразу с начала участка, если в базе уже лежал готовый итог.
+  if(SEG==='C' && STAGE==='done' && RUN_SEEN){ showLabEnd(MODE==='runner'); return; }
   if(OBSERVE){ hideChange(); showObserver(); return; }
   if(!STARTED){ showChange(); return; }   // экран «ТЫ — БЕГУН» с кнопкой «Я — готов»
   hideChange();

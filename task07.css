@@ -162,9 +162,9 @@
   font-size:18px;font-weight:700;letter-spacing:.04em;text-align:center;line-height:1.2;
   text-transform:uppercase;box-shadow:0 0 18px rgba(255,90,80,.35)}
 #t7-obs-hull.hidden{display:none}
-/* кнопка автора «К 10 участку»: маленькая, в левом нижнем углу, только у капитана */
+/* кнопка автора «К 10 участку»: маленькая, в левом нижнем углу, НАД кнопками управления */
 .t7-skip{position:absolute;left:max(10px,env(safe-area-inset-left));
-  bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px);z-index:40;
+  bottom:calc(max(8px,env(safe-area-inset-bottom)) + 128px);z-index:40;
   padding:8px 14px;border-radius:10px;border:1px solid rgba(48,229,220,.55);
   background:rgba(13,22,26,.82);color:#8fe6e0;font-size:12px;font-weight:700;
   letter-spacing:.04em;text-transform:uppercase}
