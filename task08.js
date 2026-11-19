@@ -63,7 +63,7 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<p class="t8-err" id="t8-err" hidden>Код не принят. Пересмотрите запись.</p>'+
 '<div class="t8-hint" id="t8-hint" hidden><b id="t8-hint-label">Подсказка</b><span id="t8-hint-text"></span></div>'+
 '</section>'+
-'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1><p class="t8-note t8-caps">ЗАПОМНИТЕ ПОРЯДОК КНОПОК НА ПЛАТАКЕ</p><button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть запись</button><p class="t8-note" id="t8-donenote">Ждём капитана: он перейдёт к зарядке Стабилизатора.</p><button id="t8-continue" class="t8-primary" type="button">Продолжить →</button></section>'+
+'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1><p class="t8-note t8-caps">ЗАПОМНИТЕ ПОРЯДОК КНОПОК НА ПЛАКАТЕ</p><button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть запись</button><p class="t8-note" id="t8-donenote">Ждём капитана: он перейдёт к зарядке Стабилизатора.</p><button id="t8-continue" class="t8-primary" type="button">Продолжить →</button></section>'+
 '<div class="t8-replaywrap" id="t8-replaywrap" hidden><video class="t8-replayvid" id="t8-replayvid" playsinline preload="auto"></video><button class="t8-secondary t8-replayclose" id="t8-replayclose" type="button">✕ Закрыть</button></div>'+
 '<div class="t8-status" id="t8-status" role="status" hidden></div>'+
 '<button class="t8-primary t8-mediabtn" id="t8-media" type="button" hidden></button>'+
