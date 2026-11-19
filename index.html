@@ -351,6 +351,8 @@ function t7handed(u,rnd){try{return localStorage.getItem(t7handKey(u,rnd))==='1'
 function t7markHanded(u,rnd){try{localStorage.setItem(t7handKey(u,rnd),'1');}catch(e){}}
 function t7clearHanded(){try{var p='t7hand:'+((NET.room&&NET.room.code)||'')+':';
   for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf(p)===0)localStorage.removeItem(k);}}catch(e){}}
+// панель пропусков живёт в отдельной области видимости и берёт функцию отсюда через window
+try{window.__t7clearHanded=t7clearHanded;}catch(e){}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
   var rnd=(t7node().round||0);
   var pool=list.filter(function(e){return !t7handed(e[0],rnd);});
@@ -741,7 +743,7 @@ if(a==='j7'&&cap()){
 silenceAll();
 var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 r7.update({stage:'intro',startsAt:now+800,round:0})
-.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}t7clearHanded();window.__t7hull=null;window.__t7wasRunner=null;window.__t7resSeed='';return r7.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}if(window.__t7clearHanded)window.__t7clearHanded();window.__t7hull=null;window.__t7wasRunner=null;window.__t7resSeed='';return r7.child('result').remove();})
 .then(function(){return r7.child('hint').remove();})
 .then(function(){return r7.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',now+800);})
