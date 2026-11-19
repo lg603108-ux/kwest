@@ -1,19 +1,21 @@
 // task08.js — задание 8 «Место искажения». Две задачи:
 // 1) по общей записи камер найти четыре цифры и ввести код (вводит только капитан);
 // 2) заметить плакат на стене и запомнить порядок протокола для финала (в интерфейсе он НЕ раскрывается).
-// Стадии: wait → intro (инструкция Вольта) → view (общая запись) → code (ввод) → done.
-// Эталон контура — task06.js (общий просмотр, звук инструкции только у капитана).
+// Стадии: wait → intro (инструкция Вольта) → view (запись камер) → code → done.
+// Звук: ролики ВСЕГДА стартуют без звука. Иначе телефон без свежего касания не запускает видео,
+// и на экране остаётся чёрный кадр («у капитана видео не загружается»). Капитан включает звук
+// кнопкой «♪ Включить звук»: касание даёт браузеру разрешение, инструкция при этом начинается заново.
 window.Task08=(function(){
 const CODE='3971';
 const HINT=['','Ищите цифры в порядке: пробирка, бейдж, часы, сектор.','На часах нужна именно цифра часа — сколько часов показывают стрелки.','Код — 3971. Запомните его для финала.'];
-const BUILD='0340a';
+const BUILD='0341a';
 const SRC_INTRO='assets/v08_intro.mp4';
 const SRC_VIEW='assets/lab_cctv.mp4';
 let active=false,root=null,video=null,bg=null,els={},roomState=null,task=null,roomOff=null;
 let tickTimer=null,startTimer=null,wdTimer=null,mediaTimer=null,mediaKey='',mediaRetries=0,pbKey='',resKey='';
-let tOff=0,offRef=null,curSrc='',advancing=false;
+let tOff=0,offRef=null,curSrc='',advancing=false,autoStarted=false;
 // Черновик кода: у капитана живёт локально (сразу виден), в базу пишется для восстановления при обрыве.
-let draft='',padOpen=true,errShown=false,lastSubmit=0,reqKey='';
+let draft='',padOpen=true,errShown=false,lastSubmit=0;
 let music=null,musicOn=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function now(){return Date.now()+(+tOff||0);}
@@ -36,18 +38,22 @@ function stopMusic(){if(musicOn||music){musicOn=false;try{music.pause();}catch(e
 // ——— монтаж ———
 function mount(container){
 if(root)unmount();
-active=true;mediaKey='';mediaRetries=0;pbKey='';resKey='';advancing=false;draft='';padOpen=true;errShown=false;lastSubmit=0;reqKey='';
+active=true;mediaKey='';mediaRetries=0;pbKey='';resKey='';advancing=false;draft='';padOpen=true;errShown=false;lastSubmit=0;autoStarted=false;
 stopMedia();stopMusic();
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 ['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
 root=document.createElement('div');root.id='t8';root.innerHTML=
 '<video class="t8-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
-'<video class="t8-video" playsinline preload="auto"></video>'+
+'<video class="t8-video" playsinline muted preload="auto"></video>'+
 '<section class="t8-screen t8-wait"><p class="t8-eyebrow">ЗАДАНИЕ 8</p><h1>Место искажения</h1>'+
-'<p class="t8-note">Мы у места первого прорыва. Здесь осталась запись камер. Найдите четыре цифры кода Ядра. Порядок: пробирка, бейдж, часы, сектор. На часах нужна цифра часа. В записи есть плакат на стене с протоколом запуска — внимательно запомните его, он понадобится в конце. После просмотра капитан проверит код.</p>'+
-'<button id="t8-start" class="t8-primary" type="button">▶ Показать запись команде</button>'+
-'<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит запись…</p></section>'+
+'<button id="t8-start" class="t8-primary" type="button">▶ Включить инструкцию</button>'+
+'<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
+'<section class="t8-screen t8-ready" id="t8-ready" hidden><p class="t8-eyebrow">ИНСТРУКЦИЯ ПРОСМОТРЕНА</p><h1>Мы у места первого прорыва</h1>'+
+'<p class="t8-note">Здесь осталась запись камер. Смотрите её вместе: в записи четыре цифры кода и плакат на стене с протоколом запуска — его нужно запомнить для финала.</p>'+
+'<button id="t8-show" class="t8-primary" type="button">▶ Показать запись команде</button>'+
+'<p class="t8-note" id="t8-readynote">Ждём капитана: он включит запись.</p></section>'+
 '<div class="t8-controls" id="t8-controls" hidden><button id="t8-toggle" type="button">⏸ Пауза</button><button id="t8-restart" type="button">↺ В начало</button></div>'+
+'<button class="t8-soundbtn" id="t8-sound" type="button" hidden>♪ Включить звук</button>'+
 '<button class="t8-replay" id="t8-request" type="button" hidden>↺ Попросить повтор</button>'+
 '<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p></section>'+
 '<section class="t8-code" id="t8-code" hidden>'+
@@ -66,14 +72,17 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 container.appendChild(root);
 video=root.querySelector('.t8-video');bg=root.querySelector('.t8-bg');
 els={wait:root.querySelector('.t8-wait'),start:root.querySelector('#t8-start'),waitnote:root.querySelector('#t8-waitnote'),
+ready:root.querySelector('#t8-ready'),show:root.querySelector('#t8-show'),readynote:root.querySelector('#t8-readynote'),
 controls:root.querySelector('#t8-controls'),toggle:root.querySelector('#t8-toggle'),restart:root.querySelector('#t8-restart'),
-request:root.querySelector('#t8-request'),ask:root.querySelector('#t8-ask'),
+sound:root.querySelector('#t8-sound'),request:root.querySelector('#t8-request'),ask:root.querySelector('#t8-ask'),
 code:root.querySelector('#t8-code'),cells:root.querySelector('#t8-cells'),pad:root.querySelector('#t8-pad'),
 del:root.querySelector('#t8-del'),check:root.querySelector('#t8-check'),again:root.querySelector('#t8-again'),
 fix:root.querySelector('#t8-fix'),err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
 hintLabel:root.querySelector('#t8-hint-label'),hintText:root.querySelector('#t8-hint-text'),
 done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media')};
 els.start.addEventListener('click',startIntro);
+els.show.addEventListener('click',startView);
+els.sound.addEventListener('click',toggleSound);
 els.toggle.addEventListener('click',togglePlay);
 els.restart.addEventListener('click',restartView);
 els.request.addEventListener('click',requestReplay);
@@ -101,7 +110,7 @@ if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
 if(typeof roomOff==='function')roomOff();roomOff=null;
 if(bg){try{bg.pause();}catch(e){}try{bg.removeAttribute('src');bg.load();}catch(e){}bg=null;}
 if(root&&root.parentNode)root.parentNode.removeChild(root);
-root=null;video=null;bg=null;els={};roomState=null;task=null;mediaKey='';pbKey='';resKey='';draft='';padOpen=true;errShown=false;advancing=false;
+root=null;video=null;bg=null;els={};roomState=null;task=null;mediaKey='';pbKey='';resKey='';draft='';padOpen=true;errShown=false;advancing=false;autoStarted=false;curSrc='';
 }
 function status(text){
 if(!els.status)return '';
@@ -112,13 +121,19 @@ function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&
 // ——— стадии ———
 function startIntro(){
 if(!cap()||!task||(task.stage||'wait')!=='wait')return;
-els.start.disabled=true;
-write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,fullViewed:false,codeDraft:'',codeAccepted:false,attempts:0,hintLevel:0,completedAt:0})
+if(els.start)els.start.disabled=true;
+write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,introDone:false,fullViewed:false,codeDraft:'',attempts:0,hintLevel:0,codeAccepted:false,completedAt:0})
 .catch(function(){if(els.start)els.start.disabled=false;});
 }
 function introDone(){
-if(!cap()||!task||task.stage!=='intro')return;
-write({stage:'view',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
+if(!cap()||!task||task.stage!=='intro'||task.introDone)return;
+write({introDone:true,playing:false,pausedAt:0}).catch(function(){});
+}
+function startView(){
+if(!cap()||!task||task.stage!=='intro'||!task.introDone)return;
+if(els.show)els.show.disabled=true;
+write({stage:'view',startsAt:now()+800,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()})
+.catch(function(){if(els.show)els.show.disabled=false;});
 }
 function viewDone(){
 if(!cap()||!task||task.stage!=='view'||advancing)return;
@@ -126,6 +141,27 @@ advancing=true;
 draft='';padOpen=true;errShown=false;
 write({stage:'code',fullViewed:true,playing:false,pausedAt:0,codeDraft:'',attempts:0,hintLevel:0})
 .catch(function(){}).then(function(){advancing=false;},function(){advancing=false;});
+}
+function toggleSound(){
+if(!cap()||!video||!task)return;
+const st=task.stage||'';
+if(st!=='intro'&&st!=='view')return;
+if(video.muted){
+video.muted=false;
+try{video.play().catch(function(){});}catch(e){}
+if(st==='intro'&&!task.introDone){
+// инструкция начинается заново: начало не теряется и запись идёт одинаково у всех
+try{video.currentTime=0;}catch(e){}
+write({playbackId:(+task.playbackId||0)+1,startsAt:now()+400,playing:true,pausedAt:0}).catch(function(){});
+}
+status('Звук включён.');
+setTimeout(function(){if(active&&status()==='Звук включён.')status('');},3000);
+}else{
+video.muted=true;
+status('Звук выключен.');
+setTimeout(function(){if(active&&status()==='Звук выключен.')status('');},3000);
+}
+render();
 }
 function togglePlay(){
 if(!cap()||!task||task.stage!=='view'||!video)return;
@@ -135,7 +171,7 @@ else{video.pause();write({playing:false,pausedAt:video.currentTime||0}).catch(fu
 function restartView(){
 if(!cap()||!task||task.stage!=='view'||!video)return;
 try{video.currentTime=0;video.play().catch(function(){});}catch(e){}
-write({playing:true,startsAt:now()+1200,pausedAt:0,playbackId:(+task.playbackId||0)+1,replayClearedAt:Date.now()}).catch(function(){});
+write({playing:true,startsAt:now()+400,pausedAt:0,playbackId:(+task.playbackId||0)+1,replayClearedAt:Date.now()}).catch(function(){});
 }
 function requestReplay(){
 if(!task||cap())return;
@@ -187,21 +223,27 @@ render();
 function watchAgain(){
 if(!cap()||!task||task.stage!=='code')return;
 errShown=false;
-write({stage:'view',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
+write({stage:'view',startsAt:now()+800,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
 }
 // ——— отрисовка ———
 function render(){
 if(!root||!task)return;
 const stage=task.stage||'wait',c=cap();
 root.className=c?'iscap':'';
-const inIntro=stage==='intro',inView=stage==='view',inCode=stage==='code',inDone=stage==='done';
+const introVideo=(stage==='intro')&&!task.introDone;
+const inReady=(stage==='intro')&&!!task.introDone;
+const inView=stage==='view',inCode=stage==='code',inDone=stage==='done';
 els.wait.hidden=stage!=='wait';
 els.start.hidden=!c;els.waitnote.hidden=c;
+els.ready.hidden=!inReady;
+els.show.hidden=!c;els.readynote.hidden=c;
 if(video){
-video.hidden=!(inIntro||inView);
-if(!inIntro&&!inView){try{if(!video.paused)video.pause();}catch(e){}}
+video.hidden=!(introVideo||inView);
+if(!introVideo&&!inView){try{if(!video.paused)video.pause();}catch(e){}}
 }
 els.controls.hidden=!(c&&inView);
+els.sound.hidden=!(c&&(introVideo||inView));
+els.sound.textContent=(video&&!video.muted)?'♪ Выключить звук':'♪ Включить звук';
 els.request.hidden=!(inView&&!c);
 els.ask.hidden=!(inCode&&!c);
 const showCode=inCode&&c&&!!task.fullViewed;
@@ -216,25 +258,21 @@ for(const k in req){if(req[k]&&+req[k].at>cleared)asked=Math.max(asked,+req[k].a
 if(asked&&!task.playing){status('Команда просит вернуть запись в начало.');els.restart.classList.add('t8-on');}
 else{els.restart.classList.remove('t8-on');if(status()==='Команда просит вернуть запись в начало.')status('');}
 }
-if(inDone){
-const rk='done';
-if(rk!==resKey){resKey=rk;playSfx('sfx_crystal_ready.mp3',.4);}
-}
-// Звук: инструкция и запись со звуком только у капитана (правило проекта).
+if(inDone){const rk='done';if(rk!==resKey){resKey=rk;playSfx('sfx_crystal_ready.mp3',.4);}}
+// Звук остаётся только у капитана и только если он сам включил его кнопкой.
 if(video&&!c&&!video.muted)video.muted=true;
-if(stage==='code'||stage==='done')startMusic();else if(stage==='view'||stage==='intro')stopMusic();
+stopMusic();
+if(stage==='code'||stage==='done')startMusic();
 }
 function renderCode(c){
 const cur=draft||String(task.codeDraft||'');
 draft=cur.slice(0,4);
-// ячейки
 let h='';
 for(let i=0;i<4;i++){
 const d=draft.charAt(i);
 h+='<span class="t8-cell'+(d?' filled':'')+'">'+(d?esc(d):'')+'</span>';
 }
 if(els.cells.innerHTML!==h)els.cells.innerHTML=h;
-// сетка 1–9 без нуля
 if(els.pad.childElementCount!==9){
 let p='';
 for(let i=1;i<=9;i++)p+='<button class="t8-key" type="button" data-d="'+i+'">'+i+'</button>';
@@ -269,21 +307,23 @@ stopMedia();
 const src=stage==='intro'?SRC_INTRO:SRC_VIEW;
 const reuse=(curSrc===src&&video.readyState>=1&&!video.error);
 mediaKey=stage;pbKey='';
-video.muted=!cap();
-if(video.muted){video.defaultMuted=true;video.setAttribute('muted','');}
-else{video.defaultMuted=false;video.removeAttribute('muted');}
+// Всегда без звука: только так телефон запускает ролик без касания. Звук включает капитан кнопкой.
+video.muted=true;
+video.defaultMuted=true;
+video.setAttribute('muted','');
 if(reuse){
-try{video.currentTime=stage==='view'?(+task.pausedAt||0):0;}catch(e){}
+try{video.currentTime=(stage==='view')?(+task.pausedAt||0):0;}catch(e){}
 video.onended=onVideoEnded;
 playWhenReady();
 return;
 }
 curSrc=src;
 video.src=src;
+video.load();
 video.onloadeddata=function(){
 if(!active||mediaKey!==stage)return;
 clearWd();mediaRetries=0;
-try{video.currentTime=stage==='view'?(+task.pausedAt||0):0;}catch(e){}
+try{video.currentTime=(stage==='view')?(+task.pausedAt||0):0;}catch(e){}
 playWhenReady();
 };
 video.onerror=function(){
@@ -291,31 +331,24 @@ if(!active||mediaKey!==stage||!video)return;
 clearMedia();
 if((+mediaRetries||0)<3){
 mediaRetries=(+mediaRetries||0)+1;
-status('Запись не загрузилась, пробуем ещё раз… (попытка '+mediaRetries+')');
+status('Ролик не загрузился, пробуем ещё раз… (попытка '+mediaRetries+')');
 mediaTimer=setTimeout(function(){mediaTimer=null;if(!active||mediaKey!==stage||!video)return;try{video.src=src;video.load();}catch(e){}},1500);
 return;
 }
-status('');
+status('Ролик не загрузился. Проверьте связь и нажмите кнопку.');
 if(cap())showMediaBtn('▶ Запустить видео',function(){mediaRetries=0;try{video.src=src;video.load();}catch(e){}});
-else status('Ждём капитана: он запустит запись.');
 };
 video.onended=onVideoEnded;
-video.load();
+// Сторож НЕ перезапускает загрузку: большой файл на телефоне грузится долго, а повторное
+// назначение src обрывало нормальную загрузку. Только сообщение и кнопка на крайний случай.
 clearWd();
 wdTimer=setTimeout(function(){
 wdTimer=null;
 if(!active||mediaKey!==stage||!video)return;
 if(video.readyState>=2)return;
-if((+mediaRetries||0)<3){
-mediaRetries=(+mediaRetries||0)+1;
-status('Запись не загрузилась, пробуем ещё раз… (попытка '+mediaRetries+')');
-try{video.src=src;video.load();}catch(e){}
-}else{
-status('');
+status('Ролик грузится. Подождите…');
 if(cap())showMediaBtn('▶ Запустить видео',function(){mediaRetries=0;try{video.src=src;video.load();}catch(e){}});
-else status('Ждём капитана: он запустит запись.');
-}
-},20000);
+},45000);
 }
 function onVideoEnded(){
 if(!active||!task||!video)return;
@@ -352,7 +385,8 @@ video.play().catch(function(){});
 function coordinate(){
 if(!task||!video)return;
 const stage=task.stage||'wait';
-if((stage==='intro'||stage==='view')&&mediaKey!==stage){mediaRetries=0;loadMedia(stage);return;}
+const needMedia=((stage==='intro')&&!task.introDone)||stage==='view';
+if(needMedia&&mediaKey!==stage){mediaRetries=0;loadMedia(stage);return;}
 const c=cap();
 if(stage==='view'){
 const pb=String(+task.playbackId||0);
@@ -371,18 +405,24 @@ els.toggle.textContent=video.paused?'▶ Играть':'⏸ Пауза';
 if(video.ended||(video.duration&&video.currentTime>=video.duration-0.6))viewDone();
 }
 }
-if(stage==='intro'&&c){
+if(stage==='intro'&&c&&!task.introDone){
 const t0=+task.startsAt||0;
-if(t0&&now()-t0>180000)introDone();
+if(video.duration&&video.currentTime>=video.duration-0.4)introDone();
+else if(t0&&now()-t0>180000)introDone();
 }
 if(video&&!c&&!video.muted)video.muted=true;
 }
 function tick(){
 if(!active||!task)return;
+const stage=task.stage||'wait';
+// Восьмое задание начинается сразу с инструкции Вольта, без текстового экрана.
+if(stage==='wait'&&cap()&&!autoStarted){
+autoStarted=true;
+setTimeout(function(){if(active&&task&&(task.stage||'wait')==='wait')startIntro();},400);
+}
 render();coordinate();
 if(!cap())return;
-const st=task.stage||'';
-if(st==='wait'&&els.start)els.start.disabled=false;
+if(stage==='wait'&&els.start)els.start.disabled=false;
 }
 return{mount:mount,unmount:unmount,BUILD:BUILD};
 })();
