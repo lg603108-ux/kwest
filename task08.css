@@ -26,7 +26,9 @@
 #t8 .t8-code-title{font-size:15px;font-weight:700;letter-spacing:1px;color:#30e5dc;margin:0}
 #t8 .t8-cells{display:flex;flex-direction:row;gap:10px}
 #t8 .t8-cell{width:52px;height:60px;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(190,245,245,.45);border-radius:10px;background:rgba(13,22,26,.85);font-size:28px;font-weight:800;color:#30e5dc}
+#t8 .t8-cell{cursor:pointer;font-family:inherit}
 #t8 .t8-cell.filled{border-style:solid;border-color:rgba(48,229,220,.6);background:#14292f}
+#t8 .t8-cell.sel{border-style:solid;border-color:#30e5dc;box-shadow:0 0 0 2px rgba(48,229,220,.35) inset}
 #t8 .t8-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(70vw,300px)}
 #t8 .t8-key{min-height:50px;border:1px solid rgba(190,245,245,.35);border-radius:12px;background:#14292f;color:#fff;font-size:22px;font-weight:700;font-family:inherit;cursor:pointer}
 #t8 .t8-key:active{border-color:#30e5dc;color:#30e5dc}
