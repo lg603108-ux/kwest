@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0330a';
+var VER='0334a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
