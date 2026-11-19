@@ -1,0 +1,66 @@
+/* task08.css — задание 8 «Место искажения». Все стили внутри #t8.
+   Запись общая, управление просмотром у капитана внизу слева: правый верхний угол
+   в кадре занят часами и сектором, туда интерфейс не ставим (ТЗ, раздел 10). */
+#task08-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
+#task08-mount.active{display:block}
+#t8{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%);color:#fff;font-family:QuestSans,Arial,sans-serif}
+#t8 [hidden]{display:none!important}
+#t8 .t8-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;opacity:.45}
+#t8 .t8-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:2}
+/* Экраны */
+#t8 .t8-screen{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;padding:18px;box-sizing:border-box;overflow-y:auto;background:radial-gradient(900px 500px at 50% 20%,rgba(27,58,63,.96),rgba(13,22,26,.98) 75%)}
+#t8 h1,#t8 p{margin:0 0 10px}
+#t8 h1{font-size:24px}
+#t8 .t8-eyebrow{color:#30e5dc;font-size:14px;font-weight:700;letter-spacing:1px}
+#t8 .t8-note{color:#b9d9d9;line-height:1.45;max-width:720px;font-size:14px}
+#t8 .t8-primary{min-height:52px;padding:12px 26px;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+#t8 .t8-primary:disabled{opacity:.5;cursor:wait}
+#t8 .t8-secondary{min-height:44px;padding:9px 16px;border:1px solid rgba(190,245,245,.35);border-radius:10px;background:#20383e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+/* Управление просмотром — внизу слева */
+#t8 .t8-controls{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:7;display:flex;flex-direction:row;gap:9px}
+#t8 .t8-controls button,#t8 .t8-replay{min-height:50px;padding:8px 20px;border:1px solid rgba(190,245,245,.4);border-radius:12px;background:rgba(13,22,26,.92);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+#t8 .t8-controls button.t8-on{border-color:#30e5dc;color:#30e5dc;box-shadow:0 0 14px rgba(48,229,220,.5)}
+#t8 .t8-replay{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:7;color:#30e5dc}
+/* Панель кода (видит только капитан) */
+#t8 .t8-code{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;box-sizing:border-box;background:radial-gradient(760px 420px at 50% 30%,rgba(27,58,63,.97),rgba(9,16,19,.99) 75%)}
+#t8 .t8-code-title{font-size:15px;font-weight:700;letter-spacing:1px;color:#30e5dc;margin:0}
+#t8 .t8-cells{display:flex;flex-direction:row;gap:10px}
+#t8 .t8-cell{width:52px;height:60px;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(190,245,245,.45);border-radius:10px;background:rgba(13,22,26,.85);font-size:28px;font-weight:800;color:#30e5dc}
+#t8 .t8-cell.filled{border-style:solid;border-color:rgba(48,229,220,.6);background:#14292f}
+#t8 .t8-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(70vw,300px)}
+#t8 .t8-key{min-height:50px;border:1px solid rgba(190,245,245,.35);border-radius:12px;background:#14292f;color:#fff;font-size:22px;font-weight:700;font-family:inherit;cursor:pointer}
+#t8 .t8-key:active{border-color:#30e5dc;color:#30e5dc}
+#t8 .t8-actions{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:min(94vw,560px)}
+#t8 .t8-actions .t8-primary{min-height:46px;padding:8px 20px;font-size:15px;border-radius:10px}
+#t8 .t8-actions .t8-secondary{min-height:46px;padding:8px 14px;font-size:13.5px}
+#t8 .t8-fix{min-height:42px;padding:8px 18px;border:1px solid rgba(48,229,220,.6);border-radius:10px;background:rgba(13,22,26,.9);color:#30e5dc;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+#t8 .t8-err{max-width:min(92vw,600px);margin:0;background:rgba(60,14,14,.92);border:1px solid rgba(255,140,120,.55);border-radius:10px;padding:6px 14px;color:#ffd0c4;font-size:13.5px;font-weight:700;text-align:center}
+#t8 .t8-hint{max-width:min(92vw,620px);margin:0;background:rgba(13,22,26,.94);border:1px solid rgba(48,229,220,.45);border-radius:10px;padding:6px 12px;color:#30e5dc;font-size:12.5px;line-height:1.35;text-align:center;pointer-events:none}
+#t8 .t8-hint b{display:block;font-size:11px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
+/* Финал */
+#t8 .t8-screen.t8-done{background:#000}
+#t8 .t8-status{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:8px 14px;border-radius:10px;background:rgba(0,0,0,.9);border:1px solid rgba(48,229,220,.45);color:#ffd0a0;font-size:13px;text-align:center}
+#t8 .t8-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10}
+#t8 .t8-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}
+/* Невысокий экран (телефон в горизонтали) */
+@media(max-height:760px){
+#t8 .t8-screen{padding:12px}
+#t8 h1{font-size:21px}
+#t8 .t8-note{font-size:13px;margin-bottom:8px}
+#t8 .t8-cell{width:46px;height:54px;font-size:24px}
+#t8 .t8-key{min-height:44px;font-size:20px}
+#t8 .t8-code{gap:6px}
+#t8 .t8-controls button,#t8 .t8-replay{min-height:44px;font-size:13.5px;padding:6px 16px}
+}
+@media(max-height:560px){
+#t8 .t8-screen{padding:9px}
+#t8 h1{font-size:19px}
+#t8 .t8-note{font-size:12px;line-height:1.35}
+#t8 .t8-primary{min-height:44px;font-size:15px;padding:8px 18px}
+#t8 .t8-cell{width:40px;height:46px;font-size:21px}
+#t8 .t8-pad{gap:6px;width:min(62vw,250px)}
+#t8 .t8-key{min-height:38px;font-size:18px}
+#t8 .t8-actions .t8-primary,#t8 .t8-actions .t8-secondary{min-height:40px;font-size:12.5px;padding:6px 12px}
+#t8 .t8-hint{font-size:11.5px;padding:5px 10px}
+#t8 .t8-err{font-size:12px;padding:5px 10px}
+}
