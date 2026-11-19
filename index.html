@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0331a">
+<link rel="stylesheet" href="task07.css?v=0334a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0331a">
+<body data-build="0334a">
 <div id="app">
 
 <header id="topbar">
@@ -259,7 +259,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0331a"></script>
+<script src="task07.js?v=0334a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -340,6 +340,8 @@ function t7online(){var r=NET.room;if(!r)return[];return Object.keys(r.players||
   .sort(function(a,b){return (a[1].joinedAt||0)-(b[1].joinedAt||0);});}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
   var rnd=(t7node().round||0);return list[rnd%list.length][0];}
+// участок по номеру хода: чётные — А, нечётные — Б, десятый — В (вход в лабораторию)
+function t7segKey(){var n=+(t7node().round||0);return n>=9?'C':(n%2?'B':'A');}
 function t7runnerName(){var u=t7runnerUid();var r=NET.room;var p=(u&&r&&r.players)?r.players[u]:null;
   return (p&&p.name)||'капитан';}
 // роль наблюдателя по порядку входа среди тех, кто не бежит: первый — опасности, второй — кристаллы
@@ -379,7 +381,7 @@ mounted07=true;el7.classList.add('active');document.body.dataset.screen='task07'
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 var mv=document.getElementById('movie');if(mv){try{mv.pause();}catch(e){}}
 var isRun=(t7runnerUid()===NET.uid);
-window.__t7mountedMode=isRun?'runner':'observer';
+window.__t7mountedMode=(isRun?'runner':'observer')+':'+t7segKey();
 try{
 Task07.mount(el7,{
 mode:isRun?'runner':'observer',
@@ -397,7 +399,7 @@ onFinish:report07
 }catch(e){toastMsg('Ошибка монтажа задания 7: '+(e&&e.message||e));}
 }else{
 // смена бегуна: роль у устройства меняется — перемонтируем
-var modeNow=(t7runnerUid()===NET.uid)?'runner':'observer';
+var modeNow=((t7runnerUid()===NET.uid)?'runner':'observer')+':'+t7segKey();
 if(window.__t7mountedMode!==modeNow){
 mounted07=false;
 try{Task07.unmount();}catch(e){}
