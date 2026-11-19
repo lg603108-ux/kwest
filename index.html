@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0336a">
+<link rel="stylesheet" href="task07.css?v=0337a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0336a">
+<body data-build="0337a">
 <div id="app">
 
 <header id="topbar">
@@ -259,7 +259,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0336a"></script>
+<script src="task07.js?v=0337a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -354,9 +354,11 @@ function t7role(){var list=t7online().filter(function(e){return e[0]!==t7runnerU
 function t7stageLocal(){
   var n=t7node(), st=n.stage||'intro';
   if(st==='done' && n.result && n.result.at){
-    // десятый участок заканчивается у двери лаборатории: ход больше не передаётся,
-    // поэтому экран «СМЕНА БЕГУНА» там не показываем
-    if((+n.round||0)>=9) return 'done';
+    // На десятом участке старый итог (от предыдущего забега) означает экран смены бегуна,
+    // а НОВЫЙ итог — финал у двери лаборатории. Иначе финальный кадр появлялся сразу,
+    // и забег на десятом участке было нечем начать.
+    if((+n.round||0)>=9)
+      return (window.__t7resSeed && String(n.result.at)!==String(window.__t7resSeed))?'done':'change';
     return 'change';
   }
   return st;
@@ -394,6 +396,9 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 var mv=document.getElementById('movie');if(mv){try{mv.pause();}catch(e){}}
 var isRun=(t7runnerUid()===NET.uid);
 window.__t7mountedMode=(isRun?'runner':'observer')+':'+t7segKey();
+// запоминаем итог, который уже лежал в базе на момент входа на этот участок:
+// на десятом участке он означает не финал, а экран смены бегуна
+window.__t7resSeed=String((t7node().result&&t7node().result.at)||'');
 try{
 Task07.mount(el7,{
 mode:isRun?'runner':'observer',
@@ -584,7 +589,7 @@ btn.disabled=true;
 toastMsg('Переводим команду в задание 7…');
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.update({stage:'intro',startsAt:Date.now()+1500,round:0})
-.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}return ref.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}window.__t7resSeed='';return ref.child('result').remove();})
 .then(function(){return ref.child('hint').remove();})
 .then(function(){return ref.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',Date.now()+1500);})
@@ -658,7 +663,7 @@ if(a==='j7'&&cap()){
 silenceAll();
 var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 r7.update({stage:'intro',startsAt:now+800,round:0})
-.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}return r7.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}window.__t7resSeed='';return r7.child('result').remove();})
 .then(function(){return r7.child('hint').remove();})
 .then(function(){return r7.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',now+800);})
