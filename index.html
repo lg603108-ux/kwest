@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0335a">
+<link rel="stylesheet" href="task07.css?v=0336a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -94,7 +94,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0335a">
+<body data-build="0336a">
 <div id="app">
 
 <header id="topbar">
@@ -259,7 +259,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0335a"></script>
+<script src="task07.js?v=0336a"></script>
 <script src="app.js?v=0311ai"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -370,11 +370,18 @@ if(r.state.phase==='task07'){
 // (по правилам базы номер бегуна пишет только капитан). Опорный признак — время итога,
 // а не отдельное значение стадии: его схема задания не предусматривает.
 var n07=t7node();
-if(cap() && n07.result && n07.result.at && (+n07.round||0)<9){   // на десятом участке ход не передаётся
+if(cap() && n07.result && n07.result.at && (+n07.round||0)<9){
   var bumpKey=String(n07.result.at||0);
-  if(window.__t7bumpKey!==bumpKey){
+  // Отметка «этот итог уже учтён» хранится ещё и на устройстве: без неё перезагрузка
+  // страницы (а телефон перезагружается после сна) считала ОДИН И ТОТ ЖЕ забег второй раз,
+  // номер хода перескакивал, и десятый участок с дверью приходился на девятый показ.
+  var bumpStore='';
+  try{ bumpStore=localStorage.getItem('t7bump:'+(NET.room.code||''))||''; }catch(e){}
+  if(window.__t7bumpKey!==bumpKey && bumpStore!==bumpKey){
     window.__t7bumpKey=bumpKey;
-    try{t7ref().child('round').set((n07.round||0)+1).catch(function(e){noteT7db('номер хода',e);});}catch(e){noteT7db('номер хода',e);}
+    try{ localStorage.setItem('t7bump:'+(NET.room.code||''),bumpKey); }catch(e){}
+    var nextRound=Math.min(9,(+n07.round||0)+1);
+    try{t7ref().child('round').set(nextRound).catch(function(e){noteT7db('номер хода',e);});}catch(e){noteT7db('номер хода',e);}
   }
 }
 var el7=document.getElementById('task07-mount');
@@ -577,7 +584,7 @@ btn.disabled=true;
 toastMsg('Переводим команду в задание 7…');
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.update({stage:'intro',startsAt:Date.now()+1500,round:0})
-.then(function(){return ref.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}return ref.child('result').remove();})
 .then(function(){return ref.child('hint').remove();})
 .then(function(){return ref.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',Date.now()+1500);})
@@ -651,7 +658,7 @@ if(a==='j7'&&cap()){
 silenceAll();
 var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 r7.update({stage:'intro',startsAt:now+800,round:0})
-.then(function(){return r7.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}return r7.child('result').remove();})
 .then(function(){return r7.child('hint').remove();})
 .then(function(){return r7.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',now+800);})
