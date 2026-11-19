@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0337a';
+var VER='0338a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -70,7 +70,6 @@ var T7_HTML='<div id="t7-stage">'+
 '<div id="t7-lab-plate" class="t7-lab-plate hidden">МАРШРУТ ПРОЙДЕН</div>'+
 '<button type="button" id="t7-lab" class="t7-lab-btn hidden">Войти в лабораторию</button>'+
 '<div id="t7-damage"><div class="t7-dmg-title">Капсула повреждена</div><div class="t7-dmg-val">15%</div></div>'+
-'<button id="t7-topview" type="button">Вид сверху</button>'+
 '<div id="t7-controls">'+
 '<div class="t7-pad">'+
 '<button type="button" class="t7-btn" data-act="left"><span class="t7-ico">◀</span>Влево</button>'+
@@ -110,10 +109,8 @@ var T7_HTML='<div id="t7-stage">'+
 '</div>'+
 '<div id="t7-change" class="t7-screen hidden">'+
 '<div class="t7-card">'+
-'<h1 class="t7-change-title">СМЕНА БЕГУНА</h1>'+
-'<p id="t7-change-name"></p>'+
-'<p class="t7-hint" id="t7-change-note">Готовься: сейчас побежишь ты.</p>'+
-'<button type="button" id="t7-change-go" class="t7-primary">Ты — бегун</button>'+
+'<h1 class="t7-change-title">ТЫ — БЕГУН</h1>'+
+'<button type="button" id="t7-change-go" class="t7-primary">Я — готов</button>'+
 '</div>'+
 '</div>'+
 '</div>';
@@ -1242,6 +1239,13 @@ function updateDebrisPieces(z){
                       e.z+pc.userData.dl);
       pc.rotation.set(k2*2.6,k2*1.9,k2*1.2);
     });
+  });
+}
+
+function hideDebrisPieces(){
+  events.forEach(function(e){
+    if(!e.pieces) return;
+    e.pieces.forEach(function(pc){ pc.visible=false; });
   });
 }
 
@@ -2398,11 +2402,6 @@ function bindControls(){
     b.addEventListener('pointerdown',function(ev){ ev.preventDefault(); doAction(b.dataset.act); });
   });
   bindSwipes();
-  topBtn=document.getElementById('t7-topview');
-  if(topBtn) topBtn.addEventListener('click',function(){
-    topView=!topView; this.classList.toggle('on',topView);
-    this.textContent=topView?'Вид бегуна':'Вид сверху';
-  });
   var fullBtn=document.getElementById('t7-full');
   if(fullBtn) fullBtn.addEventListener('click',requestFull);
 }
@@ -2677,14 +2676,7 @@ function updateCamera(dt){
       ?Math.min(0.45,Math.sin(Math.PI*Math.min(1,phaseT/FALL_D))*0.45):0).toFixed(3);
   }
 
-  // вид наблюдателя сверху
-  topMix+=((topView?1:0)-topMix)*Math.min(1,dt*4);
-  if(topMix>0.002){
-    var high=camPos.clone(); high.y+=26; high.z+=6;
-    camera.position.lerp(high,topMix);
-    var downTarget=new THREE.Vector3(camPos.x,0,camPos.z-12);
-    camera.lookAt(lookAt.clone().lerp(downTarget,topMix));
-  }
+  // (вид сверху убран совсем: в тоннеле и у двери он показывал город вместо лаборатории)
 
   // поле зрения: в тоннеле шире
   var inTun=(phase==='tunnel'||phase==='ladder')||(phase==='route'&&inTunnelB(sZ));
@@ -2918,7 +2910,12 @@ function observeStep(dt){
   // надписи считаем по свежей точке Бегуна (сглаженная отстаёт и задерживала подсказки)
   var zTag=(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10)?OBS_Z_TARGET:z;
   updateObserverMarkers(dt,z,zTag);
-  updateDebrisPieces(zTag);          // наблюдатель видит те же падающие обломки, что и бегун
+  // Обломки считаем по СГЛАЖЕННОЙ точке (по свежей, что приходит раз в секунду, они
+  // перескакивали и выглядели висящими), и прячем совсем, когда забег закончен
+  // или точка от бегуна давно не приходит — иначе обломок остаётся висеть в воздухе.
+  var stale=(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)>10);
+  if(STAGE==='done'||STAGE==='change'||stale) hideDebrisPieces();
+  else updateDebrisPieces(z);
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
   if(capPlane) capPlane.visible=false;
   if(CAPSULE3D) CAPSULE3D.visible=false;
@@ -2934,7 +2931,13 @@ function lockLandscape(){
   }catch(e){}
 }
 function requestFull(){
-  var st=document.getElementById('t7-stage');
+  // Полный экран вешаем на страницу целиком, а не на экран задания: экран задания
+  // удаляется и создаётся заново при каждой смене бегуна, и вместе с ним браузер
+  // выходил из полноэкранного режима (наблюдатель терял полный экран).
+  var st=document.documentElement||document.body;
+  var cur=document.fullscreenElement||document.webkitFullscreenElement||
+          document.mozFullScreenElement||document.msFullscreenElement;
+  if(cur){ lockLandscape(); return; }
   var fn=st.requestFullscreen||st.webkitRequestFullscreen||st.mozRequestFullScreen||st.msRequestFullscreen;
   if(fn){
     try{
@@ -3202,8 +3205,11 @@ function mount(container,opts){
     ROOT.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
   });
   // любое касание — повод снова попросить «не гасить экран» (браузеры требуют нажатие)
-  ROOT.addEventListener('touchstart',keepAwake,{passive:true});
-  ROOT.addEventListener('click',keepAwake,{passive:true});
+  // любое касание — повод снова попросить «не гасить экран» и полный экран
+  // (браузеры требуют нажатие; полный экран теряется, когда экран задания пересоздаётся)
+  var onTouch=function(){ keepAwake(); requestFull(); };
+  ROOT.addEventListener('touchstart',onTouch,{passive:true});
+  ROOT.addEventListener('click',onTouch,{passive:true});
   alive=true;
   fillDom();
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
