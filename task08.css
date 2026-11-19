@@ -41,6 +41,13 @@
 #t8 .t8-hint b{display:block;font-size:11px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
 /* Финал */
 #t8 .t8-screen.t8-done{background:#000}
+#t8 .t8-screen.t8-done h1{font-size:clamp(26px,6vh,40px);color:#eaffff;text-shadow:0 0 22px rgba(48,229,220,.55);letter-spacing:1px}
+#t8 .t8-screen.t8-done .t8-secondary{margin:6px 0 2px}
+#t8 .t8-screen.t8-done .t8-primary{margin-top:6px}
+/* Пересмотр записи с финального экрана */
+#t8 .t8-replaywrap{position:absolute;inset:0;z-index:12;background:#000;display:flex;align-items:center;justify-content:center}
+#t8 .t8-replayvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#t8 .t8-replayclose{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));z-index:13}
 #t8 .t8-status{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:8px 14px;border-radius:10px;background:rgba(0,0,0,.9);border:1px solid rgba(48,229,220,.45);color:#ffd0a0;font-size:13px;text-align:center}
 #t8 .t8-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10}
 #t8 .t8-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}

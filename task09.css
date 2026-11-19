@@ -1,0 +1,66 @@
+/* task09.css — задание 9 «Зарядка Стабилизатора». Все стили внутри #t9.
+   Экран: лаборатория на фоне, установка и общий процент слева, большая зона касания справа.
+   Личной серии, личной статистики и кнопки паузы нет (ТЗ, раздел 11). */
+#task09-mount{position:fixed;inset:0;z-index:300;display:none;background:#0d161a}
+#task09-mount.active{display:block}
+#t9{position:fixed;inset:0;overflow:hidden;background:radial-gradient(900px 520px at 50% 40%,#17383e,#070d0f 78%);color:#fff;font-family:QuestSans,Arial,sans-serif;touch-action:manipulation}
+#t9 [hidden]{display:none!important}
+#t9 .t9-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+#t9 .t9-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:
+  radial-gradient(1200px 700px at 50% 40%,rgba(7,13,15,.15),rgba(7,13,15,.72) 78%),
+  linear-gradient(90deg,rgba(7,13,15,.82) 0%,rgba(7,13,15,.45) 38%,rgba(7,13,15,.25) 60%,rgba(7,13,15,.62) 100%)}
+#t9 .t9-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:5}
+/* Общий экран ожидания и инструкции */
+#t9 .t9-screen{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;padding:18px;box-sizing:border-box;overflow-y:auto;background:radial-gradient(900px 500px at 50% 20%,rgba(27,58,63,.96),rgba(13,22,26,.98) 75%)}
+#t9 h1,#t9 p{margin:0 0 10px}
+#t9 h1{font-size:24px}
+#t9 .t9-eyebrow{color:#30e5dc;font-size:14px;font-weight:700;letter-spacing:1px}
+#t9 .t9-note{color:#b9d9d9;line-height:1.45;max-width:720px;font-size:14px}
+#t9 .t9-primary{min-height:52px;padding:12px 26px;border:0;border-radius:12px;background:linear-gradient(110deg,#25c8bd,#30e5dc);color:#001718;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+#t9 .t9-primary:disabled{opacity:.5;cursor:wait}
+#t9 .t9-secondary{min-height:44px;padding:9px 16px;border:1px solid rgba(190,245,245,.35);border-radius:10px;background:#20383e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+/* Рабочий экран зарядки */
+#t9 .t9-hud{position:absolute;inset:0;z-index:3;box-sizing:border-box;padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
+#t9 .t9-top{position:absolute;top:calc(8px + env(safe-area-inset-top));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+#t9 .t9-statusline{color:#9fd8d8;font-size:12.5px;font-weight:700;letter-spacing:.4px}
+/* Установка и общий процент — слева, ближе к центру */
+#t9 .t9-left{position:absolute;left:calc(18px + env(safe-area-inset-left));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:38vw}
+#t9 .t9-label{color:#30e5dc;font-size:12.5px;font-weight:800;letter-spacing:1.2px;margin:0}
+#t9 .t9-pct{font-size:clamp(44px,9vh,86px);font-weight:900;line-height:.95;color:#eaffff;text-shadow:0 0 24px rgba(48,229,220,.55);margin:0}
+#t9 .t9-pct span{color:#30e5dc}
+#t9 .t9-bar{width:min(34vw,320px);height:14px;border-radius:9px;background:rgba(9,16,19,.85);border:1px solid rgba(190,245,245,.35);overflow:hidden;margin-top:2px}
+#t9 .t9-bar i{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#1f9c96,#30e5dc);box-shadow:0 0 18px rgba(48,229,220,.65);transition:width .25s linear}
+#t9 .t9-caption{color:#8fb8b8;font-size:12px;margin:0}
+/* Большая зона касания с пульсирующим кольцом — справа */
+#t9 .t9-zone{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(46px + env(safe-area-inset-top));bottom:calc(34px + env(safe-area-inset-bottom));width:min(52vw,620px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+#t9 .t9-ring{width:min(30vh,210px);height:min(30vh,210px);border-radius:50%;border:3px solid rgba(48,229,220,.85);box-shadow:0 0 30px rgba(48,229,220,.45),inset 0 0 26px rgba(48,229,220,.25);display:flex;align-items:center;justify-content:center;will-change:transform,opacity;transform:scale(1)}
+#t9 .t9-ring span{width:34%;height:34%;border-radius:50%;background:radial-gradient(circle,#eaffff,#30e5dc 65%,rgba(48,229,220,.25));box-shadow:0 0 26px rgba(48,229,220,.8)}
+#t9 .t9-hint{color:#eaffff;font-size:16px;font-weight:800;margin:0;text-align:center}
+#t9 .t9-hint2{color:#9fd8d8;font-size:12.5px;margin:0;text-align:center;max-width:min(46vw,520px)}
+#t9 .t9-zone.t9-hit .t9-ring{border-color:#eaffff}
+#t9 .t9-fb{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:7;padding:6px 16px;border-radius:12px;background:rgba(0,0,0,.78);border:1px solid rgba(48,229,220,.5);color:#eaffff;font-size:20px;font-weight:900;pointer-events:none}
+#t9 .t9-fb.t9-miss{color:#ffd0c4;border-color:rgba(255,140,120,.6);font-size:15px}
+/* Финал */
+#t9 .t9-done{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;background:#000}
+#t9 .t9-status{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;max-width:88vw;padding:8px 14px;border-radius:10px;background:rgba(0,0,0,.9);border:1px solid rgba(48,229,220,.45);color:#ffd0a0;font-size:13px;text-align:center}
+#t9 .t9-mediabtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10}
+#t9 .t9-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:8}
+/* Невысокий экран (телефон в горизонтали) */
+@media(max-height:760px){
+#t9 .t9-screen{padding:12px}
+#t9 h1{font-size:21px}
+#t9 .t9-note{font-size:13px;margin-bottom:8px}
+#t9 .t9-hint{font-size:15px}
+#t9 .t9-ring{width:min(26vh,180px);height:min(26vh,180px)}
+}
+@media(max-height:560px){
+#t9 .t9-screen{padding:9px}
+#t9 h1{font-size:19px}
+#t9 .t9-note{font-size:12px;line-height:1.35}
+#t9 .t9-primary{min-height:44px;font-size:15px;padding:8px 18px}
+#t9 .t9-pct{font-size:clamp(34px,8vh,58px)}
+#t9 .t9-bar{height:11px}
+#t9 .t9-ring{width:min(22vh,150px);height:min(22vh,150px)}
+#t9 .t9-hint{font-size:14px}
+#t9 .t9-hint2{font-size:11.5px}
+}

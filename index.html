@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
 <link rel="stylesheet" href="task07.css?v=0349a">
-<link rel="stylesheet" href="task08.css?v=0344a">
+<link rel="stylesheet" href="task08.css?v=0350a">
+<link rel="stylesheet" href="task09.css?v=0350a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -95,7 +96,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0349a">
+<body data-build="0350a">
 <div id="app">
 
 <header id="topbar">
@@ -231,6 +232,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="task06-mount"></div>
 <div id="task07-mount"></div>
 <div id="task08-mount"></div>
+<div id="task09-mount"></div>
 
 <div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
 <button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
@@ -248,6 +250,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <button class="sk" data-act="j7" type="button">▶ Тест: сразу к заданию 7</button>
 <button class="sk" data-act="t8a" type="button">⏭ 8: пропустить инструкцию</button>
 <button class="sk" data-act="t8b" type="button">⏭ 8: запись → ввод кода</button>
+<button class="sk" data-act="t9a" type="button">⏭ 9: пропустить инструкцию</button>
+<button class="sk" data-act="t9b" type="button">⏭ 9: заряд 100%</button>
 </div>
 
 </div>
@@ -264,12 +268,13 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0349a"></script>
-<script src="task08.js?v=0344a"></script>
+<script src="task08.js?v=0350a"></script>
+<script src="task09.js?v=0350a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false;
+var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false,mounted09=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -511,6 +516,22 @@ if(window.Task08){try{Task08.unmount();}catch(e){}}
 var el8b=document.getElementById('task08-mount');
 if(el8b){el8b.classList.remove('active');el8b.innerHTML='';}
 }
+if(r.state.phase==='task09'&&!mounted09){
+var el9=document.getElementById('task09-mount');
+if(!el9){toastMsg('Контейнер задания 9 не найден');return;}
+if(!window.Task09){toastMsg('Модуль задания 9 не загружен (task09.js)');return;}
+mounted09=true;el9.classList.add('active');document.body.dataset.screen='task09';
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+var mv9=document.getElementById('movie');if(mv9){try{mv9.pause();}catch(e){}}
+try{Task09.mount(el9);toastMsg('Задание 9 запущено');}
+catch(e){mounted09=false;el9.classList.remove('active');toastMsg('Ошибка монтажа задания 9: '+(e&&e.message||e));}
+}
+if(r.state.phase!=='task09'&&mounted09){
+mounted09=false;
+if(window.Task09){try{Task09.unmount();}catch(e){}}
+var el9b=document.getElementById('task09-mount');
+if(el9b){el9b.classList.remove('active');el9b.innerHTML='';}
+}
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
 // Стадию пишем только значением «завершено» из схемы задания; экран «СМЕНА БЕГУНА» показываем
@@ -692,6 +713,7 @@ var t4=(r.tasks&&r.tasks.task04&&r.tasks.task04.stage)||'';
 var t5=(r.tasks&&r.tasks.task05&&r.tasks.task05.stage)||'';
 var t6=(r.tasks&&r.tasks.task06&&r.tasks.task06.stage)||'';
 var t8=(r.tasks&&r.tasks.task08&&r.tasks.task08.stage)||'';
+var t9=(r.tasks&&r.tasks.task09&&r.tasks.task09.stage)||'';
 var btns=panel.querySelectorAll('.sk'),i;
 for(i=0;i<btns.length;i++)btns[i].style.display='none';
 function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.display='block';}
@@ -706,6 +728,7 @@ if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
 if(ph==='task05'){if(t5==='intro')on('t5a');}
 if(ph==='task06'){if(t6==='intro')on('t6a');if(t6==='dance')on('t6b');}
 if(ph==='task08'){if(t8==='wait'||t8==='intro')on('t8a');if(t8==='view')on('t8b');}
+if(ph==='task09'){if(t9==='wait'||t9==='intro')on('t9a');if(t9==='charge')on('t9b');}
 }
 if(ph==='battle')on('bs');
 var ts=st.testSkip||0;
@@ -736,6 +759,9 @@ if(a==='t6b'&&cap()){t6ref().update({stage:'order',watched:true,playing:false,pa
 var t8ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');};
 if(a==='t8a'&&cap()){t8ref().update({stage:'view',startsAt:now+600,playbackId:(Date.now()%100000),playing:true,pausedAt:0,fullViewed:false,replayClearedAt:now}).catch(err);}
 if(a==='t8b'&&cap()){t8ref().update({stage:'code',fullViewed:true,playing:false,pausedAt:0,codeDraft:'',attempts:0,hintLevel:0}).catch(err);}
+var t9ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task09');};
+if(a==='t9a'&&cap()){t9ref().update({stage:'charge',startsAt:now+600,charge:0,target:800,trackId:'v09',completedAt:0,completionRevision:0}).catch(err);}
+if(a==='t9b'&&cap()){var rev=+((NET.room.tasks&&NET.room.tasks.task09&&NET.room.tasks.task09.completionRevision)||0)+1;t9ref().update({stage:'done',charge:100,completedAt:now,completionRevision:rev}).catch(err);}
 // Технический переход к заданию 7: сразу ставим этап и фазу, как после задания 6.
 if(a==='j7'&&cap()){
 silenceAll();
@@ -795,7 +821,7 @@ function refreshWidget(){
 var code=roomCode();
 var scr=document.body.dataset.screen||'';
 // В задании 8 часы и сектор записи стоят в правом верхнем углу кадра (ТЗ): виджет там закрываем.
-var blocked=(scr==='task08');
+var blocked=(scr==='task08'||scr==='task09');
 widget.style.display=(code&&!blocked)?'flex':'none';
 // В задании 2 QR держим по центру вверху: справа он перекрывал цифры.
 var center=(scr==='battle')||(scr==='task02');
