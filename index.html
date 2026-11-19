@@ -95,7 +95,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0346a">
+<body data-build="0348a">
 <div id="app">
 
 <header id="topbar">
@@ -264,7 +264,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task06.js?v=0311ai"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0346a"></script>
+<script src="task07.js?v=0348a"></script>
 <script src="task08.js?v=0344a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
@@ -344,8 +344,18 @@ function t7node(){try{return (NET.room&&NET.room.tasks&&NET.room.tasks.task07)||
 function t7online(){var r=NET.room;if(!r)return[];return Object.keys(r.players||{}).map(function(u){return [u,r.players[u]];})
   .filter(function(e){return e[1]&&e[1].connected!==false;})
   .sort(function(a,b){return (a[1].joinedAt||0)-(b[1].joinedAt||0);});}
+// Участник, который уже передал роль на этом участке (вышел из игры), второй раз не бежит:
+// иначе вернувшийся на связи игрок отбирал бы роль у того, кто её принял.
+function t7handKey(u,rnd){return 't7hand:'+((NET.room&&NET.room.code)||'')+':'+rnd+':'+u;}
+function t7handed(u,rnd){try{return localStorage.getItem(t7handKey(u,rnd))==='1';}catch(e){return false;}}
+function t7markHanded(u,rnd){try{localStorage.setItem(t7handKey(u,rnd),'1');}catch(e){}}
+function t7clearHanded(){try{var p='t7hand:'+((NET.room&&NET.room.code)||'')+':';
+  for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf(p)===0)localStorage.removeItem(k);}}catch(e){}}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
-  var rnd=(t7node().round||0);return list[rnd%list.length][0];}
+  var rnd=(t7node().round||0);
+  var pool=list.filter(function(e){return !t7handed(e[0],rnd);});
+  if(!pool.length)pool=list;
+  return pool[rnd%pool.length][0];}
 // участок по номеру хода: чётные — А, нечётные — Б, десятый — В (вход в лабораторию)
 function t7segKey(){var n=+(t7node().round||0);return n>=9?'C':(n%2?'B':'A');}
 function t7runnerName(){var u=t7runnerUid();var r=NET.room;var p=(u&&r&&r.players)?r.players[u]:null;
@@ -374,6 +384,12 @@ function setStage07(s){try{t7ref().child('stage').set(s);}catch(e){}}
 function publishHint07(h){try{t7ref().child('hint').update({text:String(h.text||''),kind:String(h.kind||'hazard'),at:Date.now()});}catch(e){}}
 function publishProgress07(p){try{t7ref().child('progress').set(Math.max(0,Math.min(100,Math.round(p||0))));}catch(e){}}
 if(r.state.phase==='task07'){
+// Бегун вылетел из игры: роль уже ушла другому на ЭТОМ ЖЕ участке — помечаем на устройстве,
+// чтобы вернувшийся игрок не отбирал роль у того, кто её принял.
+var rndNow07=+(t7node().round||0);
+var wasR07=window.__t7wasRunner;
+if(wasR07&&wasR07.uid===NET.uid&&wasR07.round===rndNow07&&t7runnerUid()!==NET.uid) t7markHanded(NET.uid,rndNow07);
+if(t7runnerUid()===NET.uid) window.__t7wasRunner={uid:NET.uid,round:rndNow07};
 // Смена бегуна: забег закончен (есть итог) — очередь двигает устройство капитана
 // (по правилам базы номер бегуна пишет только капитан). Опорный признак — время итога,
 // а не отдельное значение стадии: его схема задания не предусматривает.
@@ -405,6 +421,20 @@ window.__t7mountedMode=(isRun?'runner':'observer')+':'+t7segKey();
 // запоминаем итог, который уже лежал в базе на момент входа на этот участок:
 // на десятом участке он означает не финал, а экран смены бегуна
 window.__t7resSeed=String((t7node().result&&t7node().result.at)||'');
+// Корпус и энергия одной капсулы на весь путь: новый участок продолжается с тем же
+// процентом повреждения, а не со 100. Если роль перешла на это устройство в середине
+// участка, берём последнюю точку, которую оно видело у бегуна (window.__t7hull).
+var t7res07=t7node().result||{};
+var t7hullNow=(typeof window.__t7hull==='number')?window.__t7hull:null;
+var t7rnd07=+(t7node().round||0);
+var t7sameRound=(window.__t7lastRound===t7rnd07);
+var t7baseInt=(typeof t7res07.integrity==='number')?t7res07.integrity:null;
+var t7int07;
+if(t7sameRound&&t7hullNow!==null) t7int07=t7hullNow;            // роль передана на этом же участке
+else if(t7baseInt!==null) t7int07=t7baseInt;                    // обычный переход на следующий участок
+else t7int07=(t7hullNow!==null)?t7hullNow:100;
+var t7en07=(typeof t7res07.energy==='number')?t7res07.energy:100;
+window.__t7lastRound=t7rnd07;
 try{
 Task07.mount(el7,{
 mode:isRun?'runner':'observer',
@@ -412,11 +442,23 @@ role:isRun?'runner':t7role(),
 stage:t7stageLocal(),
 round:+(t7node().round||0),
 progress:+(t7node().progress||0),
+integrity:t7int07,
+energy:t7en07,
 isCaptain:cap(),
 runnerName:t7runnerName(),
 onHint:publishHint07,
 onProgress:publishProgress07,
 onStartRun:function(){setStage07('run');},
+onSkip10:function(){
+// кнопка автора: сразу к десятому участку, не проходя весь путь
+if(!cap())return;
+var rr=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
+var h0=(typeof window.__t7hull==='number')?window.__t7hull:100;
+rr.update({round:9,stage:'done'})
+.then(function(){return rr.child('result').set({energy:100,integrity:Math.round(h0),passed:0,failed:0,at:Date.now()});})
+.then(function(){window.__t7resSeed=null;mounted07=false;try{Task07.unmount();}catch(e){}tryMount();})
+.catch(function(e){toastMsg('Не удалось перейти к 10 участку: '+(e&&e.message||e));});
+},
 onEnterLab:function(){
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');
 ref.update({stage:'intro',startsAt:Date.now()+1200,playbackId:1,playing:true,pausedAt:0,fullViewed:false,codeDraft:'',codeAccepted:false,attempts:0,hintLevel:0,completedAt:0})
@@ -618,7 +660,7 @@ btn.disabled=true;
 toastMsg('Переводим команду в задание 7…');
 var ref=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 ref.update({stage:'intro',startsAt:Date.now()+1500,round:0})
-.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}window.__t7resSeed='';return ref.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}t7clearHanded();window.__t7hull=null;window.__t7wasRunner=null;window.__t7resSeed='';return ref.child('result').remove();})
 .then(function(){return ref.child('hint').remove();})
 .then(function(){return ref.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',Date.now()+1500);})
@@ -699,7 +741,7 @@ if(a==='j7'&&cap()){
 silenceAll();
 var r7=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');
 r7.update({stage:'intro',startsAt:now+800,round:0})
-.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}window.__t7resSeed='';return r7.child('result').remove();})
+.then(function(){try{localStorage.removeItem('t7bump:'+(NET.room.code||''));}catch(e){}t7clearHanded();window.__t7hull=null;window.__t7wasRunner=null;window.__t7resSeed='';return r7.child('result').remove();})
 .then(function(){return r7.child('hint').remove();})
 .then(function(){return r7.child('progress').set(0);})
 .then(function(){return NET.setPhase('task07',now+800);})

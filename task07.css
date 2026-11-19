@@ -154,6 +154,22 @@
   max-width:min(86vw,760px);padding:16px 26px;border-radius:12px;background:rgba(0,0,0,.94);
   border:1px solid rgba(48,229,220,.55);color:#30e5dc;font-size:24px;font-weight:700;
   letter-spacing:.04em;text-align:center;line-height:1.22;text-transform:uppercase}
+/* срочное сообщение о корпусе капсулы: своя полоса у нижнего края, чтобы не перекрывать
+   подсказки об опасностях (они выводятся выше, в #t7-obs-hint) */
+#t7-obs-hull{position:absolute;left:50%;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 40px);
+  transform:translateX(-50%);max-width:min(86vw,760px);padding:10px 20px;border-radius:12px;
+  background:rgba(64,10,12,.94);border:1px solid rgba(255,120,110,.75);color:#ffd7d2;
+  font-size:18px;font-weight:700;letter-spacing:.04em;text-align:center;line-height:1.2;
+  text-transform:uppercase;box-shadow:0 0 18px rgba(255,90,80,.35)}
+#t7-obs-hull.hidden{display:none}
+/* кнопка автора «К 10 участку»: маленькая, в левом нижнем углу, только у капитана */
+.t7-skip{position:absolute;left:max(10px,env(safe-area-inset-left));
+  bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px);z-index:40;
+  padding:8px 14px;border-radius:10px;border:1px solid rgba(48,229,220,.55);
+  background:rgba(13,22,26,.82);color:#8fe6e0;font-size:12px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase}
+.t7-skip.hidden{display:none}
+.t7-observer .t7-skip{display:none!important}
 #t7-obs-hint.hidden{display:none}
 #t7-obs-hint.flash{animation:t7obsFlash .6s ease}
 @keyframes t7obsFlash{0%{background:rgba(48,229,220,.30)}100%{background:rgba(0,0,0,.94)}}

@@ -14,11 +14,12 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0346a';
+var VER='0348a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
 var ONENTERLAB=null;            // переход в восьмое задание по кнопке «Войти в лабораторию»
+var ON_SKIP10=null;             // кнопка автора: сразу перейти к десятому участку, не проходя путь
 // режим работы модуля: 'runner' — экран Бегуна, 'observer' — экран наблюдателя (вид сверху и подсказки)
 var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0, ISCAP=false;
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
@@ -72,6 +73,8 @@ var T7_HTML='<div id="t7-stage">'+
 '<div id="t7-lab-plate" class="t7-lab-plate hidden">МАРШРУТ ПРОЙДЕН</div>'+
 '<button type="button" id="t7-lab" class="t7-lab-btn hidden">Войти в лабораторию</button>'+
 '<div id="t7-damage"><div class="t7-dmg-title">Капсула повреждена</div><div class="t7-dmg-val">15%</div></div>'+
+// кнопка автора: сразу перейти к десятому участку, не проходя весь путь
+'<button type="button" id="t7-skip10" class="t7-skip hidden">К 10 участку</button>'+
 '<div id="t7-controls">'+
 '<div class="t7-pad">'+
 '<button type="button" class="t7-btn" data-act="left"><span class="t7-ico">◀</span>Влево</button>'+
@@ -97,6 +100,7 @@ var T7_HTML='<div id="t7-stage">'+
 '<span class="t7-obs-remind">Подсказывайте голосом: что впереди и что делать</span>'+
 '</div>'+
 '<div id="t7-obs-hint" class="hidden"></div>'+
+'<div id="t7-obs-hull" class="hidden">СРОЧНО ВОССТАНОВИТЬ КОРПУС КАПСУЛЫ — СОБЕРИТЕ КРИСТАЛЛЫ</div>'+
 '<div class="t7-obs-bottom"><span id="t7-obs-progress">Путь: 0%</span></div>'+
 '</div>'+
 '<div id="t7-change" class="t7-screen hidden">'+
@@ -191,6 +195,12 @@ var lane=0, laneTarget=0, holdT=0, jumpT=0, duckT=0, shake=0;
 var lastAct='', lastActAt=-9;
 var running=false, finished=false, topView=false, topMix=0;
 var integrity=100, energy=100, passed=0, failed=0;
+// Корпус и энергия переносятся между участками: это одна капсула на весь путь.
+// START_INTEG/START_ENERG приходят из базы (итог предыдущего забега) и не сбрасываются в 100.
+var START_INTEG=100, START_ENERG=100;
+// Этот забег на этом устройстве уже закончен: карточку «ТЫ — БЕГУН» больше не показываем,
+// иначе после финиша она на две секунды загоралась и у старого бегуна, и у нового.
+var RAN_DONE=false;
 var events=[], crystals=[], shards=[], frags=[], mists=[];
 var tunnelBuilt=false, tunnelEventsDone=false, tunnelGroup=null, tunnelLamps=[], tunnelLightPool=[];
 var exitHint=false, pitWarned=false;
@@ -497,15 +507,19 @@ function applyStage(){
 function showChange(){
   var box=document.getElementById('t7-change'); if(!box) return;
   box.classList.remove('hidden');
+  // Карточку с кнопкой «Я — готов» видит только НАСТОЯЩИЙ бегун: тот, кто ещё не бежал
+  // этот участок. Устройство, которое уже закончило забег, ждёт нового бегуна — иначе
+  // надпись «ТЫ — БЕГУН» на две секунды появлялась сразу у обоих.
+  var isRunnerNow=(MODE==='runner'&&!RAN_DONE);
   var ttl=document.getElementById('t7-change-title');
-  if(ttl) ttl.textContent=(MODE==='runner')?'ТЫ — БЕГУН':'СМЕНА БЕГУНА';
+  if(ttl) ttl.textContent=isRunnerNow?'ТЫ — БЕГУН':'СМЕНА БЕГУНА';
   var nm=document.getElementById('t7-change-name');
   if(nm) nm.textContent=OBS_RUNNER_NAME?('Новый бегун: '+OBS_RUNNER_NAME):'';
   var go=document.getElementById('t7-change-go');
   var note=document.getElementById('t7-change-note');
   if(go){
     go.onclick=null;
-    if(MODE==='runner'){
+    if(isRunnerNow){
       go.classList.remove('hidden'); go.disabled=false;
       if(note) note.textContent='Нажми, когда будешь готов бежать.';
       go.onclick=function(){
@@ -564,14 +578,29 @@ function setHint(h){
   if(h.kind==='pos' || /^pos\|/i.test(t)){
     var parts=t.split('|');
     if(/^pos$/i.test(String(parts[0]||'').trim())) parts.shift();
-    var v=parseFloat(parts[parts.length-1]);
+    // формат «POS|фаза|координата|корпус»: координата — второе поле, корпус — третье
+    var v=parseFloat(parts[1]);
     if(isFinite(v)){ OBS_Z_TARGET=v; OBS_Z_AT=obsT; }
-    if(parts.length>1) OBS_PHASE=String(parts[0]||'').toLowerCase();
+    if(parts[0]) OBS_PHASE=String(parts[0]).toLowerCase();
+    var hv=parseFloat(parts[2]);
+    if(isFinite(hv)) showObsHull(hv);
     return;
   }
   // плашку сверху убрали по просьбе автора: она закрывала препятствия,
   // всё нужное теперь написано рядом с самими препятствиями
   return;
+}
+// Корпус капсулы у наблюдателя. Критическое состояние (30% и ниже) — срочное сообщение
+// отдельной полосой у нижнего края: подсказки об опасностях остаются выше и не перекрываются.
+var OBS_HULL=null;
+function showObsHull(v){
+  OBS_HULL=Math.max(0,Math.min(100,Math.round(v)));
+  // запоминаем на устройстве: если бегун выйдет из игры и роль перейдёт сюда,
+  // участок продолжится с этим же процентом повреждения, а не с целой капсулы
+  try{ window.__t7hull=OBS_HULL; }catch(e){}
+  var b=document.getElementById('t7-obs-hull');
+  if(!b) return;
+  if(OBS_HULL<=30) b.classList.remove('hidden'); else b.classList.add('hidden');
 }
 function setProgress(p){
   PROG_T=Math.max(0,Math.min(100,p||0));
@@ -2353,6 +2382,23 @@ function spark(pos,count){
   }
 }
 
+// Критическое состояние капсулы (30% и ниже): на участке должно быть МНОГО кристаллов —
+// ровно столько, сколько нужно, чтобы дойти до 100% (один кристалл даёт 10% корпуса).
+// Ставятся по всей длине участка, а не одним пятном у места удара.
+function spreadHealCrystals(){
+  if(integrity>30) return;
+  var need=Math.max(1,Math.min(9,Math.ceil((100-integrity)/10)));
+  var z0,z1;
+  if(SEG==='A'){ z0=Z_START-18; z1=Z_END+22; }
+  else { z0=Z_TURN+4; z1=Z_FINISH+10; }
+  var sides=['left','right'];
+  for(var i=0;i<need;i++){
+    var z=z0+(z1-z0)*((i+0.6)/need);
+    if(SEG==='A' && z<Z_PIT_EDGE+8 && z>Z_PIT_FAR-8) z=Z_PIT_FAR-12;   // не вешаем кристалл над провалом
+    addCrystal(z,sides[i%2],false,(SEG==='A')?0:routeY(z));
+  }
+}
+
 // последний участок: если просели энергия или корпус — добавляем кристаллы
 function endgameHeal(){
   if(integrity>=99&&energy>=99) return;
@@ -2598,7 +2644,11 @@ function updateCamera(dt){
     focusDy=roofed?(0.05-duckY*0.35):(jumpK>0.03?-1.0*jumpK:-0.02);
     x=routeX(z)+routeDir(z).nx*lane*laneLimitNow;
   } else if(phase==='done'){
-    y=EYE+bob;
+    // Десятый участок заканчивается у двери лаборатории ВНУТРИ тоннеля: высоту и смещение
+    // берём от маршрута, иначе камера уезжает на уровень улицы (x=0, y=1.72) и вместо двери
+    // показывает дом. На остальных участках финал на улице — там прежняя строка.
+    if(SEG==='C'){ x=routeX(z)+routeDir(z).nx*lane*laneLimitNow; y=routeY(z)+EYE+bob; }
+    else y=EYE+bob;
   }
 
   if(shake>0){
@@ -2610,7 +2660,7 @@ function updateCamera(dt){
   camPos.set(x,y,z);
   camera.position.copy(camPos);
 
-  if(phase==='route'){
+  if(phase==='route'||(phase==='done'&&SEG==='C')){
     // у самого поворота смотрим ближе (9 м пути вместо 18): тогда изгиб
     // проезжает через кадр, а не прилипает к центру — из-за этого он и читался прямой
     var near=(z<Z_TURN+10 && z>Z_TURN-34);
@@ -2677,7 +2727,8 @@ function updateCamera(dt){
   // (вид сверху убран совсем: в тоннеле и у двери он показывал город вместо лаборатории)
 
   // поле зрения: в тоннеле шире
-  var inTun=(phase==='tunnel'||phase==='ladder')||(phase==='route'&&inTunnelB(sZ));
+  var inTun=(phase==='tunnel'||phase==='ladder')||(phase==='route'&&inTunnelB(sZ))
+            ||(phase==='done'&&SEG==='C'&&inTunnelB(sZ));   // финал у двери — тоже под землёй
   var want=inTun?82:74;
   fovTarget+= (want-fovTarget)*Math.min(1,dt*3);
   if(Math.abs(camera.fov-fovTarget)>0.05){
@@ -2841,7 +2892,9 @@ function step(dt){
     // где именно находится Бегун: по одним процентам провал и тоннель у наблюдателя не видны.
     // Вид подсказки база разрешает только 'hazard' и 'crystal', поэтому точку кладём
     // в текст с меткой POS| — с видом 'pos' запись отклонялась и наблюдатель её не получал.
-    try{ if(ONHINT) ONHINT({text:'POS|'+phase+'|'+sZ.toFixed(1),kind:'crystal'}); }catch(e){}
+    // к точке бегуна добавляем корпус капсулы: наблюдатель должен видеть, что капсула
+    // в критическом состоянии и что нужно срочно собрать кристаллы
+    try{ if(ONHINT) ONHINT({text:'POS|'+phase+'|'+sZ.toFixed(1)+'|'+Math.round(integrity),kind:'crystal'}); }catch(e){}
   }
 }
 
@@ -2961,7 +3014,9 @@ function reset(){
     pathTotal=(Z_START-Z_STREET2_JUMP)+(Z_STREET2_JUMP-Z_END);
   }
     lane=0; laneTarget=0; holdT=0; jumpT=0; duckT=0; shake=0;
-  lastAct=''; lastActAt=-9; integrity=100; energy=100; passed=0; failed=0;
+  // корпус и энергия НЕ обнуляются: переносим их с предыдущего участка (одна капсула на путь)
+  lastAct=''; lastActAt=-9; integrity=START_INTEG; energy=START_ENERG; passed=0; failed=0;
+  RAN_DONE=false;
   finished=false; exitHint=false; pitWarned=false; topView=false; topMix=0;
   if(topBtn){ topBtn.classList.remove('on'); topBtn.textContent='Вид сверху'; }
   // провал снова закрыт: он рождается заново на каждом проходе
@@ -3013,6 +3068,7 @@ function start(){
 function finish(){
   if(finished)return;
   finished=true; running=false; phase='done';
+  RAN_DONE=true;      // этот забег на этом устройстве закончен: карточку «ТЫ — БЕГУН» больше не показываем
   // капсула и энергия растут только от собранных кристаллов
   try{ SFX.amb.pause(); }catch(e){}
   try{ SFX.music.pause(); }catch(e){}
@@ -3062,6 +3118,18 @@ function bindButtons(){
     if(el.plate) el.plate.textContent='ЛАБОРАТОРИЯ — СЛЕДУЮЩЕЕ ЗАДАНИЕ ВНУТРИ';
     if(ONENTERLAB){ try{ ONENTERLAB(); }catch(e){} }
   });
+  // кнопка автора «К 10 участку»: маленькая, в углу, только у капитана и только в задании.
+  // Нужна, чтобы проверять финал у двери, не пробегая все десять участков.
+  var sk=document.getElementById('t7-skip10');
+  if(sk){
+    if(ISCAP&&!OBSERVE) sk.classList.remove('hidden'); else sk.classList.add('hidden');
+    sk.addEventListener('click',function(){
+      if(sk.disabled) return;
+      if(!ON_SKIP10) return;
+      sk.disabled=true; sk.textContent='Переходим к 10 участку…';
+      try{ ON_SKIP10(); }catch(e){}
+    });
+  }
   keepAwake();
 }
 
@@ -3156,12 +3224,15 @@ function bootScene(){
   loadAll(function(){
     build();
         if(SEG==='A') buildEvents(); else buildEventsB();
+        spreadHealCrystals();          // капсула в критическом состоянии — много кристаллов по всему участку
         if(OBSERVE) hideRunnerUI();
         if(OBSERVE) buildObserverMarkers();
     // Десятый участок уже завершён (состояние «done»): ставим камеру к двери лаборатории,
     // а не в начало участка — иначе вместо двери показывался вид начала коридора.
     if(SEG==='C' && STAGE==='done' && !OBSERVE){
-      phase='tunnel'; phaseT=0; sZ=Z_LAB_STOP; travelled=Math.abs((Z_TURN+10)-Z_LAB_STOP);
+      // фаза «route» — чтобы камера у двери считалась от маршрута (высота и смещение −45 м),
+      // как и во время забега: с фазой «tunnel» терялось смещение и вместо двери была стена
+      phase='route'; phaseT=0; sZ=Z_LAB_STOP; travelled=Math.abs((Z_TURN+10)-Z_LAB_STOP);
       finished=true; running=false;
     }
     updateHud();
@@ -3195,12 +3266,20 @@ function mount(container,opts){
   ONPROG=opts.onProgress||null;
   ONSTART=opts.onStartRun||null;
   ONENTERLAB=opts.onEnterLab||null;
+  ON_SKIP10=opts.onSkip10||null;
   MODE=(opts.mode==='observer')?'observer':'runner';
   OBSERVE=(MODE==='observer');
   ROLE=opts.role||MODE;
   ISCAP=!!opts.isCaptain;
   STAGE=opts.stage||'intro';
   PROG=opts.progress||0;
+  // Корпус и энергия одной капсулы на весь путь: процент повреждения не начинается заново
+  // со 100 на каждом участке. Значения приходят из базы (итог прошлого забега) или из
+  // последней точки, которую это устройство видело у бегуна, если роль перешла к нему.
+  START_INTEG=(typeof opts.integrity==='number')?Math.max(0,Math.min(100,opts.integrity)):100;
+  START_ENERG=(typeof opts.energy==='number')?Math.max(0,Math.min(100,opts.energy)):100;
+  integrity=START_INTEG; energy=START_ENERG;
+  RAN_DONE=false;
   OBS_RUNNER_NAME=opts.runnerName||'';
   obsT=0; lastProgAt=-9; introDone=false; introV=null; STARTED=false; INTRO_PASSED=false;
   ROUND=opts.round||0;
@@ -3223,6 +3302,9 @@ function mount(container,opts){
   ROOT.addEventListener('click',onTouch,{passive:true});
   alive=true;
   fillDom();
+  // Наблюдатель сразу видит корпус капсулы, с каким она пришла на этот участок:
+  // если он 30% и ниже — сразу срочное сообщение о сборе кристаллов.
+  if(OBSERVE) showObsHull(START_INTEG);
   if(opts.title){ var h=document.getElementById('t7-start-title'); if(h)h.textContent=opts.title; }
   if(opts.text){ var p=document.getElementById('t7-start-text'); if(p)p.textContent=opts.text; }
   bindButtons();
@@ -3244,7 +3326,7 @@ function unmount(){
   scene=null; camera=null; clock=null; booted=false;
   if(ROOT&&ROOT.parentNode) ROOT.parentNode.removeChild(ROOT);
   ROOT=null; canvas=null; note=null; el={}; playBtn=null; againBtn=null; topBtn=null;
-  onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; ONENTERLAB=null; introV=null; introDone=false;
+  onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; ONENTERLAB=null; ON_SKIP10=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; INTRO_PASSED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
   RUN_SEEN=false;
