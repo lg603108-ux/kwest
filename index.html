@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
 <link rel="stylesheet" href="task07.css?v=0338a">
-<link rel="stylesheet" href="task08.css?v=0340a">
+<link rel="stylesheet" href="task08.css?v=0341a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -95,7 +95,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0340a">
+<body data-build="0341a">
 <div id="app">
 
 <header id="topbar">
@@ -265,8 +265,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0338a"></script>
-<script src="task08.js?v=0340a"></script>
-<script src="app.js?v=0340a"></script>
+<script src="task08.js?v=0341a"></script>
+<script src="app.js?v=0341a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -861,6 +861,10 @@ if(oldBtn){oldBtn.remove();}
 // не мог догрузиться минутами. Загрузку и повторы теперь ведёт сам task02.js.
 function watchdog(){
 if(!inRoom())return;
+// Пролог: если видео со звуком у капитана не стартовало (телефон без свежего касания), включаем
+// его без звука — иначе экран остаётся чёрным. Звук возвращает кнопка «♪» вверху.
+var mv=document.getElementById('movie');
+if(mv&&(document.body.dataset.screen||'')==='cinema'&&!mv.muted&&mv.paused&&mv.readyState<2){mv.muted=true;mv.play().catch(function(){});}
 var r=NET.room;var st=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
 var v=document.querySelector('#t2 .t2-video');
 if(!v||!(st==='intro'||st==='sequence'||st==='reveal'))return;
