@@ -14,7 +14,7 @@
 window.Task07=(function(){
 'use strict';
 
-var VER='0336a';
+var VER='0337a';
 var ROOT=null, booted=false, alive=false, rafId=0, listenersBound=false;
 var note=null, canvas=null, el={}, playBtn=null, againBtn=null, topBtn=null;
 var onFinishCb=null;            // сообщает общему модулю итог маршрута
@@ -23,6 +23,9 @@ var MODE='runner', STAGE='intro', OBSERVE=false, ROLE='runner', PROG=0, PROG_T=0
 var ONHINT=null, ONPROG=null, ONSTART=null, obsT=0, lastProgAt=-9;
 var introV=null, introDone=false;
 var STARTED=false;              // бегун нажал «Начать бег» после инструкции
+// На десятом участке финал показываем только если этот забег действительно шёл:
+// признак «видели стадию бег». Иначе старый итог из базы открывал финальный кадр сразу.
+var RUN_SEEN=false;
 // вид наблюдателя: бегун и препятствия, обозначенные в объёме
 var OBS_RUNNER_GRP=null, OBS_PULSE=[], OBS_MARKS=[], OBS_ICON_TEX={};
 // сцена: рождение провала, падающие обломки, фигура Бегуна для наблюдателя
@@ -111,13 +114,6 @@ var T7_HTML='<div id="t7-stage">'+
 '<p id="t7-change-name"></p>'+
 '<p class="t7-hint" id="t7-change-note">Готовься: сейчас побежишь ты.</p>'+
 '<button type="button" id="t7-change-go" class="t7-primary">Ты — бегун</button>'+
-'</div>'+
-'</div>'+
-'<div id="t7-end" class="t7-screen hidden">'+
-'<div class="t7-card">'+
-'<h1 id="t7-end-title">Участок пройден</h1>'+
-'<p id="t7-end-text"></p>'+
-'<button type="button" id="t7-again" class="t7-primary">Пройти ещё раз</button>'+
 '</div>'+
 '</div>'+
 '</div>';
@@ -217,8 +213,7 @@ function fillDom(){
     sec:document.getElementById('t7-sec'),obsSec:document.getElementById('t7-obs-sec'),
     lab:document.getElementById('t7-lab'),plate:document.getElementById('t7-lab-plate'),
     flash:document.getElementById('t7-flash'),dark:document.getElementById('t7-dark'),
-    start:document.getElementById('t7-start'),end:document.getElementById('t7-end'),
-    endTitle:document.getElementById('t7-end-title'),endText:document.getElementById('t7-end-text')};
+    start:document.getElementById('t7-start')};
 }
 
 // ——— мелкие помощники ———
@@ -497,8 +492,10 @@ function applyStage(){
   if(STAGE==='change'){ if(ch) ch.classList.remove('hidden'); showChange(); return; }
   if(ch) ch.classList.add('hidden');
   CHANGED=false;
-  // десятый участок: забег закончен в дверях лаборатории — показываем «МАРШРУТ ПРОЙДЕН»
-  if(SEG==='C' && (STAGE==='done')){ showLabEnd(MODE==='runner'); return; }
+  if(STAGE==='run') RUN_SEEN=true;
+  // десятый участок: финал только после реального забега (иначе старый итог включал бы его сразу),
+  // иначе — обычный экран смены бегуна, где новый бегун нажимает «Ты — бегун»
+  if(SEG==='C' && STAGE==='done' && RUN_SEEN){ showLabEnd(MODE==='runner'); return; }
   if(OBSERVE){ showObserver(); return; }
   if(!STARTED){ if(el.start) el.start.classList.remove('hidden'); return; }
   if(el.start) el.start.classList.add('hidden');
@@ -508,7 +505,6 @@ function showChange(){
   var box=document.getElementById('t7-change'); if(!box) return;
   box.classList.remove('hidden');
   if(el.start) el.start.classList.add('hidden');
-  if(el.end) el.end.classList.add('hidden');
   var nm=document.getElementById('t7-change-name');
   if(nm) nm.textContent=OBS_RUNNER_NAME?('Новый бегун: '+OBS_RUNNER_NAME):'';
   var go=document.getElementById('t7-change-go');
@@ -553,7 +549,7 @@ function showObserver(){
 }
 var OBS_RUNNER_NAME='';
 function hideRunnerUI(){
-  ['t7-hud','t7-controls','t7-topview','t7-start','t7-end'].forEach(function(id){
+  ['t7-hud','t7-controls','t7-topview','t7-start'].forEach(function(id){
     var n=document.getElementById(id); if(n) n.classList.add('hidden');
   });
   if(capPlane) capPlane.visible=false;
@@ -561,6 +557,7 @@ function hideRunnerUI(){
 // Внешние вызовы от общего модуля
 function setStage(s){
   if(!s||s===STAGE) return;
+  if(s==='run') RUN_SEEN=true;
   STAGE=s; applyStage();
 }
 function setHint(h){
@@ -1227,6 +1224,25 @@ function addDebris(z,baseY,fallH,need,text,size,off){
   e.pieces.push(m);
   events.push(e);
   return e;
+}
+
+// Падающие обломки: положение и видимость считаются от координаты бегуна (z).
+// Вынесено в общую функцию, потому что цикл наблюдателя не проходит через step(),
+// и обломки у него оставались в «невидимом» состоянии — он видел только надписи.
+function updateDebrisPieces(z){
+  events.forEach(function(e){
+    if(!e.pieces||!e.pieces.length) return;
+    var ahead=z-e.z;                        // >0 — ещё впереди
+    e.pieces.forEach(function(pc){
+      if(ahead>18||ahead<-3){ pc.visible=false; return; }
+      var k2=clamp((18-ahead)/18,0,1);
+      pc.visible=!e.done;
+      pc.position.set(routeX(e.z)+pc.userData.off*(1-k2*0.6),
+                      e.baseY+e.fallH*Math.pow(1-k2,2.2)+0.55,
+                      e.z+pc.userData.dl);
+      pc.rotation.set(k2*2.6,k2*1.9,k2*1.2);
+    });
+  });
 }
 
 // ——— кристалл: объёмный восьмигранник со светящимся ядром ———
@@ -2741,20 +2757,10 @@ function step(dt){
     if(!e.warned&&sZ-e.z<34&&sZ-e.z>-1){ e.warned=true;
       emitHint(e.text||'Опасность впереди','hazard'); }
     if(!e.done&&sZ<=e.z){ e.done=true; judge(e); }
-    // падающие обломки
-    if(e.pieces&&e.pieces.length){
-      var ahead=sZ-e.z;                     // >0 — ещё впереди
-      e.pieces.forEach(function(pc){
-        if(ahead>18||ahead<-3){ pc.visible=false; return; }
-        var k2=clamp((18-ahead)/18,0,1);
-        pc.visible=!e.done;
-        pc.position.set(routeX(e.z)+pc.userData.off*(1-k2*0.6),
-                        e.baseY+e.fallH*Math.pow(1-k2,2.2)+0.55,
-                        e.z+pc.userData.dl);
-        pc.rotation.set(k2*2.6,k2*1.9,k2*1.2);
-      });
-    }
   });
+
+  // падающие обломки — от координаты бегуна (общая функция: наблюдатель тоже должен их видеть)
+  updateDebrisPieces(sZ);
 
   // кристаллы: берутся ДЕЙСТВИЕМ — подъехать в сторону или прыгнуть вверх
   var capX=lane*laneLimitNow;
@@ -2912,6 +2918,7 @@ function observeStep(dt){
   // надписи считаем по свежей точке Бегуна (сглаженная отстаёт и задерживала подсказки)
   var zTag=(OBS_Z_TARGET!==null && (obsT-OBS_Z_AT)<10)?OBS_Z_TARGET:z;
   updateObserverMarkers(dt,z,zTag);
+  updateDebrisPieces(zTag);          // наблюдатель видит те же падающие обломки, что и бегун
   // капсула в руках — только у Бегуна, наблюдателю она не нужна
   if(capPlane) capPlane.visible=false;
   if(CAPSULE3D) CAPSULE3D.visible=false;
@@ -2986,7 +2993,6 @@ function reset(){
     el.lab.textContent='Войти в лабораторию'; }
   var ctrR=document.getElementById('t7-controls');
   if(ctrR && !OBSERVE) ctrR.classList.remove('hidden');
-  if(againBtn) againBtn.classList.remove('hidden');
   if(capPlane){ capPlane.userData.tex='capsule';
     if(TEX.capsule){ capPlane.material.map=TEX.capsule; capPlane.material.needsUpdate=true; } }
   CAPSULE_DMG=-1; tintCapsuleModel(0);
@@ -3001,7 +3007,6 @@ function start(){
   try{ SFX.amb.currentTime=0; var p=SFX.amb.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){}
   try{ SFX.music.currentTime=0; var pm=SFX.music.play(); if(pm&&pm.catch)pm.catch(function(){}); }catch(e){}
   if(el.start) el.start.classList.add('hidden');
-  if(el.end) el.end.classList.add('hidden');
 }
 
 function finish(){
@@ -3011,14 +3016,12 @@ function finish(){
   try{ SFX.amb.pause(); }catch(e){}
   try{ SFX.music.pause(); }catch(e){}
   var last=(SEG==='C');                 // десятый участок — дверь лаборатории
-  if(last){ showLabEnd(true); }
-  else{
-    if(el.endTitle) el.endTitle.textContent='Участок пройден';
-    if(el.endText) el.endText.textContent='Корпус капсулы: '+Math.round(integrity)+'%. Энергия: '+
-      Math.round(energy)+'%. Успешных действий: '+passed+', ошибок: '+failed+'.';
-    if(el.lab) el.lab.classList.add('hidden');
-    if(againBtn) againBtn.classList.remove('hidden');
-    if(el.end) el.end.classList.remove('hidden');
+  if(last){
+    showLabEnd(true);                   // дверь видна, плашка и кнопка входа
+  }else{
+    // На участках 1–9 полноэкранной карточки нет: итог уходит в базу, и через мгновение
+    // открывается экран смены бегуна. Кнопки «Пройти ещё раз» больше не существует.
+    var ctr=document.getElementById('t7-controls'); if(ctr) ctr.classList.add('hidden');
   }
   if(onFinishCb){
     try{ onFinishCb({energy:Math.round(energy),integrity:Math.round(integrity),
@@ -3031,7 +3034,6 @@ function finish(){
 // заряд капсулы и остальные надписи.
 function showLabEnd(isRunner){
   finished=true; running=false;
-  if(el.end) el.end.classList.add('hidden');          // полноэкранной карточки больше нет
   if(el.start) el.start.classList.add('hidden');
   if(el.plate){ el.plate.textContent='МАРШРУТ ПРОЙДЕН';
     el.plate.classList.remove('hidden'); }
@@ -3044,9 +3046,7 @@ function showLabEnd(isRunner){
 
 function bindButtons(){
   playBtn=document.getElementById('t7-play');
-  againBtn=document.getElementById('t7-again');
   if(playBtn) playBtn.addEventListener('click',beginRun);
-  if(againBtn) againBtn.addEventListener('click',start);
   // «Войти в лабораторию» — дверь на десятом участке. Экран не перекрываем:
   // когда задание 8 появится, здесь будет переход в него.
   var lb=document.getElementById('t7-lab');
@@ -3230,6 +3230,7 @@ function unmount(){
   onFinishCb=null; ONHINT=null; ONPROG=null; ONSTART=null; introV=null; introDone=false;
   MODE='runner'; OBSERVE=false; STAGE='intro'; PROG=0; ISCAP=false; obsT=0; lastProgAt=-9;
   STARTED=false; OBS_RUNNER_GRP=null; OBS_PULSE.length=0; OBS_MARKS.length=0; OBS_ICON_TEX={};
+  RUN_SEEN=false;
   OBS_HUMAN=null; CAPSULE3D=null; CAPSULE_MATS=null; CAPSULE_DMG=-1; CAP_OK=false;
   CAPSCENE=null; CAPCAM=null; CAPSIZE=null; CAPBASEY=0; RUNNER_ARMS=[];
   tunnelBuilt=false; tunnelEventsDone=false; tunnelGroup=null; tunnelLamps=[]; tunnelLightPool=[];
