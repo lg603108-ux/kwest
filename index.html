@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="task07.css?v=0349a">
 <link rel="stylesheet" href="task08.css?v=0352a">
 <link rel="stylesheet" href="task09.css?v=0352a">
+<link rel="stylesheet" href="task10.css?v=0353a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -271,11 +272,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task07.js?v=0349a"></script>
 <script src="task08.js?v=0352a"></script>
 <script src="task09.js?v=0352a"></script>
+<script src="task10.js?v=0353a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false,mounted09=false;
+var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false,mounted09=false,mounted10=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -533,18 +535,22 @@ if(window.Task09){try{Task09.unmount();}catch(e){}}
 var el9b=document.getElementById('task09-mount');
 if(el9b){el9b.classList.remove('active');el9b.innerHTML='';}
 }
-// Задание 10: модуля ещё нет — честный экран-заглушка, чтобы кнопка «Продолжить» не вела в пустоту.
-if(r.state.phase==='task10'){
+// Задание 10 «Закрытие портала»: отдельный модуль task10.js, фаза комнаты task10.
+if(r.state.phase==='task10'&&!mounted10){
 var el10=document.getElementById('task10-mount');
-if(el10&&el10.getAttribute('data-on')!=='1'){
-el10.setAttribute('data-on','1');el10.classList.add('active');document.body.dataset.screen='task10';
-el10.innerHTML='<div class="t10ph"><p class="t10ph-eyebrow">ЗАДАНИЕ 10</p><h1>ЗАКРЫТИЕ ПОРТАЛА</h1>'+
-'<p class="t10ph-note">ЭТО ЗАДАНИЕ ПОЯВИТСЯ В СЛЕДУЮЩЕМ ОБНОВЛЕНИИ</p></div>';
+if(!el10){toastMsg('Контейнер задания 10 не найден');return;}
+if(!window.Task10){toastMsg('Модуль задания 10 не загружен (task10.js)');return;}
+mounted10=true;el10.classList.add('active');document.body.dataset.screen='task10';
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+var mv10=document.getElementById('movie');if(mv10){try{mv10.pause();}catch(e){}}
+try{Task10.mount(el10);toastMsg('Задание 10 запущено');}
+catch(e){mounted10=false;el10.classList.remove('active');toastMsg('Ошибка монтажа задания 10: '+(e&&e.message||e));}
 }
-}
-if(r.state.phase!=='task10'){
+if(r.state.phase!=='task10'&&mounted10){
+mounted10=false;
+if(window.Task10){try{Task10.unmount();}catch(e){}}
 var el10b=document.getElementById('task10-mount');
-if(el10b&&el10b.getAttribute('data-on')==='1'){el10b.removeAttribute('data-on');el10b.classList.remove('active');el10b.innerHTML='';}
+if(el10b){el10b.classList.remove('active');el10b.innerHTML='';}
 }
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.

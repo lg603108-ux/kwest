@@ -1,0 +1,525 @@
+// task10.js — задание 10 «Закрытие портала».
+// Правила задания: ТЗ, раздел 12. Капитан сам вводит 3971 (подстановки из задания 8 нет),
+// затем нажимает три установки в порядке с плаката: Стабилизатор → Купол → Ядро.
+// Остальные держат жёлтый щит: отпустил палец, ушёл в фон или потерял касание — давление растёт.
+// Давление ничего не блокирует и поражением не заканчивает.
+// После третьего верного шага общий отсчёт 3–2–1, финальный город и итоговая карточка.
+// Звуки задания звучат только на телефоне капитана (решение автора 19.11.2026).
+// Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
+// Стадии: wait → intro → code → protocol → countdown → city → done.
+window.Task10=(function(){
+const BUILD='0353a';
+const CODE='3971';
+const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
+const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
+const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3';
+const SFX_HINT_CODE='v10_hint_code.mp3',SFX_HINT_PROTO='v10_hint_protocol.mp3',SFX_HOLD='v10_hold.mp3';
+// Визуальный порядок кнопок намеренно НЕ совпадает с правильной последовательностью.
+const BTN=[{id:'core',label:'ЯДРО',sym:'◎',cls:'t10-red'},
+{id:'stabilizer',label:'СТАБИЛИЗАТОР',sym:'▮',cls:'t10-blue'},
+{id:'dome',label:'КУПОЛ',sym:'⌂',cls:'t10-yellow'}];
+const LAYOUT='core-stabilizer-dome';
+const ORDER=[1,2,0];                                        // Стабилизатор → Купол → Ядро
+const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
+const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
+const COUNT_MS=3000;        // общий отсчёт 3–2–1
+const SHIELD_TTL=6000;      // зависшая запись щита не считается вечным щитом
+const PRESS_MS=2500;        // как часто капитан пишет общее давление в базу
+let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
+let tickTimer=null,startTimer=null,holdHb=null,tOff=0,offRef=null;
+let mediaKey='',mediaRetries=0,endedLocal=false,stageKey='',lastStatusKey='';
+let slots=['','','',''],pos=0,lastSubmit=0,localHintCode=0,localHintProto=0,glitchUntil=0;
+let holding=false,holdAudio=null,holdWanted=false,pressCur=0,pressWrote=0,pressWritten=0;
+let countWrote=0,finishWrote=0,cardKey='',localDone=false;
+function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
+function now(){return Date.now()+(+tOff||0);}
+function uid(){return (window.NET&&NET.uid)||'';}
+function db(){return firebase.database();}
+function nodeRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task10');}
+function write(obj){return nodeRef().update(obj).catch(function(e){error(e);throw e;});}
+function error(e){status('Ошибка связи: '+(e&&e.message||e));}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function playSfx(file,volume){if(!cap())return;try{var x=new Audio('assets/'+file);x.volume=volume;x.play().catch(function(){});}catch(e){}}
+function status(text){
+if(!els.status)return '';
+if(text===undefined)return els.status.textContent||'';
+els.status.textContent=text||'';els.status.hidden=!text;return '';
+}
+// ——— монтаж ———
+function mount(container){
+if(root)unmount();
+active=true;mediaKey='';mediaRetries=0;endedLocal=false;stageKey='';lastStatusKey='';
+slots=['','','',''];pos=0;lastSubmit=0;localHintCode=0;localHintProto=0;glitchUntil=0;
+holding=false;pressCur=0;pressWrote=0;pressWritten=0;countWrote=0;finishWrote=0;cardKey='';localDone=false;
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
+root=document.createElement('div');root.id='t10';root.innerHTML=
+'<video class="t10-video" playsinline preload="auto"></video>'+
+'<div class="t10-wave" id="t10-wave" hidden><i></i><i></i><i></i></div>'+
+'<section class="t10-screen t10-wait" id="t10-wait"><p class="t10-eyebrow">ЗАДАНИЕ 10</p><h1>Закрытие портала</h1>'+
+'<p class="t10-note">Мы у Ядра. Сейчас Вольт объяснит, что делать: капитан вводит код, команда держит щиты.</p>'+
+'<button id="t10-start" class="t10-primary" type="button">▶ Включить инструкцию</button>'+
+'<p class="t10-note" id="t10-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
+'<section class="t10-panel" id="t10-panel" hidden>'+
+'<div class="t10-press"><span>ДАВЛЕНИЕ АНОМАЛИИ</span><b id="t10-pressure">0%</b>'+
+'<div class="t10-pressbar"><i id="t10-pressurefill"></i></div></div>'+
+'<div class="t10-codebox" id="t10-codebox" hidden><p class="t10-eyebrow">КОД ЯДРА</p>'+
+'<div class="t10-cells" id="t10-cells"></div><div class="t10-pad" id="t10-pad"></div>'+
+'<div class="t10-actions"><button class="t10-secondary" id="t10-del" type="button">Удалить</button>'+
+'<button class="t10-primary" id="t10-check" type="button">Подтвердить</button></div>'+
+'<p class="t10-err" id="t10-err" hidden>Сигнал искажён. Проверьте код</p></div>'+
+'<div class="t10-proto" id="t10-proto" hidden><p class="t10-eyebrow">ПРОТОКОЛ ЗАПУСКА</p>'+
+'<p class="t10-note">Вспомните плакат на стене из записи камер.</p>'+
+'<div class="t10-btns" id="t10-btns"></div></div>'+
+'<p class="t10-hint" id="t10-hint" hidden><b id="t10-hintlabel">ПОДСКАЗКА</b><span id="t10-hinttext"></span></p>'+
+'<p class="t10-call" id="t10-call2" hidden>ВСЕ К ЩИТАМ!</p></section>'+
+'<section class="t10-shield" id="t10-shield" hidden><div class="t10-shieldwave"><i></i><i></i><i></i></div>'+
+'<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
+'<p class="t10-shieldup" id="t10-shieldup">ДЕРЖИТЕ ЩИТ</p>'+
+'<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><span>ЩИТ</span></button>'+
+'<p class="t10-shieldstate" id="t10-shieldstate">Щит не активен</p>'+
+'<p class="t10-call" id="t10-call" hidden>ВСЕ К ЩИТАМ!</p>'+
+'<p class="t10-press2">ДАВЛЕНИЕ АНОМАЛИИ: <b id="t10-pressure2">0%</b></p></section>'+
+'<section class="t10-count" id="t10-count" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫВАЕТСЯ</p>'+
+'<p class="t10-countnum" id="t10-countnum">3</p><p class="t10-note">Держите щиты!</p></section>'+
+'<section class="t10-screen t10-done" id="t10-done" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫТ</p><h1>ГОРОД СПАСЁН</h1>'+
+'<div class="t10-card"><p class="t10-cardlabel">КОМАНДА</p><p class="t10-names" id="t10-names"></p>'+
+'<p class="t10-row"><span>ОБЩЕЕ ВРЕМЯ</span><b id="t10-time">—</b></p>'+
+'<p class="t10-row"><span>ОБОРОНА</span><b id="t10-def">0</b></p></div>'+
+'<button id="t10-finish" class="t10-primary" type="button">Завершить</button>'+
+'<p class="t10-note" id="t10-donewait" hidden>ЖДЁМ КАПИТАНА</p></section>'+
+'<div class="t10-status" id="t10-status" role="status" hidden></div>'+
+'<button class="t10-primary t10-mediabtn" id="t10-media" type="button" hidden></button>'+
+'<p class="t10-build">Сборка '+BUILD+'</p>';
+container.appendChild(root);
+video=root.querySelector('.t10-video');
+els={wait:root.querySelector('#t10-wait'),start:root.querySelector('#t10-start'),waitnote:root.querySelector('#t10-waitnote'),
+wave:root.querySelector('#t10-wave'),panel:root.querySelector('#t10-panel'),
+press:root.querySelector('#t10-pressure'),pressfill:root.querySelector('#t10-pressurefill'),
+codebox:root.querySelector('#t10-codebox'),cells:root.querySelector('#t10-cells'),pad:root.querySelector('#t10-pad'),
+del:root.querySelector('#t10-del'),check:root.querySelector('#t10-check'),err:root.querySelector('#t10-err'),
+proto:root.querySelector('#t10-proto'),btns:root.querySelector('#t10-btns'),
+hint:root.querySelector('#t10-hint'),hintLabel:root.querySelector('#t10-hintlabel'),hintText:root.querySelector('#t10-hinttext'),
+call2:root.querySelector('#t10-call2'),shield:root.querySelector('#t10-shield'),
+shieldup:root.querySelector('#t10-shieldup'),shieldbtn:root.querySelector('#t10-shieldbtn'),
+shieldstate:root.querySelector('#t10-shieldstate'),call:root.querySelector('#t10-call'),
+press2:root.querySelector('#t10-pressure2'),count:root.querySelector('#t10-count'),
+countnum:root.querySelector('#t10-countnum'),done:root.querySelector('#t10-done'),
+names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),
+finish:root.querySelector('#t10-finish'),donewait:root.querySelector('#t10-donewait'),
+status:root.querySelector('#t10-status'),media:root.querySelector('#t10-media')};
+els.start.addEventListener('click',startIntro);
+els.check.addEventListener('click',submitCode);
+els.del.addEventListener('click',removeDigit);
+els.pad.addEventListener('click',onPadClick);
+els.cells.addEventListener('click',onCellClick);
+els.btns.addEventListener('click',onProtoClick);
+els.finish.addEventListener('click',finishLocal);
+// щит: держим пальцем, отпускание/фон/потеря касания снимают защиту
+els.shieldbtn.addEventListener('pointerdown',shieldDown);
+els.shieldbtn.addEventListener('pointerup',shieldUp);
+els.shieldbtn.addEventListener('pointercancel',shieldUp);
+els.shieldbtn.addEventListener('lostpointercapture',shieldUp);
+els.shieldbtn.addEventListener('pointerleave',shieldUp);
+els.shieldbtn.addEventListener('contextmenu',function(e){e.preventDefault();});
+document.addEventListener('visibilitychange',onVisibility);
+window.addEventListener('blur',shieldUp);
+try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
+try{db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid()).onDisconnect().update({active:false,at:Date.now()});}catch(e){}
+roomOff=NET.onRoom(onRoom);
+tickTimer=setInterval(tick,400);
+}
+function unmount(){
+if(active)releaseShield();
+active=false;
+if(startTimer){clearTimeout(startTimer);startTimer=null;}
+if(holdHb){clearInterval(holdHb);holdHb=null;}
+if(offRef){try{offRef.off();}catch(e){}offRef=null;}
+if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
+document.removeEventListener('visibilitychange',onVisibility);
+window.removeEventListener('blur',shieldUp);
+if(typeof roomOff==='function')roomOff();roomOff=null;
+stopMedia();stopHold();
+if(video){try{video.pause();video.removeAttribute('src');video.load();}catch(e){}}
+if(root&&root.parentNode)root.parentNode.removeChild(root);
+root=null;video=null;els={};roomState=null;task=null;mediaKey='';endedLocal=false;stageKey='';
+slots=['','','',''];pos=0;localHintCode=0;localHintProto=0;holding=false;cardKey='';
+}
+function onRoom(room){
+if(!active||!room)return;
+roomState=room;task=(room.tasks&&room.tasks.task10)||{stage:'wait'};
+// свои подтверждённые шаги берём из базы: обновление страницы не сбрасывает ввод
+if(+task.codeAttempts>0)localHintCode=Math.max(localHintCode,+task.codeHintLevel||0);
+if(+task.protocolAttempts>0)localHintProto=Math.max(localHintProto,+task.protocolHintLevel||0);
+coordinate();render();
+}
+// ——— стадии ———
+function startIntro(){
+if(!cap()||!task||(task.stage||'wait')!=='wait')return;
+if(els.start)els.start.disabled=true;
+write({stage:'intro',startsAt:now()+1200,codeAccepted:false,codeAttempts:0,codeHintLevel:0,
+protocolStep:0,protocolAttempts:0,protocolHintLevel:0,buttonLayout:LAYOUT,
+pressure:0,countdownStart:0,cityStart:0,completed:false,revision:0,completedAt:0})
+.catch(function(){if(els.start)els.start.disabled=false;});
+}
+function introFinished(){
+if(!cap()||!task||task.stage!=='intro')return;
+write({stage:'code',startsAt:now()+800}).catch(function(){});
+}
+function onPadClick(e){
+if(!cap()||!task||task.stage!=='code')return;
+const b=e.target&&e.target.closest?e.target.closest('.t10-key'):null;
+if(!b)return;
+const d=b.getAttribute('data-d');if(!d)return;
+const i=(pos>=0&&pos<4)?pos:0;
+slots[i]=d;pos=(i+1)%4;
+if(els.err)els.err.hidden=true;
+render();
+}
+function onCellClick(e){
+if(!cap()||!task||task.stage!=='code')return;
+const b=e.target&&e.target.closest?e.target.closest('.t10-cell'):null;
+if(!b)return;
+const i=parseInt(b.getAttribute('data-i'),10);
+if(isNaN(i))return;
+pos=i;render();
+}
+function removeDigit(){
+if(!cap()||!task||task.stage!=='code')return;
+let i=(pos>=0&&pos<4)?pos:3;
+if(!slots[i]){let k=-1;for(let j=3;j>=0;j--){if(slots[j]){k=j;break;}}if(k<0)return;i=k;}
+slots[i]='';pos=i;render();
+}
+function submitCode(){
+if(!cap()||!task||task.stage!=='code')return;
+if(Date.now()-lastSubmit<700)return;
+if(!(slots[0]&&slots[1]&&slots[2]&&slots[3]))return;
+lastSubmit=Date.now();
+const draft=slots.join('');
+if(draft===CODE){
+playSfx(SFX_CODE,.8);
+write({stage:'protocol',codeAccepted:true,codeAttempts:+task.codeAttempts||0,protocolStep:0,startsAt:now()+600}).catch(function(){});
+}else{
+const at=(+task.codeAttempts||0)+1;
+const lvl=at>=3?2:1;
+localHintCode=Math.max(localHintCode,lvl);
+if(lvl>(+task.codeHintLevel||0))playSfx(SFX_HINT_CODE,.85);
+if(els.err)els.err.hidden=false;
+slots=['','','',''];pos=0;
+write({codeAttempts:at,codeHintLevel:localHintCode}).catch(function(){});
+}
+}
+function onProtoClick(e){
+if(!cap()||!task||task.stage!=='protocol')return;
+const b=e.target&&e.target.closest?e.target.closest('.t10-pbtn'):null;
+if(!b||b.disabled)return;
+const idx=parseInt(b.getAttribute('data-i'),10);
+if(isNaN(idx))return;
+const step=+task.protocolStep||0;
+if(idx===ORDER[step]){
+const next=step+1;
+if(next>=3){
+write({protocolStep:3,countdownStart:now()+900}).then(function(){
+setTimeout(function(){if(active)write({stage:'countdown'}).catch(function(){});},350);
+}).catch(function(){});
+}else{
+write({protocolStep:next}).catch(function(){});
+}
+}else{
+const at=(+task.protocolAttempts||0)+1;
+const lvl=at>=3?2:1;
+localHintProto=Math.max(localHintProto,lvl);
+glitchUntil=Date.now()+5000;
+playSfx(SFX_RESTART,.9);
+if(lvl>(+task.protocolHintLevel||0))setTimeout(function(){playSfx(SFX_HINT_PROTO,.9);},700);
+write({protocolStep:0,protocolAttempts:at,protocolHintLevel:localHintProto}).catch(function(){});
+}
+}
+function startCity(){
+if(!cap()||!task||task.stage==='city'||task.stage==='done')return;
+if(finishWrote&&now()-finishWrote<2000)return;
+finishWrote=now();
+write({stage:'city',cityStart:Date.now()}).catch(function(){finishWrote=0;});
+}
+function finishQuest(){
+if(!cap()||!task||task.stage!=='city')return;
+if(task.completed)return;
+if(now()-finishWrote<1500)return;   // одна запись завершения на комнату
+finishWrote=now();
+write({stage:'done',completed:true,completedAt:Date.now(),revision:(+task.revision||0)+1}).catch(function(){finishWrote=0;});
+}
+// ——— щит ———
+function shieldDown(e){
+if(!active||cap()||!task)return;
+const st=task.stage||'wait';
+if(st!=='code'&&st!=='protocol'&&st!=='countdown')return;
+if(e){try{els.shieldbtn.setPointerCapture(e.pointerId);}catch(_){}}
+if(holding)return;
+holding=true;
+if(els.shieldstate)els.shieldstate.textContent='ЩИТ АКТИВЕН';
+if(els.shield)els.shield.classList.add('t10-on');
+sendShield(true);
+if(holdHb)clearInterval(holdHb);
+holdHb=setInterval(function(){if(holding)sendShield(true);},1500);
+}
+function shieldUp(){
+if(!holding)return;
+releaseShield();
+}
+function releaseShield(){
+holding=false;
+if(holdHb){clearInterval(holdHb);holdHb=null;}
+if(els.shieldstate)els.shieldstate.textContent='Щит не активен';
+if(els.shield)els.shield.classList.remove('t10-on');
+sendShield(false);
+}
+function sendShield(on){
+if(!active||!uid())return;
+const p=db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid());
+p.update({active:!!on,at:Date.now()}).catch(function(){});
+if(!on)try{p.onDisconnect().cancel();}catch(e){}
+}
+function onVisibility(){if(document.hidden)shieldUp();}
+// ——— общее давление ———
+function shieldShare(){
+const room=roomState,sh=(task&&task.shields)||{},ps=(room&&room.players)||{};
+let others=0,holdingN=0;
+for(const k in ps){
+const p=ps[k];if(!p)continue;if(k===room.captain)continue;
+if(p.connected===false)continue;
+const hb=(typeof p.segAt==='number')?p.segAt:((p.joinedAt||0)+5000);
+if(Date.now()-hb>20000)continue;
+others++;
+const s=sh[k];
+if(s&&s.active===true&&(now()-(+s.at||0))<SHIELD_TTL)holdingN++;
+}
+if(others<1)return 1;
+return holdingN/others;
+}
+function pressureTarget(){return Math.max(0,Math.min(100,Math.round(100*(1-shieldShare()))));}
+// ——— такт ———
+function tick(){
+if(!active||!task)return;
+const st=task.stage||'wait';
+const target=pressureTarget();
+pressCur+=(target-pressCur)*0.22;
+if(cap()&&(st==='code'||st==='protocol'||st==='countdown')){
+const rounded=Math.round(pressCur);
+if(rounded!==pressWritten&&now()-pressWrote>PRESS_MS){pressWrote=now();pressWritten=rounded;write({pressure:rounded}).catch(function(){});}
+}
+if(st==='countdown'){
+const cst=+task.countdownStart||0;
+if(cap()&&cst&&now()>=cst+COUNT_MS+400&&!countWrote){countWrote=1;startCity();}
+}
+render();
+}
+// ——— звук удержания (только капитан) ———
+function ensureHold(){
+if(!cap()||!task)return;
+const st=task.stage||'';
+if(st!=='code'&&st!=='protocol'){stopHold();return;}
+if(holdAudio){return;}
+try{
+holdAudio=new Audio('assets/'+SFX_HOLD);
+holdAudio.loop=true;holdAudio.volume=.32;holdAudio.preload='auto';
+const p=holdAudio.play();if(p&&p.catch)p.catch(function(){});
+}catch(e){holdAudio=null;}
+}
+function stopHold(){
+if(!holdAudio)return;
+try{holdAudio.pause();holdAudio.currentTime=0;}catch(e){}
+holdAudio=null;
+}
+// ——— видео: порядок запуска как в заданиях 8 и 9 ———
+function stopMedia(){
+if(startTimer){clearTimeout(startTimer);startTimer=null;}
+if(!video)return;
+mediaKey='';
+video.onloadedmetadata=null;video.onended=null;video.onerror=null;video.onclick=null;
+try{video.pause();}catch(e){}
+hideMediaBtn();
+}
+function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
+function showMediaBtn(text,fn){if(!els.media)return;els.media.hidden=false;els.media.textContent=text;
+els.media.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();hideMediaBtn();if(!active)return;fn();};}
+function scheduleMedia(src,at,key,onEnd){
+stopMedia();mediaKey=key;mediaRetries=0;
+video.muted=!cap();
+video.onloadedmetadata=function(){
+const offset=Math.max(0,(now()-at)/1000);
+if(offset>0.5&&video.duration)try{video.currentTime=Math.min(offset,Math.max(0,video.duration-0.1));}catch(e){}
+};
+video.onerror=function(){
+if(!active||mediaKey!==key||!video)return;
+if(mediaRetries<2){mediaRetries++;status('Повторная загрузка видео…');
+setTimeout(function(){if(!active||mediaKey!==key)return;try{video.src=src;video.load();}catch(e){}beginPlay();},1500);return;}
+status('Видео не загрузилось. Проверьте соединение.');
+if(cap())showMediaBtn('Продолжить →',function(){endedLocal=true;onEnd();});
+};
+video.onended=function(){
+if(!active||mediaKey!==key)return;
+endedLocal=true;
+if(cap())onEnd();
+render();
+};
+video.src=src;
+const beginPlay=function(){
+if(!active||mediaKey!==key||!video)return;
+const p=video.play();
+if(!p||!p.then){status('');hideMediaBtn();return;}
+p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
+if(!active||mediaKey!==key)return;
+video.muted=true;video.play().catch(function(){});
+status('');
+if(cap())showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){if(video)video.muted=false;});
+});
+};
+video.onclick=beginPlay;
+const delay=at-now();
+if(delay>100){status('Видео начнётся одновременно у всех…');
+startTimer=setTimeout(function(){startTimer=null;if(!active)return;beginPlay();},delay);}
+else beginPlay();
+}
+function coordinate(){
+if(!task)return;
+const st=task.stage||'wait';
+if(st==='intro'){
+if(mediaKey!=='intro'&&video){endedLocal=false;scheduleMedia(SRC_INTRO,+task.startsAt||0,'intro',introFinished);}
+if(video&&!cap()&&!video.muted)video.muted=true;
+stopHold();
+}
+else if(st==='city'){
+if(mediaKey!=='city'&&video&&!task.completed){endedLocal=false;scheduleMedia(SRC_CITY,+task.cityStart||0,'city',finishQuest);}
+stopHold();
+}
+else{
+if(mediaKey)stopMedia();
+if(st==='code'||st==='protocol')ensureHold();else stopHold();
+}
+}
+// ——— отрисовка ———
+function fmtTime(ms){
+if(!ms||ms<0)return '—';
+const s=Math.round(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),r=s%60;
+if(h)return h+' ч '+m+' мин';
+if(m)return m+' мин '+r+' с';
+return r+' с';
+}
+function cardData(){
+const room=roomState||{},ps=room.players||{};
+const arr=Object.keys(ps).map(function(k){return {k:k,p:ps[k]||{}};})
+.sort(function(a,b){return (a.p.joinedAt||0)-(b.p.joinedAt||0);});
+const names=arr.map(function(e){return e.p.name||'Игрок';});
+let def=0;arr.forEach(function(e){def+=(+e.p.score||0);});
+const start=+room.createdAt||0,end=+((task&&task.completedAt)||0)||now();
+return {names:names,defense:def,time:start?end-start:0};
+}
+function fillCard(){
+if(!els.names)return;
+const key=(task&&+task.completedAt||0)+'|'+((roomState&&roomState.createdAt)||0);
+if(cardKey===key)return;
+cardKey=key;
+const d=cardData();
+els.names.innerHTML=d.names.length?d.names.map(function(n){return '<span>'+esc(n)+'</span>';}).join(''):'<span>—</span>';
+if(els.time)els.time.textContent=fmtTime(d.time);
+if(els.def)els.def.textContent=String(d.def);
+}
+function render(){
+if(!root||!task)return;
+const st=task.stage||'wait',c=cap();
+root.className=c?'iscap':'';
+const inVideo=(st==='intro'&&!endedLocal)||(st==='city'&&!task.completed);
+if(video)video.hidden=!inVideo;
+if(els.wait)els.wait.hidden=st!=='wait';
+if(els.start)els.start.hidden=!c;
+if(els.waitnote)els.waitnote.hidden=c;
+const panelOn=c&&(st==='code'||st==='protocol');
+if(els.panel)els.panel.hidden=!panelOn;
+if(els.codebox)els.codebox.hidden=!(c&&st==='code');
+if(els.proto)els.proto.hidden=!(c&&st==='protocol');
+const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
+if(els.shield)els.shield.hidden=!shieldOn;
+if(els.wave)els.wave.hidden=!(shieldOn||st==='countdown');
+if(els.count)els.count.hidden=st!=='countdown';
+if(root)root.classList.toggle('t10-glitch',Date.now()<glitchUntil);
+if(els.done)els.done.hidden=!(st==='done'&&!localDone);
+if(els.finish)els.finish.hidden=!(st==='done'&&!localDone);
+if(els.donewait)els.donewait.hidden=!(st==='done'&&!c&&!localDone);
+const p=Math.round(st==='countdown'?pressCur:pressCur);
+if(els.press)els.press.textContent=p+'%';
+if(els.pressfill)els.pressfill.style.width=p+'%';
+if(els.press2)els.press2.textContent=p+'%';
+// код капитана
+if(c&&st==='code'){
+if(els.cells&&els.cells.childElementCount!==4){
+els.cells.innerHTML=slots.map(function(d,i){
+return '<button class="t10-cell'+(d?' filled':'')+(i===pos?' sel':'')+'" data-i="'+i+'" type="button">'+esc(d||'')+'</button>';
+}).join('');
+}else if(els.cells){
+for(let i=0;i<4;i++){
+const b=els.cells.children[i];if(!b)continue;
+b.textContent=slots[i]||'';
+b.className='t10-cell'+(slots[i]?' filled':'')+(i===pos?' sel':'');
+}
+}
+if(els.pad&&els.pad.childElementCount!==9){
+let html='';for(let d=1;d<=9;d++)html+='<button class="t10-key" data-d="'+d+'" type="button">'+d+'</button>';
+els.pad.innerHTML=html;
+}
+}
+// протокол капитана
+if(c&&(st==='protocol'||st==='countdown')){
+if(els.btns&&els.btns.childElementCount!==3){
+els.btns.innerHTML=BTN.map(function(b,i){
+return '<button class="t10-pbtn '+b.cls+'" data-i="'+i+'" type="button"><span class="t10-psym">'+b.sym+'</span><span class="t10-plabel">'+b.label+'</span><span class="t10-pstep" data-step="'+i+'"></span></button>';
+}).join('');
+}
+const step=+task.protocolStep||0;
+for(let i=0;i<3;i++){
+const b=els.btns&&els.btns.children[i];if(!b)continue;
+const done=ORDER.indexOf(i)<step;
+b.classList.toggle('t10-done',done);
+const mark=b.querySelector('.t10-pstep');
+if(mark)mark.textContent=done?String(ORDER.indexOf(i)+1):'';
+}
+}
+// подсказки
+let hint='';
+if(st==='code'&&c)hint=HINT_CODE[Math.max(localHintCode,+task.codeHintLevel||0)]||'';
+if((st==='protocol'||st==='countdown')&&c){
+const lvl=Math.max(localHintProto,+task.protocolHintLevel||0);
+hint=HINT_PROTO[lvl]||'';
+}
+if(els.hint){els.hint.hidden=!hint;if(hint&&els.hintText)els.hintText.textContent=hint;}
+// «Все к щитам!»
+const share=shieldShare();
+const weak=shieldOn&&share<0.5&&pressureTarget()>40;
+if(els.call)els.call.hidden=!weak;
+if(els.call2)els.call2.hidden=!(weak&&c);
+// отсчёт
+if(st==='countdown'&&els.countnum){
+const left=Math.ceil(((+task.countdownStart||0)-now())/1000);
+els.countnum.textContent=left>0?String(Math.min(3,left)):'0';
+}
+// финальная карточка
+if(st==='done')fillCard();
+// запоминаем стадию, чтобы подписи статуса не переписывались каждый такт
+if(st!==stageKey)stageKey=st;
+const sk=st+'|'+String(c);
+if(sk!==lastStatusKey){
+lastStatusKey=sk;
+if((st==='code'||st==='protocol')&&!c)status('Капитан вводит код и запускает протокол. Держите щиты!');
+else if(st==='countdown'&&!c)status('Держите щиты до конца отсчёта!');
+else if(st==='city'&&!c)status('Смотрим финал вместе с капитаном.');
+else status('');
+}
+}
+function finishLocal(){
+// закрываем карточку только на этом телефоне; данные комнаты и финал не трогаем
+localDone=true;
+if(els.done)els.done.hidden=true;
+if(els.finish)els.finish.hidden=true;
+status('Спасибо, команда! Вы спасли город.');
+}
+return{mount:mount,unmount:unmount,BUILD:BUILD};
+})();
