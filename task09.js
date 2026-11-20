@@ -8,7 +8,7 @@
 // ориентируются по пульсирующему кольцу: иначе десять телефонов дают эхо.
 // Стадии: wait → intro (инструкция Вольта) → charge → done.
 window.Task09=(function(){
-const BUILD='0352a';
+const BUILD='0354a';
 const PERIOD=0.57259;      // секунд между ударами (104,79 уд/мин)
 const OFFSET=0.2186;       // первый удар от начала трека, секунд
 const TRACK_LEN=120.08;    // длина файла, секунд
@@ -196,7 +196,14 @@ setTimeout(function(){if(status()==='Продолжит капитан.')status(
 return;
 }
 if(els.cont)els.cont.disabled=true;
-NET.setPhase('task10',now()+800).catch(function(e){
+// Порядок перехода: сначала состояние задания 10 (стадия инструкции), затем фаза комнаты.
+// Обратный порядок монтирует модуль по пустой стадии — выглядит как «ничего не произошло».
+var t10ref=db().ref('rooms/'+NET.room.code+'/tasks/task10');
+t10ref.update({stage:'intro',startsAt:now()+1200,codeAccepted:false,codeAttempts:0,codeHintLevel:0,
+protocolStep:0,protocolAttempts:0,protocolHintLevel:0,buttonLayout:'core-stabilizer-dome',
+pressure:0,countdownStart:0,cityStart:0,completed:false,revision:0,completedAt:0})
+.then(function(){return NET.setPhase('task10',now()+800);})
+.catch(function(e){
 if(els.cont)els.cont.disabled=false;
 status('Не удалось перейти к заданию 10: '+(e&&e.message||e));
 });

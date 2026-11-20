@@ -8,7 +8,7 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0353a';
+const BUILD='0354a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
@@ -30,7 +30,7 @@ let tickTimer=null,startTimer=null,holdHb=null,tOff=0,offRef=null;
 let mediaKey='',mediaRetries=0,endedLocal=false,stageKey='',lastStatusKey='';
 let slots=['','','',''],pos=0,lastSubmit=0,localHintCode=0,localHintProto=0,glitchUntil=0;
 let holding=false,holdAudio=null,holdWanted=false,pressCur=0,pressWrote=0,pressWritten=0;
-let countWrote=0,finishWrote=0,cardKey='',localDone=false;
+let countWrote=0,finishWrote=0,cardKey='',localDone=false,autoStarted=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function now(){return Date.now()+(+tOff||0);}
 function uid(){return (window.NET&&NET.uid)||'';}
@@ -50,7 +50,7 @@ function mount(container){
 if(root)unmount();
 active=true;mediaKey='';mediaRetries=0;endedLocal=false;stageKey='';lastStatusKey='';
 slots=['','','',''];pos=0;lastSubmit=0;localHintCode=0;localHintProto=0;glitchUntil=0;
-holding=false;pressCur=0;pressWrote=0;pressWritten=0;countWrote=0;finishWrote=0;cardKey='';localDone=false;
+holding=false;pressCur=0;pressWrote=0;pressWritten=0;countWrote=0;finishWrote=0;cardKey='';localDone=false;autoStarted=false;
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 ['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
 root=document.createElement('div');root.id='t10';root.innerHTML=
@@ -160,7 +160,7 @@ if(els.start)els.start.disabled=true;
 write({stage:'intro',startsAt:now()+1200,codeAccepted:false,codeAttempts:0,codeHintLevel:0,
 protocolStep:0,protocolAttempts:0,protocolHintLevel:0,buttonLayout:LAYOUT,
 pressure:0,countdownStart:0,cityStart:0,completed:false,revision:0,completedAt:0})
-.catch(function(){if(els.start)els.start.disabled=false;});
+.catch(function(){autoStarted=false;if(els.start)els.start.disabled=false;});
 }
 function introFinished(){
 if(!cap()||!task||task.stage!=='intro')return;
@@ -383,6 +383,14 @@ else beginPlay();
 function coordinate(){
 if(!task)return;
 const st=task.stage||'wait';
+// Инструкция Вольта включается сразу при входе в задание (решение автора 19.11.2026):
+// «Продолжить» на финальном экране задания 9 ведёт прямо к ролику, лишнего нажатия нет.
+if(st==='wait'){
+if(cap()&&!autoStarted&&!(+task.startsAt||0)){autoStarted=true;startIntro();}
+if(mediaKey)stopMedia();
+stopHold();
+return;
+}
 if(st==='intro'){
 if(mediaKey!=='intro'&&video){endedLocal=false;scheduleMedia(SRC_INTRO,+task.startsAt||0,'intro',introFinished);}
 if(video&&!cap()&&!video.muted)video.muted=true;

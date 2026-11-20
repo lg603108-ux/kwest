@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="task07.css?v=0349a">
 <link rel="stylesheet" href="task08.css?v=0352a">
 <link rel="stylesheet" href="task09.css?v=0352a">
-<link rel="stylesheet" href="task10.css?v=0353a">
+<link rel="stylesheet" href="task10.css?v=0354a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -97,7 +97,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0352a">
+<body data-build="0354a">
 <div id="app">
 
 <header id="topbar">
@@ -248,8 +248,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <button class="sk" data-act="t5a" type="button">⏭ 5: пропустить инструкцию</button>
 <button class="sk" data-act="t6a" type="button">⏭ 6: пропустить инструкцию</button>
 <button class="sk" data-act="t6b" type="button">⏭ 6: танец → сборка</button>
-<!-- Тестовая кнопка перехода к заданию 7 (вместо прежних тестовых переходов к заданиям 5 и 6). -->
-<button class="sk" data-act="j9" type="button">▶ К заданию 9</button>
+<!-- Переход с пролога к последнему экрану задания 9, оттуда «Продолжить» ведёт к инструкции задания 10. -->
+<button class="sk" data-act="j10" type="button">▶ К заданию 10</button>
 <button class="sk" data-act="t8a" type="button">⏭ 8: пропустить инструкцию</button>
 <button class="sk" data-act="t8b" type="button">⏭ 8: запись → ввод кода</button>
 <button class="sk" data-act="t9a" type="button">⏭ 9: пропустить инструкцию</button>
@@ -271,8 +271,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0349a"></script>
 <script src="task08.js?v=0352a"></script>
-<script src="task09.js?v=0352a"></script>
-<script src="task10.js?v=0353a"></script>
+<script src="task09.js?v=0354a"></script>
+<script src="task10.js?v=0354a"></script>
 <script src="app.js?v=0340a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
@@ -741,7 +741,7 @@ if(cap()){
 if(ph==='cinema')on('p1');
 if(ph==='intro')on('p2');
 // Технический переход к заданию 7 из пролога и ранних этапов (только капитан).
-if(ph==='cinema'||ph==='intro'){on('j9');}
+if(ph==='cinema'||ph==='intro'){on('j10');}
 // Переход к заданию 8 делается только из задания 7 — отдельной тестовой кнопки больше нет.
 if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
 if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
@@ -782,13 +782,14 @@ if(a==='t8b'&&cap()){t8ref().update({stage:'code',fullViewed:true,playing:false,
 var t9ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task09');};
 if(a==='t9a'&&cap()){t9ref().update({stage:'charge',startsAt:now+600,charge:0,target:800,trackId:'v09',completedAt:0,completionRevision:0}).catch(err);}
 if(a==='t9b'&&cap()){var rev=+((NET.room.tasks&&NET.room.tasks.task09&&NET.room.tasks.task09.completionRevision)||0)+1;t9ref().update({stage:'done',charge:100,completedAt:now,completionRevision:rev}).catch(err);}
-// Переход с пролога сразу к заданию 9: открываем финальный экран задания 8, оттуда «Продолжить».
-if(a==='j9'&&cap()){
+// Переход с пролога к финальному экрану задания 9: там кнопка «Продолжить» ведёт к инструкции задания 10.
+if(a==='j10'&&cap()){
 silenceAll();
-var r8=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');
-r8.update({stage:'done',codeAccepted:true,fullViewed:true,playing:false,pausedAt:0,startsAt:now,completedAt:now})
-.then(function(){return NET.setPhase('task08',now+600);})
-.catch(function(e){err('Не удалось открыть финальный экран задания 8 (проверьте правила базы): '+(e&&e.message||e));});
+var r9=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task09');
+var rev9=+((NET.room.tasks&&NET.room.tasks.task09&&NET.room.tasks.task09.completionRevision)||0)+1;
+r9.update({stage:'done',charge:100,completedAt:now,completionRevision:rev9})
+.then(function(){return NET.setPhase('task09',now+600);})
+.catch(function(e){err('Не удалось открыть финальный экран задания 9 (проверьте правила базы): '+(e&&e.message||e));});
 }
 // Техническая кнопка перехода к заданию 8 убрана совсем: переход идёт только из задания 7.
 });
