@@ -10,8 +10,10 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0338a">
-<link rel="stylesheet" href="task08.css?v=0344a">
+<link rel="stylesheet" href="task07.css?v=0349a">
+<link rel="stylesheet" href="task08.css?v=0352a">
+<link rel="stylesheet" href="task09.css?v=0352a">
+<link rel="stylesheet" href="task10.css?v=0363a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -141,7 +143,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0360b">
+<body data-build="0364a">
 <div id="app">
 
 
@@ -254,6 +256,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="task06-mount"></div>
 <div id="task07-mount"></div>
 <div id="task08-mount"></div>
+<div id="task09-mount"></div>
+<div id="task10-mount"></div>
 
 
 </div>
@@ -262,20 +266,22 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0360a"></script>
-<script src="task03.js?v=0360a"></script>
-<script src="task04.js?v=0360b"></script>
-<script src="task05.js?v=0360b"></script>
-<script src="task06.js?v=0360a"></script>
+<script src="task02.js?v=0364a"></script>
+<script src="task03.js?v=0364a"></script>
+<script src="task04.js?v=0364a"></script>
+<script src="task05.js?v=0364a"></script>
+<script src="task06.js?v=0364a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0348a"></script>
-<script src="task08.js?v=0360a"></script>
-<script src="app.js?v=0360a"></script>
+<script src="task07.js?v=0349a"></script>
+<script src="task08.js?v=0364a"></script>
+<script src="task09.js?v=0354a"></script>
+<script src="task10.js?v=0364a"></script>
+<script src="app.js?v=0364a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false;
+var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false,mounted09=false,mounted10=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -356,6 +362,8 @@ function t7handed(u,rnd){try{return localStorage.getItem(t7handKey(u,rnd))==='1'
 function t7markHanded(u,rnd){try{localStorage.setItem(t7handKey(u,rnd),'1');}catch(e){}}
 function t7clearHanded(){try{var p='t7hand:'+((NET.room&&NET.room.code)||'')+':';
   for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf(p)===0)localStorage.removeItem(k);}}catch(e){}}
+// панель пропусков живёт в отдельной области видимости и берёт функцию отсюда через window
+try{window.__t7clearHanded=t7clearHanded;}catch(e){}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
   var rnd=(t7node().round||0);
   var pool=list.filter(function(e){return !t7handed(e[0],rnd);});
@@ -514,6 +522,65 @@ mounted08=false;
 if(window.Task08){try{Task08.unmount();}catch(e){}}
 var el8b=document.getElementById('task08-mount');
 if(el8b){el8b.classList.remove('active');el8b.innerHTML='';}
+}
+if(r.state.phase==='task09'&&!mounted09){
+var el9=document.getElementById('task09-mount');
+if(!el9){toastMsg('Контейнер задания 9 не найден');return;}
+if(!window.Task09){toastMsg('Модуль задания 9 не загружен (task09.js)');return;}
+mounted09=true;el9.classList.add('active');document.body.dataset.screen='task09';
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+var mv9=document.getElementById('movie');if(mv9){try{mv9.pause();}catch(e){}}
+try{Task09.mount(el9);toastMsg('Задание 9 запущено');}
+catch(e){mounted09=false;el9.classList.remove('active');toastMsg('Ошибка монтажа задания 9: '+(e&&e.message||e));}
+}
+if(r.state.phase!=='task09'&&mounted09){
+mounted09=false;
+if(window.Task09){try{Task09.unmount();}catch(e){}}
+var el9b=document.getElementById('task09-mount');
+if(el9b){el9b.classList.remove('active');el9b.innerHTML='';}
+}
+// Задание 10 «Закрытие портала»: отдельный модуль task10.js, фаза комнаты task10.
+// Если файл модуля не скачался (слабый канал, запомненная ошибка загрузки), страница
+// докачивает его сама и возвращает игрока туда, где вся команда: стадия берётся из базы
+// при монтировании, поэтому после перезагрузки экран совпадает с остальными.
+var t10tries=0;
+function t10loading(note){
+var el=document.getElementById('task10-mount');
+if(!el)return;
+el.classList.add('active');document.body.dataset.screen='task10';
+el.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#04100f;color:#9fd8d8;text-align:center;padding:24px;box-sizing:border-box">'+
+'<p style="margin:0;color:#30e5dc;font-size:13px;letter-spacing:1.2px;font-weight:700">ЗАДАНИЕ 10</p>'+
+'<p style="margin:0;font-size:16px">'+note+'</p></div>';
+}
+function t10load(){
+if(window.Task10){setTimeout(tryMount,60);return;}
+if(t10tries>=3)return;
+t10tries++;
+var s=document.createElement('script');
+s.src='task10.js?r='+Date.now();
+s.onload=function(){setTimeout(tryMount,60);};
+s.onerror=function(){setTimeout(t10load,1200);};
+document.body.appendChild(s);
+}
+if(r.state.phase==='task10'&&!mounted10){
+var el10=document.getElementById('task10-mount');
+if(!el10){toastMsg('Контейнер задания 10 не найден');return;}
+if(!window.Task10){
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
+t10loading(t10tries>=3?'Не удалось загрузить задание. Обновите страницу.':'Загружаем задание…');
+t10load();return;
+}
+mounted10=true;el10.classList.add('active');document.body.dataset.screen='task10';
+try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
+var mv10=document.getElementById('movie');if(mv10){try{mv10.pause();}catch(e){}}
+try{Task10.mount(el10);toastMsg('Задание 10 запущено');}
+catch(e){mounted10=false;el10.classList.remove('active');toastMsg('Ошибка монтажа задания 10: '+(e&&e.message||e));}
+}
+if(r.state.phase!=='task10'){
+if(mounted10){mounted10=false;if(window.Task10){try{Task10.unmount();}catch(e){}}}
+var el10b=document.getElementById('task10-mount');
+if(el10b&&el10b.classList.contains('active')){el10b.classList.remove('active');el10b.innerHTML='';}
 }
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
@@ -692,7 +759,6 @@ var wasCap=null;
 setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();wireTask07();tryMount();},500);
 })();
 </script>
-
 <script>
 // ПАТЧ 2.3: QR по центру везде, компактные плашки боя, бой стартует после доигрывания аудио, звук говорящих видео только у капитана, тихий сторож видео.
 (function(){
@@ -736,7 +802,7 @@ function refreshWidget(){
 var code=roomCode();
 var scr=document.body.dataset.screen||'';
 // В задании 8 часы и сектор записи стоят в правом верхнем углу кадра (ТЗ): виджет там закрываем.
-var blocked=(scr==='task08');
+var blocked=(scr==='task08'||scr==='task09');
 widget.style.display=(code&&!blocked)?'flex':'none';
 // В задании 2 QR держим по центру вверху: справа он перекрывал цифры.
 var center=(scr==='battle')||(scr==='task02');
