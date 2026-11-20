@@ -150,7 +150,7 @@ window.T10Arcs=T10Arcs;
 })();
 /* ===== конец разрядов ===== */
 window.Task10=(function(){
-const BUILD='0362a';
+const BUILD='0363a';
 let arcs=null;                                              // живые разряды аномалии (T10Arcs)
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
@@ -235,12 +235,9 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<p class="t10-phint" id="t10-phint" hidden></p></div></div></section>'+
 '<section class="t10-shield" id="t10-shield" hidden>'+
 '<div class="t10-waves" id="t10-waves"></div>'+
-'<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
-'<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
+'<p class="t10-plate t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ</p>'+
 '<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.png?v=0362a" alt=""></button>'+
-'<p class="t10-shieldstate" id="t10-shieldstate">Щит не активен</p>'+
-'<p class="t10-call" id="t10-call" hidden>ВСЕ К ЩИТАМ!</p>'+
-'<p class="t10-press2">ДАВЛЕНИЕ АНОМАЛИИ: <b id="t10-pressure2">0%</b></p></section>'+
+'<p class="t10-plate t10-press2"><span>ДАВЛЕНИЕ АНОМАЛИИ</span> <b id="t10-pressure2">0%</b></p></section>'+
 '<section class="t10-count" id="t10-count" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫВАЕТСЯ</p>'+
 '<p class="t10-countnum" id="t10-countnum">3</p><p class="t10-closed">ПОРТАЛ ЗАКРЫТ: 100%</p>'+
 '<p class="t10-note">Держите щиты!</p></section>'+
@@ -266,7 +263,6 @@ pcount:root.querySelector('#t10-pcount'),pcheck:root.querySelector('#t10-pcheck'
 hint:root.querySelector('#t10-hint'),hintText:root.querySelector('#t10-hinttext'),
 phint:root.querySelector('#t10-phint'),shield:root.querySelector('#t10-shield'),
 shieldup:root.querySelector('#t10-shieldup'),shieldbtn:root.querySelector('#t10-shieldbtn'),
-shieldstate:root.querySelector('#t10-shieldstate'),call:root.querySelector('#t10-call'),
 press2:root.querySelector('#t10-pressure2'),count:root.querySelector('#t10-count'),
 countnum:root.querySelector('#t10-countnum'),done:root.querySelector('#t10-done'),
 names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),
@@ -437,7 +433,6 @@ if(st!=='protocol'&&st!=='countdown')return;
 if(e){try{els.shieldbtn.setPointerCapture(e.pointerId);}catch(_){}}
 if(holding)return;
 holding=true;
-if(els.shieldstate)els.shieldstate.textContent='ЩИТ АКТИВЕН';
 if(els.shield)els.shield.classList.add('t10-on');
 sendShield(true);
 if(holdHb)clearInterval(holdHb);
@@ -450,7 +445,6 @@ releaseShield();
 function releaseShield(){
 holding=false;
 if(holdHb){clearInterval(holdHb);holdHb=null;}
-if(els.shieldstate)els.shieldstate.textContent='Щит не активен';
 if(els.shield)els.shield.classList.remove('t10-on');
 sendShield(false);
 }
@@ -631,11 +625,11 @@ const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
 if(els.shield)els.shield.hidden=!shieldOn;
 const codePhase=(st==='code');
 if(els.shieldbtn)els.shieldbtn.disabled=codePhase;
-if(els.shieldup)els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕРЖИВАЙ ЩИТ!';
-if(codePhase){
-if(els.shield)els.shield.classList.remove('t10-on');
-if(els.shieldstate)els.shieldstate.textContent='Щиты понадобятся сразу после этого';
-}else if(!holding&&els.shieldstate){els.shieldstate.textContent='Щит не активен';}
+if(els.shieldup){
+els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕРЖИВАЙ ЩИТ';
+els.shieldup.hidden=(!codePhase&&holding);   // плашка видна в начале и когда щит отпущен
+}
+if(codePhase&&els.shield)els.shield.classList.remove('t10-on');
 if(els.count)els.count.hidden=st!=='countdown';
 // при верном протоколе волна отступает, затем светлое затухание и финальный город
 if(els.shield)els.shield.classList.toggle('t10-hush',st==='countdown'||st==='city');
@@ -702,10 +696,6 @@ const lvl=Math.max(localHintProto,+task.protocolHintLevel||0);
 phint=HINT_PROTO[lvl]||'';
 }
 if(els.phint){els.phint.hidden=!phint;els.phint.textContent=phint;}
-// «Все к щитам!»
-const share=shieldShare();
-const weak=(st==='protocol'||st==='countdown')&&share<0.5&&pressureTarget()>40;
-if(els.call)els.call.hidden=!weak;
 // отсчёт
 if(st==='countdown'&&els.countnum){
 const left=Math.ceil(((+task.countdownStart||0)-now())/1000);

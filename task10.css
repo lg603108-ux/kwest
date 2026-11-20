@@ -72,21 +72,20 @@ font-size:13.5px;line-height:1.3}
 #t10 .t10-shield{background:#02100f;gap:16px;overflow:hidden}
 #t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none}
 #t10 .t10-shield>*:not(.t10-waves){position:relative;z-index:1}
-#t10 .t10-shieldup{font-size:clamp(20px,3.6vh,28px);font-weight:800;letter-spacing:1.2px;color:#eaffff;margin:0}
+/* подписи только на чёрных плашках бирюзовым, как просил автор */
+#t10 .t10-plate{margin:0;padding:8px 18px;border-radius:10px;background:#000;
+border:1px solid rgba(48,229,220,.35);color:#30e5dc;font-size:16px;font-weight:800;
+letter-spacing:1.1px;text-align:center;line-height:1.2}
+#t10 .t10-shieldup{font-size:clamp(18px,3.2vh,24px)}
 #t10 .t10-shieldbtn{width:min(58vw,min(34vh,240px));aspect-ratio:1/1;border:0;border-radius:50%;padding:0;background:none;
+outline:none;-webkit-tap-highlight-color:transparent;-webkit-focus-ring-color:transparent;
 cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 display:block;overflow:visible;box-shadow:0 14px 40px rgba(0,0,0,.6)}
 #t10 .t10-shieldbtn img{width:100%;height:100%;display:block;border-radius:50%;object-fit:cover}
 #t10 .t10-shieldbtn:disabled{opacity:.5;cursor:default;box-shadow:none}
 #t10 .t10-shield.t10-on .t10-shieldbtn{box-shadow:0 0 0 7px rgba(48,229,220,.8),0 0 46px rgba(48,229,220,.8)}
-#t10 .t10-shieldstate{margin:0;font-size:15px;font-weight:700;color:#9fd8d8}
-#t10 .t10-shield.t10-on .t10-shieldstate{color:#30e5dc}
-#t10 .t10-call{margin:0;padding:8px 16px;border-radius:12px;background:rgba(120,20,10,.92);
-border:1px solid rgba(255,140,120,.6);color:#ffd0c4;font-size:16px;font-weight:800;letter-spacing:.6px;
-animation:t10pulse 1.1s ease-in-out infinite}
-@keyframes t10pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-#t10 .t10-press2{margin:0;font-size:13.5px;color:#9fd8d8;letter-spacing:.5px}
-#t10 .t10-press2 b{color:#ffd166;font-size:16px}
+#t10 .t10-press2 span{color:#7fd6d0;font-size:12px;letter-spacing:.8px}
+#t10 .t10-press2 b{color:#30e5dc;font-size:17px}
 /* ——— отсчёт ——— */
 #t10 .t10-count{background:radial-gradient(800px 500px at 50% 45%,rgba(24,96,94,.95),rgba(3,12,12,.99) 78%)}
 #t10 .t10-closed{margin:0;font-size:clamp(15px,3vh,20px);font-weight:800;letter-spacing:1.4px;color:#ffd166;
