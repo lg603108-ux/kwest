@@ -173,15 +173,15 @@ const g=task.guess,v=task.verdict;
 const activeWrong=task.stage==='play'&&!!g&&!!v&&!v.correct&&v.round===task.round&&v.guessId===g.id;
 const key=activeWrong?task.round+':'+g.id+':'+v.guessId:'';
 if(!activeWrong){
-if(wrongKey){clearTimeout(wrongTimer);wrongTimer=null;els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(b){b.classList.remove('t3-wrong');});wrongKey='';}
+if(wrongKey){clearTimeout(wrongTimer);wrongTimer=null;els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(b){b.classList.remove('t3-wrong');});var gr0=els.judge.querySelector('.t3-emotions');if(gr0)gr0.classList.remove('t3-reveal');wrongKey='';}
 return;
 }
 if(wrongKey===key)return;
 const b=els.judge.querySelector('.t3-emotion[data-emotion="'+g.emotionId+'"]');if(!b)return;
 clearTimeout(wrongTimer);
 els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(x){x.classList.remove('t3-wrong');});
-wrongKey=key;b.classList.add('t3-wrong');
-wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');wrongTimer=null;},2600);
+wrongKey=key;b.classList.add('t3-wrong');var grid=els.judge.querySelector('.t3-emotions');if(grid)grid.classList.add('t3-reveal');
+wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');var gr=els.judge.querySelector('.t3-emotions');if(gr)gr.classList.remove('t3-reveal');wrongTimer=null;},4000);
 }
 function stopMedia(){clearWatchdog();if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();hideMediaBtn();}
 // Сторожевой таймер: продолжение не должно зависеть от video.ended.

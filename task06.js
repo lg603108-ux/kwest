@@ -66,7 +66,7 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t6';root.innerHTML=
 '<video class="t6-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
 '<video class="t6-video" playsinline preload="auto"></video>'+
-'<section class="t6-screen t6-wait"><h1>Танец Лума</h1><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t6-note">Видео показывается на всех устройствах. Звук инструкции слышит только капитан.</p></section>'+
+'<section class="t6-screen t6-wait"><h1>Танец Лума</h1><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<div class="t6-controls" id="t6-controls" hidden><button id="t6-toggle" type="button">⏸ Пауза</button><button id="t6-restart" type="button">↺ В начало</button></div>'+
 '<button class="t6-replay" id="t6-replay" type="button" hidden>↺ Повторить танец</button>'+
 '<div class="t6-order" id="t6-order" hidden>'+

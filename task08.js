@@ -48,10 +48,9 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<section class="t8-screen t8-wait"><h1>Место искажения</h1>'+
 '<button id="t8-start" class="t8-primary" type="button">▶ Включить инструкцию</button>'+
 '<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
-'<section class="t8-screen t8-ready" id="t8-ready" hidden><p class="t8-eyebrow">ИНСТРУКЦИЯ ПРОСМОТРЕНА</p><h1>Мы у места первого прорыва</h1>'+
-'<p class="t8-note">Здесь осталась запись камер. Смотрите её вместе: в записи четыре цифры кода и плакат на стене с протоколом запуска — его нужно запомнить для финала.</p>'+
+'<section class="t8-screen t8-ready" id="t8-ready" hidden>'+
 '<button id="t8-show" class="t8-primary" type="button">▶ Показать запись команде</button>'+
-'<p class="t8-note" id="t8-readynote">Ждём капитана: он включит запись.</p></section>'+
+'<p class="t8-note" id="t8-readynote" hidden>Ждём капитана: он включит запись.</p></section>'+
 '<div class="t8-controls" id="t8-controls" hidden><button id="t8-toggle" type="button">⏸ Пауза</button><button id="t8-restart" type="button">↺ В начало</button></div>'+
 '<button class="t8-replay" id="t8-request" type="button" hidden>↺ Попросить повтор</button>'+
 '<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p></section>'+

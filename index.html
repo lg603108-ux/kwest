@@ -44,6 +44,23 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #t4 .t4-res-names,#t5 .t5-res-phrase,#t6 .t6-res-word{color:#25e9e9!important;text-transform:uppercase!important;font-weight:800!important;letter-spacing:.06em!important;font-size:clamp(26px,4.6vw,62px)!important;text-shadow:0 0 24px rgba(37,233,233,.55);line-height:1.1!important;margin:0!important}
 #t6 .t6-res-word{letter-spacing:.14em!important}
 #t4 .t4-res-charge{display:inline-block;margin:18px 0 0!important;padding:8px 22px;border-radius:10px;background:linear-gradient(110deg,#25c8bd,#30e5dc)!important;color:#fff!important;font-weight:700!important;font-size:clamp(15px,1.9vw,22px)!important;letter-spacing:.06em!important;text-transform:uppercase;box-shadow:0 0 20px rgba(37,233,233,.4)}
+/* Задание 4: капсула в центре, рядом столбиком заряд */
+#t4 .t4-done-main{display:flex;align-items:center;justify-content:center;gap:clamp(12px,2vw,28px);width:100%}
+#t4 .t4-done .t4-capsule{margin:0!important;width:min(46vw,190px)}
+#t4 .t4-done .t4-charge{position:static!important;left:auto!important;top:auto!important;transform:none!important;display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0!important;text-align:left}
+#t4 .t4-done .t4-charge span{font-size:clamp(12px,1.6vw,18px);letter-spacing:.16em;color:#9fd8d8;font-weight:700}
+#t4 .t4-done .t4-charge strong{font-size:clamp(24px,3.4vw,44px);letter-spacing:.04em;color:#30e5dc;font-weight:800;line-height:1}
+/* Задание 3: при ошибке подсказки на всех кнопках судьи */
+#t3 .t3-emotions.t3-reveal small{display:block;color:#9fd8d8;margin-top:4px;font-size:13px}
+/* Фон-референс на экранах с малым количеством текста */
+#t2 .t2-start,#t3 .t3-wait,#t3 .t3-done,#t3 #t3-actor,#t3 #t3-judge,
+#t4 .t4-wait,#t4 .t4-screen.t4-result,#t4 .t4-done,
+#t5 .t5-wait,#t5 .t5-done,#t5 .t5-result,
+#t6 .t6-wait,#t6 .t6-done,#t6 .t6-result,
+#t8 .t8-wait,#t8 .t8-ready,#t8 .t8-done,#t8 .t8-code,
+#t9 .t9-screen.t9-wait,#t9 .t9-done,
+#t10 .t10-screen.t10-wait,#t10 .t10-screen.t10-done
+{background:#000 url('assets/bg_answer.jpg') center/cover no-repeat!important}
 /* Экран завершения обороны: только итог и кнопка продолжения */
 #result .res-final{max-width:520px;text-align:center;padding:26px 24px}
 #result .res-title{margin:0 0 6px;font-size:clamp(22px,3.2vw,40px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
@@ -143,7 +160,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0369a">
+<body data-build="0372a">
 <div id="app">
 
 
@@ -217,7 +234,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <h2 class="res-title">ОБОРОНА ЗАВЕРШЕНА</h2>
 <p class="res-name" id="result-name">Игрок</p>
 <div class="res-line"><span>Общий счёт</span><strong id="result-team">0</strong></div>
-<div class="res-line"><span>Уничтожено</span><strong id="result-kills">0</strong></div>
+<div class="res-line"><span>Уничтожено игроком</span><strong id="result-kills">0</strong></div>
 <div class="hidden"><span id="result-score">0</span><span id="result-stuns">0</span></div>
 <div class="row res-actions" id="res-actions"></div>
 </div>
@@ -266,18 +283,18 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0364a"></script>
-<script src="task03.js?v=0364a"></script>
-<script src="task04.js?v=0364a"></script>
-<script src="task05.js?v=0364a"></script>
-<script src="task06.js?v=0364a"></script>
+<script src="task02.js?v=0372a"></script>
+<script src="task03.js?v=0372a"></script>
+<script src="task04.js?v=0372a"></script>
+<script src="task05.js?v=0372a"></script>
+<script src="task06.js?v=0372a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0349a"></script>
-<script src="task08.js?v=0364a"></script>
+<script src="task08.js?v=0372a"></script>
 <script src="task09.js?v=0354a"></script>
 <script src="task10.js?v=0364a"></script>
-<script src="app.js?v=0364a"></script>
+<script src="app.js?v=0372a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -970,7 +987,7 @@ function jump(t,which){
  var p=Promise.resolve();
  if(node){
   if(which==='start'){
-   var u={stage:'wait'};if(node==='task07'){u.startsAt=Date.now()+1200;u.round=0;}
+   var u={stage:node==='task07'?'intro':'wait'};if(node==='task07'){u.startsAt=Date.now()+1200;u.round=0;}
    p=p.then(function(){return setTask(node,u);});
   }else{
    var u2={stage:'done'};
@@ -979,10 +996,40 @@ function jump(t,which){
   }
  }
  p.then(function(){return NET.setPhase(phase,Date.now()+800);})
- .then(function(){toast('Открыто: '+t[0]+'. '+t[1]+' — '+(which==='start'?'начало':'конец'));})
+ .then(function(){
+   if(phase==='result'){
+     document.querySelectorAll('.screen').forEach(function(el){el.classList.remove('active');});
+     var rs=document.getElementById('result');if(rs)rs.classList.add('active');
+     document.body.dataset.screen='result';
+   }
+   toast('Открыто: '+t[0]+'. '+t[1]+' — '+(which==='start'?'начало':'конец'));
+ })
  .catch(function(e){toast('Не удалось открыть: '+(e&&e.message||e));});
 }
 
+})();
+</script>
+
+<script>
+// Инструкция задания 7 весит 23 МБ — начинаем качать её уже в задании 6,
+// чтобы к моменту перехода ролик был готов.
+(function(){
+var warmed=false;
+setInterval(function(){
+ try{
+  if(warmed)return;
+  var r=window.NET&&NET.room;if(!r||!r.state)return;
+  var ph=r.state.phase;
+  if(ph!=='task06'&&ph!=='task07')return;
+  warmed=true;
+  var v=document.createElement('video');
+  v.src='assets/v07_intro.mp4';v.preload='auto';v.muted=true;v.playsInline=true;
+  v.setAttribute('aria-hidden','true');
+  v.style.cssText='position:absolute;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  (document.getElementById('app')||document.body).appendChild(v);
+  try{v.load();}catch(e){}
+ }catch(e){}
+},2000);
 })();
 </script>
 </body>
