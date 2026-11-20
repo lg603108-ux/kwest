@@ -8,12 +8,12 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0360a';
+const BUILD='0361a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
 const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3',SFX_KOD='v10_kod.mp3';
-const SFX_ERR='sfx_glitch.mp3',SFX_WIN='sfx_crystal_ready.mp3',SFX_FINAL='v09_finish.mp3';
+const SFX_ERR='sfx_ui_error.mp3',SFX_WIN='sfx_crystal_ready.mp3';   // как в заданиях 4 и 8
 const SRC_MUSIC='music_defense_loop.mp3';
 const SFX_HINT_CODE='v10_hint_code.mp3',SFX_HINT_PROTO='v10_hint_protocol.mp3',SFX_HOLD='v10_hold.mp3';
 // Визуальный порядок кнопок намеренно НЕ совпадает с правильной последовательностью.
@@ -581,7 +581,7 @@ if(st!=='protocol')protoDraft=[];
 if(st!==stageKey){
 if(c&&st==='code')playSfx(SFX_KOD,1);
 if(c&&st==='protocol')playSfx(SFX_HOLD,1);
-if(st==='countdown'){stopMusic();playSfx(SFX_FINAL,.85);}
+if(st==='countdown')stopMusic();
 stageKey=st;
 }
 // Постоянные подписи снизу не нужны: всё, что игрок должен делать, написано на самом экране.
