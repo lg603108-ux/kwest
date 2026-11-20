@@ -143,7 +143,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0366a">
+<body data-build="0367a">
 <div id="app">
 
 
@@ -927,7 +927,7 @@ var LIST=[
 ['10','Закрытие портала','task10','task10','task10']
 ];
 var box=document.createElement('div');box.id='jump-panel';
-box.style.cssText='position:fixed;right:10px;bottom:10px;z-index:520;display:none;flex-direction:column;align-items:flex-end;gap:6px;font-family:inherit';
+box.style.cssText='position:fixed;right:10px;bottom:10px;z-index:9000;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-family:inherit';
 var list=document.createElement('div');
 list.style.cssText='display:none;flex-direction:column;gap:4px;max-height:64vh;overflow:auto;background:rgba(8,22,26,.94);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:8px;box-shadow:0 10px 30px #0008';
 LIST.forEach(function(t){
@@ -945,15 +945,15 @@ LIST.forEach(function(t){
  });
  list.appendChild(row);
 });
-var toggle=document.createElement('button');toggle.type='button';toggle.id='jump-toggle';toggle.textContent='⏭';
-toggle.style.cssText='width:40px;height:40px;min-height:0;padding:0;border-radius:50%;border:1px solid rgba(190,245,245,.45);background:rgba(10,30,34,.85);color:#7fe9e3;font-size:16px;cursor:pointer;opacity:.75';
+var toggle=document.createElement('button');toggle.type='button';toggle.id='jump-toggle';toggle.textContent='⏭';toggle.title='Просмотр заданий';
+toggle.style.cssText='width:46px;height:46px;min-height:0;padding:0;border-radius:50%;border:2px solid #30e5dc;background:rgba(8,26,30,.92);color:#30e5dc;font-size:18px;cursor:pointer;opacity:.95;box-shadow:0 0 14px rgba(48,229,220,.5)';
 toggle.onclick=function(){list.style.display=(list.style.display==='none'?'flex':'none');};
 box.appendChild(list);box.appendChild(toggle);document.body.appendChild(box);
 function setTask(node,data){
  return firebase.database().ref('rooms/'+NET.room.code+'/tasks/'+node).update(data);
 }
 function jump(t,which){
- if(!cap()){toast('Просмотр заданий доступен капитану в комнате.');return;}
+ if(!cap()){toast(window.NET&&NET.inRoom()?'Открывать задания может капитан комнаты.':'Сначала создайте комнату — тогда откроются задания.');return;}
  var phase=t[which==='start'?2:3],node=t[4];
  var p=Promise.resolve();
  if(node){
@@ -970,7 +970,7 @@ function jump(t,which){
  .then(function(){toast('Открыто: '+t[0]+'. '+t[1]+' — '+(which==='start'?'начало':'конец'));})
  .catch(function(e){toast('Не удалось открыть: '+(e&&e.message||e));});
 }
-setInterval(function(){box.style.display=cap()?'flex':'none';},800);
+
 })();
 </script>
 </body>
