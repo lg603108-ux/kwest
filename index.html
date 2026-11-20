@@ -143,7 +143,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0364a">
+<body data-build="0366a">
 <div id="app">
 
 
@@ -905,6 +905,72 @@ if(!cap()||!inRoom()||document.body.dataset.screen!=='lobby')return;
 var k=roomCode();if(!k||lobbyKey===k)return;lobbyKey=k;playVoice('volt_lobby.mp3');
 }
 setInterval(function(){refreshWidget();prefillRoom();handleMute();handleWaitingLabels();handleBrief();handleLobbyVoice();handleTask2Voice();watchdog();},700);
+})();
+</script>
+
+<script>
+// ===== Просмотр заданий: капитан может открыть начало или конец любого задания =====
+(function(){
+function toast(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__jt);window.__jt=setTimeout(function(){t.style.display='none';},4000);}
+function cap(){try{return !!(window.NET&&NET.inRoom()&&NET.isCaptain()&&NET.room&&NET.room.code);}catch(e){return false;}}
+// [номер, подпись, фаза начала, фаза конца, узел задания (или '')]
+var LIST=[
+['1','Оборона','brief','result',''],
+['2','Кристальный шифр','task02','task02','task02'],
+['3','Чувства Лума','task03','task03','task03'],
+['4','Химеры','task04','task04','task04'],
+['5','Голос аномалии','task05','task05','task05'],
+['6','Танец Лума','task06','task06','task06'],
+['7','Прорыв к лаборатории','task07','task07','task07'],
+['8','Место искажения','task08','task08','task08'],
+['9','Зарядка Стабилизатора','task09','task09','task09'],
+['10','Закрытие портала','task10','task10','task10']
+];
+var box=document.createElement('div');box.id='jump-panel';
+box.style.cssText='position:fixed;right:10px;bottom:10px;z-index:520;display:none;flex-direction:column;align-items:flex-end;gap:6px;font-family:inherit';
+var list=document.createElement('div');
+list.style.cssText='display:none;flex-direction:column;gap:4px;max-height:64vh;overflow:auto;background:rgba(8,22,26,.94);border:1px solid rgba(190,245,245,.35);border-radius:12px;padding:8px;box-shadow:0 10px 30px #0008';
+LIST.forEach(function(t){
+ var row=document.createElement('div');
+ row.style.cssText='display:flex;align-items:center;gap:6px;white-space:nowrap';
+ var name=document.createElement('span');
+ name.textContent=t[0]+'. '+t[1];
+ name.style.cssText='font-size:12px;color:#cdeceb;min-width:150px';
+ row.appendChild(name);
+ [['начало','start'],['конец','end']].forEach(function(a){
+   var b=document.createElement('button');b.type='button';b.textContent=a[0];
+   b.style.cssText='font-size:12px;min-height:28px;padding:2px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.4);background:#123039;color:#fff;cursor:pointer';
+   b.onclick=function(){jump(t, a[1]);};
+   row.appendChild(b);
+ });
+ list.appendChild(row);
+});
+var toggle=document.createElement('button');toggle.type='button';toggle.id='jump-toggle';toggle.textContent='⏭';
+toggle.style.cssText='width:40px;height:40px;min-height:0;padding:0;border-radius:50%;border:1px solid rgba(190,245,245,.45);background:rgba(10,30,34,.85);color:#7fe9e3;font-size:16px;cursor:pointer;opacity:.75';
+toggle.onclick=function(){list.style.display=(list.style.display==='none'?'flex':'none');};
+box.appendChild(list);box.appendChild(toggle);document.body.appendChild(box);
+function setTask(node,data){
+ return firebase.database().ref('rooms/'+NET.room.code+'/tasks/'+node).update(data);
+}
+function jump(t,which){
+ if(!cap()){toast('Просмотр заданий доступен капитану в комнате.');return;}
+ var phase=t[which==='start'?2:3],node=t[4];
+ var p=Promise.resolve();
+ if(node){
+  if(which==='start'){
+   var u={stage:'wait'};if(node==='task07'){u.startsAt=Date.now()+1200;u.round=0;}
+   p=p.then(function(){return setTask(node,u);});
+  }else{
+   var u2={stage:'done'};
+   if(node==='task07'){u2.result={energy:100,integrity:100,passed:0,failed:0,at:Date.now()};}
+   p=p.then(function(){return setTask(node,u2);});
+  }
+ }
+ p.then(function(){return NET.setPhase(phase,Date.now()+800);})
+ .then(function(){toast('Открыто: '+t[0]+'. '+t[1]+' — '+(which==='start'?'начало':'конец'));})
+ .catch(function(e){toast('Не удалось открыть: '+(e&&e.message||e));});
+}
+setInterval(function(){box.style.display=cap()?'flex':'none';},800);
 })();
 </script>
 </body>
