@@ -8,18 +8,20 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0355a';
+const BUILD='0356a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
 const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3',SFX_KOD='v10_kod.mp3';
 const SFX_HINT_CODE='v10_hint_code.mp3',SFX_HINT_PROTO='v10_hint_protocol.mp3',SFX_HOLD='v10_hold.mp3';
 // Визуальный порядок кнопок намеренно НЕ совпадает с правильной последовательностью.
-const BTN=[{id:'core',label:'ЯДРО',sym:'◎',cls:'t10-red'},
-{id:'stabilizer',label:'СТАБИЛИЗАТОР',sym:'▮',cls:'t10-blue'},
-{id:'dome',label:'КУПОЛ',sym:'⌂',cls:'t10-yellow'}];
-const LAYOUT='core-stabilizer-dome';
-const ORDER=[1,2,0];                                        // Стабилизатор → Купол → Ядро
+// Значки и круглые кнопки — из пульта в ролике задания 10, порядок намеренно неверный:
+// слева направо Купол, Ядро, Стабилизатор. Правильно: Стабилизатор → Купол → Ядро.
+const BTN=[{id:'dome',label:'КУПОЛ',img:'assets/t10_sym_dome.jpg?v=0356a',cls:'t10-yellow'},
+{id:'core',label:'ЯДРО',img:'assets/t10_sym_core.jpg?v=0356a',cls:'t10-red'},
+{id:'stabilizer',label:'СТАБИЛИЗАТОР',img:'assets/t10_sym_stab.jpg?v=0356a',cls:'t10-blue'}];
+const LAYOUT='dome-core-stabilizer';
+const ORDER=[2,0,1];                                        // Стабилизатор → Купол → Ядро
 const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
 const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
 const COUNT_MS=3000;        // общий отсчёт 3–2–1
@@ -55,7 +57,7 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 ['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
 root=document.createElement('div');root.id='t10';root.innerHTML=
 '<video class="t10-video" playsinline preload="auto"></video>'+
-'<div class="t10-wave" id="t10-wave" hidden><i></i><i></i><i></i></div>'+
+
 '<section class="t10-screen t10-wait" id="t10-wait"><p class="t10-eyebrow">ЗАДАНИЕ 10</p><h1>Закрытие портала</h1>'+
 '<p class="t10-note">Мы у Ядра. Сейчас Вольт объяснит, что делать: капитан вводит код, команда держит щиты.</p>'+
 '<button id="t10-start" class="t10-primary" type="button">▶ Включить инструкцию</button>'+
@@ -73,15 +75,18 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<div class="t10-btns" id="t10-btns"></div></div>'+
 '<p class="t10-hint" id="t10-hint" hidden><b id="t10-hintlabel">ПОДСКАЗКА</b><span id="t10-hinttext"></span></p>'+
 '<p class="t10-call" id="t10-call2" hidden>ВСЕ К ЩИТАМ!</p></section>'+
-'<section class="t10-shield" id="t10-shield" hidden><div class="t10-shieldwave"><i></i><i></i><i></i></div>'+
+'<section class="t10-shield" id="t10-shield" hidden>'+
+'<div class="t10-waves" id="t10-waves"><i></i><i></i><i></i></div>'+
 '<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
-'<p class="t10-shieldup" id="t10-shieldup">ДЕРЖИТЕ ЩИТ</p>'+
-'<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><span>ЩИТ</span></button>'+
+'<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
+'<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.jpg?v=0356a" alt=""></button>'+
 '<p class="t10-shieldstate" id="t10-shieldstate">Щит не активен</p>'+
 '<p class="t10-call" id="t10-call" hidden>ВСЕ К ЩИТАМ!</p>'+
 '<p class="t10-press2">ДАВЛЕНИЕ АНОМАЛИИ: <b id="t10-pressure2">0%</b></p></section>'+
 '<section class="t10-count" id="t10-count" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫВАЕТСЯ</p>'+
-'<p class="t10-countnum" id="t10-countnum">3</p><p class="t10-note">Держите щиты!</p></section>'+
+'<p class="t10-countnum" id="t10-countnum">3</p><p class="t10-closed">ПОРТАЛ ЗАКРЫТ: 100%</p>'+
+'<p class="t10-note">Держите щиты!</p></section>'+
+'<div class="t10-flash" id="t10-flash"></div>'+
 '<section class="t10-screen t10-done" id="t10-done" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫТ</p><h1>ГОРОД СПАСЁН</h1>'+
 '<div class="t10-card"><p class="t10-cardlabel">КОМАНДА</p><p class="t10-names" id="t10-names"></p>'+
 '<p class="t10-row"><span>ОБЩЕЕ ВРЕМЯ</span><b id="t10-time">—</b></p>'+
@@ -94,7 +99,7 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 container.appendChild(root);
 video=root.querySelector('.t10-video');
 els={wait:root.querySelector('#t10-wait'),start:root.querySelector('#t10-start'),waitnote:root.querySelector('#t10-waitnote'),
-wave:root.querySelector('#t10-wave'),panel:root.querySelector('#t10-panel'),
+waves:root.querySelector('#t10-waves'),flash:root.querySelector('#t10-flash'),panel:root.querySelector('#t10-panel'),
 press:root.querySelector('#t10-pressure'),pressfill:root.querySelector('#t10-pressurefill'),
 codebox:root.querySelector('#t10-codebox'),cells:root.querySelector('#t10-cells'),pad:root.querySelector('#t10-pad'),
 del:root.querySelector('#t10-del'),check:root.querySelector('#t10-check'),err:root.querySelector('#t10-err'),
@@ -450,13 +455,15 @@ const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
 if(els.shield)els.shield.hidden=!shieldOn;
 const codePhase=(st==='code');
 if(els.shieldbtn)els.shieldbtn.disabled=codePhase;
-if(els.shieldup)els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'ДЕРЖИТЕ ЩИТ';
+if(els.shieldup)els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕРЖИВАЙ ЩИТ!';
 if(codePhase){
 if(els.shield)els.shield.classList.remove('t10-on');
 if(els.shieldstate)els.shieldstate.textContent='Щиты понадобятся сразу после этого';
 }else if(!holding&&els.shieldstate){els.shieldstate.textContent='Щит не активен';}
-if(els.wave)els.wave.hidden=!(shieldOn||st==='countdown');
 if(els.count)els.count.hidden=st!=='countdown';
+// при верном протоколе волна отступает, затем светлое затухание и финальный город
+if(els.shield)els.shield.classList.toggle('t10-hush',st==='countdown'||st==='city');
+if(els.flash)els.flash.classList.toggle('on',st==='city');
 if(root)root.classList.toggle('t10-glitch',Date.now()<glitchUntil);
 if(els.done)els.done.hidden=!(st==='done'&&!localDone);
 if(els.finish)els.finish.hidden=!(st==='done'&&!localDone);
@@ -487,7 +494,11 @@ els.pad.innerHTML=html;
 if(c&&(st==='protocol'||st==='countdown')){
 if(els.btns&&els.btns.childElementCount!==3){
 els.btns.innerHTML=BTN.map(function(b,i){
-return '<button class="t10-pbtn '+b.cls+'" data-i="'+i+'" type="button"><span class="t10-psym">'+b.sym+'</span><span class="t10-plabel">'+b.label+'</span><span class="t10-pstep" data-step="'+i+'"></span></button>';
+return '<button class="t10-pbtn" data-i="'+i+'" type="button">'+
+'<img class="t10-sym" src="'+b.img+'" alt="">'+
+'<span class="t10-dot '+b.cls+'"></span>'+
+'<span class="t10-plabel">'+b.label+'</span>'+
+'<span class="t10-pstep" data-step="'+i+'"></span></button>';
 }).join('');
 }
 const step=+task.protocolStep||0;
@@ -525,14 +536,10 @@ if(c&&st==='code')playSfx(SFX_KOD,1);
 if(c&&st==='protocol')playSfx(SFX_HOLD,1);
 stageKey=st;
 }
+// Постоянные подписи снизу не нужны: всё, что игрок должен делать, написано на самом экране.
+// Внизу остаются только сообщения об ошибках связи.
 const sk=st+'|'+String(c);
-if(sk!==lastStatusKey){
-lastStatusKey=sk;
-if((st==='code'||st==='protocol')&&!c)status('Капитан вводит код и запускает протокол. Держите щиты!');
-else if(st==='countdown'&&!c)status('Держите щиты до конца отсчёта!');
-else if(st==='city'&&!c)status('Смотрим финал вместе с капитаном.');
-else status('');
-}
+if(sk!==lastStatusKey)lastStatusKey=sk;
 }
 function finishLocal(){
 // закрываем карточку только на этом телефоне; данные комнаты и финал не трогаем

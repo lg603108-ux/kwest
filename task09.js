@@ -200,7 +200,7 @@ if(els.cont)els.cont.disabled=true;
 // Обратный порядок монтирует модуль по пустой стадии — выглядит как «ничего не произошло».
 var t10ref=db().ref('rooms/'+NET.room.code+'/tasks/task10');
 t10ref.update({stage:'intro',startsAt:now()+1200,codeAccepted:false,codeAttempts:0,codeHintLevel:0,
-protocolStep:0,protocolAttempts:0,protocolHintLevel:0,buttonLayout:'core-stabilizer-dome',
+protocolStep:0,protocolAttempts:0,protocolHintLevel:0,buttonLayout:'dome-core-stabilizer',
 pressure:0,countdownStart:0,cityStart:0,completed:false,revision:0,completedAt:0})
 .then(function(){return NET.setPhase('task10',now()+800);})
 .catch(function(e){
