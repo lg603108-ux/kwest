@@ -6,7 +6,7 @@
 window.Task08=(function(){
 const CODE='3971';
 const HINT=['','Ищите цифры в порядке: пробирка, бейдж, часы, сектор.','На часах нужна именно цифра часа — сколько часов показывают стрелки.','Код — 3971. Запомните его для финала.'];
-const BUILD='0352a';
+const BUILD='0344a';
 const SRC_INTRO='assets/v08_intro.mp4?v=0344a';   // 16 МБ
 const SRC_VIEW='assets/lab_cctv.mp4?v=0344a';     // 6,9 МБ
 let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
@@ -63,11 +63,10 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<p class="t8-err" id="t8-err" hidden>Код не принят. Пересмотрите запись.</p>'+
 '<div class="t8-hint" id="t8-hint" hidden><b id="t8-hint-label">Подсказка</b><span id="t8-hint-text"></span></div>'+
 '</section>'+
-'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1><p class="t8-note t8-caps">ЗАПОМНИТЕ ПОРЯДОК КНОПОК НА ПЛАКАТЕ</p><button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть запись</button><p class="t8-note" id="t8-donenote">Ждём капитана: он перейдёт к зарядке Стабилизатора.</p><button id="t8-continue" class="t8-primary" type="button">Продолжить →</button></section>'+
-'<div class="t8-replaywrap" id="t8-replaywrap" hidden><video class="t8-replayvid" id="t8-replayvid" playsinline preload="auto"></video><button class="t8-secondary t8-replayclose" id="t8-replayclose" type="button">✕ Закрыть</button></div>'+
+'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>Код верный. Запомните его!</h1><p class="t8-note">Плакат в записи — протокол запуска. Он понадобится в финале. Дальше — зарядка Стабилизатора; это задание появится в следующем обновлении.</p></section>'+
 '<div class="t8-status" id="t8-status" role="status" hidden></div>'+
 '<button class="t8-primary t8-mediabtn" id="t8-media" type="button" hidden></button>'+
-'<p class="t8-build">Сборка '+BUILD+'</p>';
+'';
 container.appendChild(root);
 video=root.querySelector('.t8-video');
 els={wait:root.querySelector('.t8-wait'),start:root.querySelector('#t8-start'),waitnote:root.querySelector('#t8-waitnote'),
@@ -78,13 +77,8 @@ code:root.querySelector('#t8-code'),cells:root.querySelector('#t8-cells'),pad:ro
 del:root.querySelector('#t8-del'),check:root.querySelector('#t8-check'),again:root.querySelector('#t8-again'),
 err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
 hintLabel:root.querySelector('#t8-hint-label'),hintText:root.querySelector('#t8-hint-text'),
-done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),
-watchagain:root.querySelector('#t8-watchagain'),donenote:root.querySelector('#t8-donenote'),cont:root.querySelector('#t8-continue'),
-replaywrap:root.querySelector('#t8-replaywrap'),replayvid:root.querySelector('#t8-replayvid'),replayclose:root.querySelector('#t8-replayclose')};
+done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media')};
 els.start.addEventListener('click',startIntro);
-els.watchagain.addEventListener('click',openReplay);
-els.replayclose.addEventListener('click',closeReplay);
-els.cont.addEventListener('click',continueTo9);
 els.show.addEventListener('click',startView);
 els.toggle.addEventListener('click',togglePlay);
 els.restart.addEventListener('click',restartView);
@@ -99,7 +93,7 @@ roomOff=NET.onRoom(onRoom);
 tickTimer=setInterval(tick,500);
 }
 function unmount(){
-active=false;stopMedia();stopMusic();closeReplay();
+active=false;stopMedia();stopMusic();
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(offRef){try{offRef.off();}catch(e){}offRef=null;}
 if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
@@ -207,35 +201,6 @@ if(!cap()||!task||task.stage!=='code')return;
 errShown=false;
 write({stage:'view',startsAt:now()+1200,playbackId:(+task.playbackId||0)+1,playing:true,pausedAt:0,replayClearedAt:Date.now()}).catch(function(){});
 }
-// ——— финальный экран: пересмотр записи и переход к заданию 9 ———
-function openReplay(){
-if(!els.replaywrap||!els.replayvid)return;
-els.replaywrap.hidden=false;
-try{
-els.replayvid.muted=!cap();
-els.replayvid.src=SRC_VIEW;
-els.replayvid.currentTime=0;
-els.replayvid.onended=closeReplay;
-els.replayvid.play().catch(function(){els.replayvid.muted=true;els.replayvid.play().catch(function(){});});
-}catch(e){}
-}
-function closeReplay(){
-if(!els.replaywrap||!els.replayvid)return;
-els.replaywrap.hidden=true;
-try{els.replayvid.pause();els.replayvid.removeAttribute('src');els.replayvid.load();}catch(e){}
-}
-function continueTo9(){
-if(!cap()||!task||task.stage!=='done')return;
-if(els.cont)els.cont.disabled=true;
-const t9=db().ref('rooms/'+NET.room.code+'/tasks/task09');
-t9.update({stage:'intro',startsAt:Date.now()+1200,charge:0,target:800,trackId:'v09',completedAt:0,completionRevision:0})
-.then(function(){return NET.setPhase('task09',Date.now()+1500);})
-.then(function(){setTimeout(function(){if(window.__tryMount09)window.__tryMount09();},600);})
-.catch(function(e){
-if(els.cont)els.cont.disabled=false;
-status('Не удалось перейти к заданию 9: '+(e&&e.message||e));
-});
-}
 // ——— отрисовка ———
 function render(){
 if(!root||!task)return;
@@ -257,9 +222,6 @@ els.ask.hidden=!(inCode&&!c);
 const showCode=inCode&&c&&!!task.fullViewed;
 els.code.hidden=!showCode;
 els.done.hidden=!inDone;
-if(els.cont)els.cont.hidden=!c;
-if(els.donenote)els.donenote.hidden=c;
-if(!inDone)closeReplay();
 if(showCode)renderCode();
 els.toggle.textContent=(video&&video.paused)?'▶ Играть':'⏸ Пауза';
 if(c&&inView){

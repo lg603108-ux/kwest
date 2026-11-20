@@ -64,7 +64,7 @@ root=document.createElement('div');root.id='t5';root.innerHTML=
 '<section class="t5-screen t5-done" hidden><p class="t5-eyebrow">ЗАДАНИЕ 5 ЗАВЕРШЕНО</p><h1>Сообщение собрано</h1><ol class="t5-full" id="t5-full"></ol><p class="t5-note">Танец откроет путь. Следующее задание появится в следующем обновлении.</p></section>'+
 '<div class="t5-status" id="t5-status" role="status" hidden></div>'+
 '<button class="t5-primary t5-mediabtn" id="t5-media" type="button" hidden></button>'+
-'<p class="t5-build">Сборка 0311t</p>';
+'';
 container.appendChild(root);
 video=root.querySelector('.t5-video');bg=root.querySelector('.t5-bg');
 els={wait:root.querySelector('.t5-wait'),start:root.querySelector('#t5-start'),waitnote:root.querySelector('#t5-waitnote'),top:root.querySelector('#t5-top'),frag:root.querySelector('#t5-frag'),dots:root.querySelectorAll('.t5-dot'),play:root.querySelector('#t5-play'),center:root.querySelector('#t5-center'),wave:root.querySelector('#t5-wave'),pstatus:root.querySelector('#t5-pstatus'),panel:root.querySelector('#t5-panel'),answer:root.querySelector('#t5-answer'),check:root.querySelector('#t5-check'),hint:root.querySelector('#t5-hint'),hintLabel:root.querySelector('#t5-hint-label'),hintText:root.querySelector('#t5-hint-text'),clean:root.querySelector('#t5-clean'),kbwin:root.querySelector('#t5-kbwin'),kbInput:root.querySelector('#t5-kbwin-input'),kbOk:root.querySelector('#t5-kbwin-ok'),kbCancel:root.querySelector('#t5-kbwin-cancel'),result:root.querySelector('#t5-result'),resPhrase:root.querySelector('#t5-res-phrase'),done:root.querySelector('.t5-done'),full:root.querySelector('#t5-full'),status:root.querySelector('#t5-status'),media:root.querySelector('#t5-media')};

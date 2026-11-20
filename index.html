@@ -10,10 +10,8 @@
 <link rel="stylesheet" href="task04.css?v=0311p">
 <link rel="stylesheet" href="task05.css?v=0311t">
 <link rel="stylesheet" href="task06.css?v=0311ai">
-<link rel="stylesheet" href="task07.css?v=0349a">
-<link rel="stylesheet" href="task08.css?v=0352a">
-<link rel="stylesheet" href="task09.css?v=0352a">
-<link rel="stylesheet" href="task10.css?v=0363a">
+<link rel="stylesheet" href="task07.css?v=0338a">
+<link rel="stylesheet" href="task08.css?v=0344a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -38,7 +36,17 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
 #home .home-right .primary{width:100%}
 @media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
-#skip-panel .sk{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid rgba(190,245,245,.35);background:#20383e;color:#fff;cursor:pointer;display:none}
+/* Экран входа: надпись «КОМАНДНАЯ ИГРА» над картинкой-логотипом, ввод имени компактный */
+#home .home-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 16px 14px;width:min(780px,96vw);max-width:min(780px,96vw)}
+#home .home-left{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-width:0}
+#home .home-kicker{margin:0;color:#43f1de;font-size:clamp(12px,2.1vw,17px);font-weight:700;letter-spacing:.3em;text-transform:uppercase;text-align:center;white-space:nowrap}
+#home .home-logo{display:block;width:min(560px,86vw);max-height:min(38vh,300px);height:auto;object-fit:contain;mix-blend-mode:screen;pointer-events:none}
+#home .home-right{width:100%;display:flex;justify-content:center}
+#home form#entry{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:min(430px,92vw);margin:2px 0 0}
+#home .home-right label{width:100%;margin:0;text-align:center;font-size:13px;line-height:1.2;color:#9fd8d8}
+#home #name{flex:1 1 170px;min-width:0;height:40px;margin:0;padding:0 12px;font-size:15px;border-radius:10px}
+#home .home-right .primary{flex:0 0 auto;width:auto;min-height:40px;height:40px;padding:0 16px;font-size:15px;border-radius:10px}
+@media(max-height:520px){#home .home-logo{max-height:30vh}#home .home-card{padding:8px 12px}}
 /* Лобби: код, QR и кнопка старта — одной строкой */
 #lobby .roomcode{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:10px}
 #lobby .roomcode-main{display:flex;align-items:center;gap:10px;min-width:0}
@@ -97,30 +105,24 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0364a">
+<body data-build="0350a">
 <div id="app">
 
 <header id="topbar">
 <a class="brand" href="#"><span class="brand-mark">◇</span>АНОМАЛИЯ</a>
-<div class="top-actions">
-<button id="sound" class="icon" type="button" aria-label="Выключить звук">♪</button>
-<button id="fullscreen" class="icon" type="button" aria-label="Полноэкранный режим">⛶</button>
-</div>
 </header>
 
 <section class="screen" id="home">
 <div class="glass home-card">
 <div class="home-left">
-<h1>АНОМАЛИЯ</h1>
-<p class="eyebrow">КОМАНДНЫЙ КВЕСТ</p>
+<p class="home-kicker">КОМАНДНАЯ ИГРА</p>
+<img class="home-logo" src="assets/logo_anomalia.png" alt="АНОМАЛИЯ">
 </div>
 <div class="home-right">
-<p class="eyebrow">⌁ Подключение</p>
 <form id="entry">
 <label for="name">Как вас зовут?</label>
 <input id="name" autocomplete="name" enterkeyhint="go">
 <button class="primary" type="submit">Продолжить →</button>
-<p class="note">Имя видно только вашей команде.</p>
 </form>
 </div>
 </div>
@@ -133,7 +135,6 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div class="player"><span class="avatar">◇</span><span>Капитан<small>Готов</small></span><span class="ready">✓</span></div>
 <div class="lobby-buttons">
 <button id="start" class="primary" type="button">Начать квест →</button>
-<button id="back" class="secondary" type="button">Назад</button>
 </div>
 </div>
 </section>
@@ -233,28 +234,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <div id="task06-mount"></div>
 <div id="task07-mount"></div>
 <div id="task08-mount"></div>
-<div id="task09-mount"></div>
-<div id="task10-mount"></div>
 
-<div id="skip-panel" style="position:fixed;right:8px;bottom:8px;z-index:400;display:none;flex-direction:column;gap:6px;align-items:flex-end">
-<button class="sk" data-act="p1" type="button">⏭ Пропустить пролог</button>
-<button class="sk" data-act="p2" type="button">⏭ Пропустить интро</button>
-<button class="sk" data-act="bs" type="button">⏭ Бой → результат</button>
-<button class="sk" data-act="t2a" type="button">⏭ 2: пропустить инструкцию</button>
-<button class="sk" data-act="t2b" type="button">⏭ 2: пропустить фигуры</button>
-<button class="sk" data-act="t2c" type="button">⏭ 2: пропустить видео двери</button>
-<button class="sk" data-act="t4a" type="button">⏭ 4: пропустить инструкцию</button>
-<button class="sk" data-act="t4b" type="button">⏭ 4: клип → ввод</button>
-<button class="sk" data-act="t5a" type="button">⏭ 5: пропустить инструкцию</button>
-<button class="sk" data-act="t6a" type="button">⏭ 6: пропустить инструкцию</button>
-<button class="sk" data-act="t6b" type="button">⏭ 6: танец → сборка</button>
-<!-- Переход с пролога к последнему экрану задания 9, оттуда «Продолжить» ведёт к инструкции задания 10. -->
-<button class="sk" data-act="j10" type="button">▶ К заданию 10</button>
-<button class="sk" data-act="t8a" type="button">⏭ 8: пропустить инструкцию</button>
-<button class="sk" data-act="t8b" type="button">⏭ 8: запись → ввод кода</button>
-<button class="sk" data-act="t9a" type="button">⏭ 9: пропустить инструкцию</button>
-<button class="sk" data-act="t9b" type="button">⏭ 9: заряд 100%</button>
-</div>
 
 </div>
 
@@ -264,20 +244,18 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="net.js?v=0311b"></script>
 <script src="task02.js?v=0311s"></script>
 <script src="task03.js?v=0311r"></script>
-<script src="task04.js?v=0311s"></script>
-<script src="task05.js?v=0311t"></script>
-<script src="task06.js?v=0311ai"></script>
+<script src="task04.js?v=0350a"></script>
+<script src="task05.js?v=0350a"></script>
+<script src="task06.js?v=0350a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0349a"></script>
-<script src="task08.js?v=0352a"></script>
-<script src="task09.js?v=0354a"></script>
-<script src="task10.js?v=0364a"></script>
-<script src="app.js?v=0340a"></script>
+<script src="task07.js?v=0348a"></script>
+<script src="task08.js?v=0350a"></script>
+<script src="app.js?v=0350a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
-var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false,mounted09=false,mounted10=false;
+var mounted=false,mounted03=false,mounted04=false,mounted05=false,mounted06=false,mounted07=false,mounted08=false;
 function ready(){return !!(window.NET&&window.NET.inRoom);}
 function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
 function toastMsg(s){var t=document.getElementById('toast');if(!t)return;t.textContent=s;t.style.display='block';clearTimeout(window.__bt);window.__bt=setTimeout(function(){t.style.display='none';},6000);}
@@ -358,8 +336,6 @@ function t7handed(u,rnd){try{return localStorage.getItem(t7handKey(u,rnd))==='1'
 function t7markHanded(u,rnd){try{localStorage.setItem(t7handKey(u,rnd),'1');}catch(e){}}
 function t7clearHanded(){try{var p='t7hand:'+((NET.room&&NET.room.code)||'')+':';
   for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf(p)===0)localStorage.removeItem(k);}}catch(e){}}
-// панель пропусков живёт в отдельной области видимости и берёт функцию отсюда через window
-try{window.__t7clearHanded=t7clearHanded;}catch(e){}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
   var rnd=(t7node().round||0);
   var pool=list.filter(function(e){return !t7handed(e[0],rnd);});
@@ -518,65 +494,6 @@ mounted08=false;
 if(window.Task08){try{Task08.unmount();}catch(e){}}
 var el8b=document.getElementById('task08-mount');
 if(el8b){el8b.classList.remove('active');el8b.innerHTML='';}
-}
-if(r.state.phase==='task09'&&!mounted09){
-var el9=document.getElementById('task09-mount');
-if(!el9){toastMsg('Контейнер задания 9 не найден');return;}
-if(!window.Task09){toastMsg('Модуль задания 9 не загружен (task09.js)');return;}
-mounted09=true;el9.classList.add('active');document.body.dataset.screen='task09';
-try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
-var mv9=document.getElementById('movie');if(mv9){try{mv9.pause();}catch(e){}}
-try{Task09.mount(el9);toastMsg('Задание 9 запущено');}
-catch(e){mounted09=false;el9.classList.remove('active');toastMsg('Ошибка монтажа задания 9: '+(e&&e.message||e));}
-}
-if(r.state.phase!=='task09'&&mounted09){
-mounted09=false;
-if(window.Task09){try{Task09.unmount();}catch(e){}}
-var el9b=document.getElementById('task09-mount');
-if(el9b){el9b.classList.remove('active');el9b.innerHTML='';}
-}
-// Задание 10 «Закрытие портала»: отдельный модуль task10.js, фаза комнаты task10.
-// Если файл модуля не скачался (слабый канал, запомненная ошибка загрузки), страница
-// докачивает его сама и возвращает игрока туда, где вся команда: стадия берётся из базы
-// при монтировании, поэтому после перезагрузки экран совпадает с остальными.
-var t10tries=0;
-function t10loading(note){
-var el=document.getElementById('task10-mount');
-if(!el)return;
-el.classList.add('active');document.body.dataset.screen='task10';
-el.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#04100f;color:#9fd8d8;text-align:center;padding:24px;box-sizing:border-box">'+
-'<p style="margin:0;color:#30e5dc;font-size:13px;letter-spacing:1.2px;font-weight:700">ЗАДАНИЕ 10</p>'+
-'<p style="margin:0;font-size:16px">'+note+'</p></div>';
-}
-function t10load(){
-if(window.Task10){setTimeout(tryMount,60);return;}
-if(t10tries>=3)return;
-t10tries++;
-var s=document.createElement('script');
-s.src='task10.js?r='+Date.now();
-s.onload=function(){setTimeout(tryMount,60);};
-s.onerror=function(){setTimeout(t10load,1200);};
-document.body.appendChild(s);
-}
-if(r.state.phase==='task10'&&!mounted10){
-var el10=document.getElementById('task10-mount');
-if(!el10){toastMsg('Контейнер задания 10 не найден');return;}
-if(!window.Task10){
-try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
-['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
-t10loading(t10tries>=3?'Не удалось загрузить задание. Обновите страницу.':'Загружаем задание…');
-t10load();return;
-}
-mounted10=true;el10.classList.add('active');document.body.dataset.screen='task10';
-try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
-var mv10=document.getElementById('movie');if(mv10){try{mv10.pause();}catch(e){}}
-try{Task10.mount(el10);toastMsg('Задание 10 запущено');}
-catch(e){mounted10=false;el10.classList.remove('active');toastMsg('Ошибка монтажа задания 10: '+(e&&e.message||e));}
-}
-if(r.state.phase!=='task10'){
-if(mounted10){mounted10=false;if(window.Task10){try{Task10.unmount();}catch(e){}}}
-var el10b=document.getElementById('task10-mount');
-if(el10b&&el10b.classList.contains('active')){el10b.classList.remove('active');el10b.innerHTML='';}
 }
 }
 // Итог маршрута от экрана Бегуна уходит в базу: только события и конечные значения, без потока координат.
@@ -741,87 +658,7 @@ var wasCap=null;
 setInterval(function(){var isC=false;try{isC=ready()&&cap();}catch(e){}if(wasCap===null)wasCap=isC;if(wasCap&&!isC){toastMsg('Капитанство передано другому устройству. Вы теперь игрок: действия капитана недоступны.');}if(isC!==wasCap)wasCap=isC;addContinueButton();wire3();wire4();wire5();wire6();wireTask07();tryMount();},500);
 })();
 </script>
-<script>
-// ПАНЕЛЬ ПРОПУСКОВ (тестовая, только капитан).
-(function(){
-function inRoom(){try{return window.NET&&NET.inRoom();}catch(e){return false;}}
-function cap(){try{return NET.inRoom()&&NET.isCaptain();}catch(e){return false;}}
-function t2ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task02');}
-function err(x){var t=document.getElementById('toast');if(t){t.textContent='Ошибка: '+(x&&x.message||x);t.style.display='block';setTimeout(function(){t.style.display='none';},6000);}}
-var panel=document.getElementById('skip-panel');
-var lastSkip=0;
-function refresh(){
-if(!inRoom()){panel.style.display='none';return;}
-panel.style.display='flex';
-var r=NET.room||{};var st=r.state||{};var ph=st.phase||'';
-var t2=(r.tasks&&r.tasks.task02&&r.tasks.task02.stage)||'';
-var t4=(r.tasks&&r.tasks.task04&&r.tasks.task04.stage)||'';
-var t5=(r.tasks&&r.tasks.task05&&r.tasks.task05.stage)||'';
-var t6=(r.tasks&&r.tasks.task06&&r.tasks.task06.stage)||'';
-var t8=(r.tasks&&r.tasks.task08&&r.tasks.task08.stage)||'';
-var t9=(r.tasks&&r.tasks.task09&&r.tasks.task09.stage)||'';
-var btns=panel.querySelectorAll('.sk'),i;
-for(i=0;i<btns.length;i++)btns[i].style.display='none';
-function on(a){var b=panel.querySelector('[data-act="'+a+'"]');if(b)b.style.display='block';}
-if(cap()){
-if(ph==='cinema')on('p1');
-if(ph==='intro')on('p2');
-// Технический переход к заданию 7 из пролога и ранних этапов (только капитан).
-if(ph==='cinema'||ph==='intro'){on('j10');}
-// Переход к заданию 8 делается только из задания 7 — отдельной тестовой кнопки больше нет.
-if(ph==='task02'){if(t2==='intro')on('t2a');if(t2==='sequence')on('t2b');if(t2==='reveal')on('t2c');}
-if(ph==='task04'){if(t4==='intro')on('t4a');if(t4==='clip')on('t4b');}
-if(ph==='task05'){if(t5==='intro')on('t5a');}
-if(ph==='task06'){if(t6==='intro')on('t6a');if(t6==='dance')on('t6b');}
-if(ph==='task08'){if(t8==='wait'||t8==='intro')on('t8a');if(t8==='view')on('t8b');}
-if(ph==='task09'){if(t9==='wait'||t9==='intro')on('t9a');if(t9==='charge')on('t9b');}
-}
-if(ph==='battle')on('bs');
-var ts=st.testSkip||0;
-if(ts!==lastSkip){lastSkip=ts;if(ts&&window.__testSkipBattle)window.__testSkipBattle();}
-}
-// Глушим всё, что звучало до технического перехода: голоса, музыку и видео пролога/улицы.
-function silenceAll(){
-try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
-['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.removeAttribute('src');v.load();}catch(e){}});
-}
-panel.addEventListener('click',function(e){
-var a=e.target&&e.target.dataset?e.target.dataset.act:null;
-if(!a||!inRoom())return;
-var now=Date.now();
-if(a==='p1'&&cap())NET.setPhase('intro',now+500).catch(err);
-if(a==='p2'&&cap())NET.setPhase('brief',0).catch(err);
-if(a==='bs'){if(window.__testSkipBattle)window.__testSkipBattle();if(cap())firebase.database().ref('rooms/'+NET.room.code+'/state/testSkip').set(now).catch(err);}
-if(a==='t2a'&&cap()){t2ref().update({stage:'sequence',startsAt:now+500}).catch(err);}
-if(a==='t2b'&&cap()){t2ref().update({stage:'swap',startsAt:now}).catch(err);}
-if(a==='t2c'&&cap()){t2ref().update({stage:'done',startsAt:now}).catch(err);}
-var t4ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task04');};
-if(a==='t4a'&&cap()){t4ref().update({stage:'clip',startsAt:now+600,round:0,clipViewed:false,replays:0,confirmed:{a:false,b:false},attempts:{a:0,b:0},hintLevel:{a:0,b:0},fields:{a:'',b:''}}).catch(err);}
-if(a==='t4b'&&cap()){t4ref().update({clipViewed:true,stage:'answer',startedAt:now}).catch(err);}
-if(a==='t5a'&&cap()){firebase.database().ref('rooms/'+NET.room.code+'/tasks/task05').update({stage:'play',startsAt:now,fragment:0,attempts:0,hintLevel:0,listening:false}).catch(err);}
-var t6ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task06');};
-if(a==='t6a'&&cap()){t6ref().update({stage:'dance',startsAt:now,playbackId:(Date.now()%100000),playing:true,pausedAt:0,watched:false,replayClearedAt:now}).catch(err);}
-if(a==='t6b'&&cap()){t6ref().update({stage:'order',watched:true,playing:false,pausedAt:0}).catch(err);}
-var t8ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task08');};
-if(a==='t8a'&&cap()){t8ref().update({stage:'view',startsAt:now+600,playbackId:(Date.now()%100000),playing:true,pausedAt:0,fullViewed:false,replayClearedAt:now}).catch(err);}
-if(a==='t8b'&&cap()){t8ref().update({stage:'code',fullViewed:true,playing:false,pausedAt:0,codeDraft:'',attempts:0,hintLevel:0}).catch(err);}
-var t9ref=function(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task09');};
-if(a==='t9a'&&cap()){t9ref().update({stage:'charge',startsAt:now+600,charge:0,target:800,trackId:'v09',completedAt:0,completionRevision:0}).catch(err);}
-if(a==='t9b'&&cap()){var rev=+((NET.room.tasks&&NET.room.tasks.task09&&NET.room.tasks.task09.completionRevision)||0)+1;t9ref().update({stage:'done',charge:100,completedAt:now,completionRevision:rev}).catch(err);}
-// Переход с пролога к финальному экрану задания 9: там кнопка «Продолжить» ведёт к инструкции задания 10.
-if(a==='j10'&&cap()){
-silenceAll();
-var r9=firebase.database().ref('rooms/'+NET.room.code+'/tasks/task09');
-var rev9=+((NET.room.tasks&&NET.room.tasks.task09&&NET.room.tasks.task09.completionRevision)||0)+1;
-r9.update({stage:'done',charge:100,completedAt:now,completionRevision:rev9})
-.then(function(){return NET.setPhase('task09',now+600);})
-.catch(function(e){err('Не удалось открыть финальный экран задания 9 (проверьте правила базы): '+(e&&e.message||e));});
-}
-// Техническая кнопка перехода к заданию 8 убрана совсем: переход идёт только из задания 7.
-});
-setInterval(refresh,500);
-})();
-</script>
+
 <script>
 // ПАТЧ 2.3: QR по центру везде, компактные плашки боя, бой стартует после доигрывания аудио, звук говорящих видео только у капитана, тихий сторож видео.
 (function(){
@@ -865,7 +702,7 @@ function refreshWidget(){
 var code=roomCode();
 var scr=document.body.dataset.screen||'';
 // В задании 8 часы и сектор записи стоят в правом верхнем углу кадра (ТЗ): виджет там закрываем.
-var blocked=(scr==='task08'||scr==='task09');
+var blocked=(scr==='task08');
 widget.style.display=(code&&!blocked)?'flex':'none';
 // В задании 2 QR держим по центру вверху: справа он перекрывал цифры.
 var center=(scr==='battle')||(scr==='task02');
