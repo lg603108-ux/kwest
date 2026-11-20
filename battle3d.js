@@ -2,7 +2,7 @@
    Отдельная страница, с квестом не связана. */
 (function () {
   'use strict';
-  var BUILD = 'b3d02';
+  var BUILD = 'b3d03';
   var doc = document;
   var canvas = doc.getElementById('c');
   var msgEl = doc.getElementById('msg');
@@ -15,7 +15,7 @@
 
   // положение разлома в долях картинки (0..1 слева / сверху)
   var RIFT_X = 0.47, RIFT_Y = 0.80;
-  var MON_H = 0.17;          // высота монстра в долях высоты картинки
+  var MON_H = 0.25;          // высота монстра в долях высоты картинки
 
   var renderer, scene, camera, clock;
   var monWrap = null, glowSprite = null, embers = null, emberV = [];
@@ -69,9 +69,9 @@
 
     // свет под пасмурный день картинки
     scene.add(new THREE.HemisphereLight(0xdbe4e6, 0x2b3336, 1.15));
-    var key = new THREE.DirectionalLight(0xe8f0f1, 0.85);
+    var key = new THREE.DirectionalLight(0xf0f6f7, 1.05);
     key.position.set(-0.6, 1.2, 1.5); scene.add(key);
-    var rim = new THREE.DirectionalLight(0x2fd6d0, 1.1);
+    var rim = new THREE.DirectionalLight(0x39e2da, 1.7);
     rim.position.set(0.9, -0.4, 0.6); scene.add(rim);
 
     // свечение из разлома
@@ -125,9 +125,9 @@
           if (m) {
             m.metalness = 0; if ('metalnessMap' in m) m.metalnessMap = null;
             m.roughness = 1;
-            m.color = new THREE.Color(0xc8d2d4);      // под свет картинки
+            m.color = new THREE.Color(0xe2ecee);      // под свет картинки
             m.emissive = new THREE.Color(0x0b2e33);
-            m.emissiveIntensity = 0.7;
+            m.emissiveIntensity = 1.0;
             if (m.map) { try { m.map.encoding = THREE.sRGBEncoding; } catch (e) {} }
             m.needsUpdate = true;
           }
@@ -156,7 +156,7 @@
 
     if (monWrap) {
       var base = imgToWorld(RIFT_X, RIFT_Y + 0.30);
-      var emerge = imgToWorld(RIFT_X, RIFT_Y - 0.02);
+      var emerge = imgToWorld(RIFT_X, RIFT_Y - 0.06);
       var x = base.x, y = base.y, sc = 1, rot = 0;
       if (t < 0.7) {
         y = base.y - SY * 0.30; rot = 0.35;
