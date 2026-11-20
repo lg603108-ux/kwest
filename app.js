@@ -72,7 +72,6 @@ function sound(file,volume=.4){const pool=getPool(file);const a=pool.find(v=>v.p
 function identify(){player=$('name').value.trim()||'Игрок';store('anomaly-name',player);}
 $('entry').onsubmit=e=>{e.preventDefault();identify();goFullscreen();$('role-name').textContent='Игрок: '+player;screen('role');};
 $('home-button').onclick=()=>screen('home');
-document.querySelector('.brand').onclick=e=>{e.preventDefault();if(game){pause();return;}screen('home');};
 const preloaded={};
 function preloadVideo(name){if(preloaded[name])return preloaded[name];const v=document.createElement('video');v.src=asset(name);v.muted=true;v.preload='auto';v.playsInline=true;v.load();preloaded[name]=v;return v;}
 function connectedPlayers(){const r=window.NET&&NET.room;if(!r)return[];return Object.entries(r.players||{}).filter(([uid,p])=>p.connected!==false);}
