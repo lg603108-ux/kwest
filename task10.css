@@ -17,13 +17,7 @@ cursor:pointer;font-family:inherit}
 #t10 .t10-secondary{min-height:48px;padding:9px 18px;border:1px solid rgba(190,245,245,.35);
 border-radius:10px;background:#20383e;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 /* ——— панель капитана: обычные крупные размеры в пикселях, как в задании 8 ——— */
-#t10 .t10-panel{justify-content:flex-start;gap:10px;padding:12px 12px 8px}
-#t10 .t10-press{width:min(62vw,560px);display:flex;flex-direction:column;align-items:center;gap:3px}
-#t10 .t10-press span{font-size:12px;letter-spacing:1.1px;color:#9fd8d8;font-weight:700}
-#t10 .t10-press b{font-size:21px;color:#ffd166;line-height:1}
-#t10 .t10-pressbar{width:100%;height:8px;border-radius:6px;background:rgba(160,230,230,.16);overflow:hidden}
-#t10 .t10-pressbar i{display:block;height:100%;width:0;border-radius:6px;
-background:linear-gradient(90deg,#2ec4b6,#ffd166,#ff7a59);transition:width .35s linear}
+#t10 .t10-panel{justify-content:center;gap:12px;padding:10px 12px 10px}
 #t10 .t10-codebox{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
 /* кнопки ввода слева, сообщение об ошибке — квадратом справа напротив них */
 #t10 .t10-coderow{display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%}
@@ -77,17 +71,17 @@ font-size:13.5px;line-height:1.3}
 /* ——— щит игрока: тонкие волнистые линии аномалии от купола ——— */
 #t10 .t10-shield{background:#02100f;gap:16px;overflow:hidden}
 #t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none;transform-origin:50% 50%;
-transition:transform .55s ease,opacity .55s ease;animation:t10creep 5s ease-in-out infinite}
-#t10 .t10-waves svg{width:100%;height:100%;display:block}
-#t10 .t10-bolt{fill:none;stroke:url(#t10boltGrad);stroke-width:.45;stroke-linecap:round;
-stroke-dasharray:4 6;filter:drop-shadow(0 0 5px rgba(48,229,220,.85));animation:t10flowIn 1.9s linear infinite}
-@keyframes t10flowIn{from{stroke-dashoffset:0}to{stroke-dashoffset:-20}}
-@keyframes t10creep{0%,100%{transform:scale(1)}50%{transform:scale(.955)}}
-#t10 .t10-bolt:nth-child(2n){stroke-width:.32;animation-duration:2.5s}
-#t10 .t10-bolt:nth-child(3n){stroke-width:.62;animation-duration:1.35s}
-/* нажатие: линии отступают от кнопки обратно к краям экрана */
-#t10 .t10-shield.t10-on .t10-waves{transform:scale(1.35);opacity:.4;animation:none}
-#t10 .t10-shield.t10-hush .t10-waves{transform:scale(1.6);opacity:0;animation:none}
+transition:transform .6s cubic-bezier(.4,0,.2,1),opacity .6s ease;animation:t10creep 4.5s ease-in-out infinite}
+#t10 .t10-waves svg{width:100%;height:100%;display:block;overflow:visible}
+#t10 .t10-boltg{animation:t10flick 2.6s ease-in-out infinite}
+#t10 .t10-bolt-glow{fill:none;stroke:#2fe6dc;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;opacity:.5;filter:blur(2.4px)}
+#t10 .t10-bolt-core{fill:none;stroke:#f2fffd;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;
+filter:drop-shadow(0 0 7px #35e7df)}
+@keyframes t10flick{0%,100%{opacity:1}30%{opacity:.5}55%{opacity:.9}75%{opacity:.4}}
+@keyframes t10creep{0%{transform:scale(1) rotate(-1deg)}50%{transform:scale(.93) rotate(1deg)}100%{transform:scale(1) rotate(-1deg)}}
+/* нажатие: разряды уходят почти за край экрана, отпускание — возвращаются */
+#t10 .t10-shield.t10-on .t10-waves{transform:scale(2.6);opacity:.06;animation:none}
+#t10 .t10-shield.t10-hush .t10-waves{transform:scale(3.2);opacity:0;animation:none}
 #t10 .t10-shield>*:not(.t10-waves){position:relative;z-index:1}
 #t10 .t10-shieldup{font-size:clamp(20px,3.6vh,28px);font-weight:800;letter-spacing:1.2px;color:#eaffff;margin:0}
 #t10 .t10-shieldbtn{width:min(58vw,min(34vh,240px));aspect-ratio:1/1;border:0;border-radius:50%;padding:0;background:none;

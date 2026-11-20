@@ -8,11 +8,13 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0359a';
+const BUILD='0360a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
 const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3',SFX_KOD='v10_kod.mp3';
+const SFX_ERR='sfx_glitch.mp3',SFX_WIN='sfx_crystal_ready.mp3',SFX_FINAL='v09_finish.mp3';
+const SRC_MUSIC='music_defense_loop.mp3';
 const SFX_HINT_CODE='v10_hint_code.mp3',SFX_HINT_PROTO='v10_hint_protocol.mp3',SFX_HOLD='v10_hold.mp3';
 // Визуальный порядок кнопок намеренно НЕ совпадает с правильной последовательностью.
 // Значки и круглые кнопки — из пульта в ролике задания 10, порядок намеренно неверный:
@@ -24,8 +26,8 @@ const LAYOUT='dome-core-stabilizer';
 const ORDER=[2,0,1];                                        // Стабилизатор → Купол → Ядро
 const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
 const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
-// Тонкие волнистые линии аномалии: идут от краёв экрана к кнопке щита.
-const BOLTS=["M50.0,110.0 Q50.0,110.0 50.8,105.8 Q51.6,101.7 51.2,97.5 Q50.8,93.3 49.4,89.2 Q48.1,85.0 48.0,80.8 Q47.9,76.7 49.8,72.5 Q51.6,68.3 52.5,64.2 L53.4,60.0", "M67.5,111.6 Q67.5,111.6 66.8,107.4 Q66.0,103.2 63.8,99.4 Q61.5,95.6 59.3,91.8 Q57.1,88.0 57.2,83.5 Q57.3,79.1 58.2,74.5 Q59.1,69.8 57.4,65.9 L55.6,61.9", "M85.5,108.0 Q85.5,108.0 82.7,104.1 Q79.9,100.1 76.1,96.7 Q72.2,93.4 69.8,89.2 Q67.3,85.0 66.9,79.7 Q66.6,74.3 65.1,69.6 Q63.6,64.8 59.0,61.9 L54.3,59.0", "M93.7,91.2 Q93.7,91.2 90.0,89.3 Q86.3,87.5 82.6,85.6 Q79.0,83.7 77.2,79.9 Q75.5,76.1 74.5,71.6 Q73.5,67.1 70.1,64.9 Q66.6,62.8 61.3,62.6 L56.0,62.4", "M105.6,81.7 Q105.6,81.7 101.3,80.2 Q96.9,78.7 93.0,76.4 Q89.1,74.2 85.9,70.8 Q82.7,67.3 79.1,64.5 Q75.5,61.8 70.9,60.9 Q66.2,60.0 61.5,59.1 L56.9,58.1", "M115.5,68.1 Q115.5,68.1 110.9,67.6 Q106.3,67.1 102.1,65.1 Q97.9,63.0 93.9,60.4 Q89.9,57.7 85.3,57.1 Q80.7,56.6 75.7,57.6 Q70.6,58.7 66.1,57.7 L61.7,56.7", "M110.0,51.5 Q110.0,51.5 105.8,51.5 Q101.7,51.6 97.5,49.9 Q93.3,48.2 89.2,47.5 Q85.0,46.8 80.8,48.8 Q76.7,50.9 72.5,52.8 Q68.3,54.7 64.2,52.9 L60.0,51.0", "M112.3,35.4 Q112.3,35.4 108.0,35.5 Q103.6,35.7 99.1,35.2 Q94.5,34.6 90.6,36.5 Q86.7,38.4 83.3,42.1 Q80.0,45.9 75.9,47.2 Q71.8,48.4 66.8,46.1 L61.8,43.8", "M109.3,16.7 Q109.3,16.7 104.6,18.3 Q100.0,20.0 95.6,22.0 Q91.3,24.1 87.7,27.6 Q84.1,31.0 80.4,34.4 Q76.8,37.8 72.0,39.2 Q67.3,40.6 62.1,41.3 L57.0,42.1", "M92.4,7.6 Q92.4,7.6 89.0,9.6 Q85.5,11.7 83.1,14.9 Q80.7,18.0 79.1,21.9 Q77.5,25.9 74.8,28.7 Q72.1,31.5 67.7,32.7 Q63.3,33.8 59.8,35.8 L56.2,37.8", "M81.0,-6.0 Q81.0,-6.0 78.4,-2.3 Q75.7,1.3 74.7,6.0 Q73.7,10.6 72.6,15.2 Q71.5,19.7 68.0,22.9 Q64.4,26.0 60.0,28.7 Q55.7,31.3 54.2,35.7 L52.6,40.0", "M65.7,-16.2 Q65.7,-16.2 65.0,-11.6 Q64.3,-7.1 65.0,-2.2 Q65.6,2.8 64.4,7.2 Q63.3,11.6 59.4,15.3 Q55.6,19.1 53.2,23.2 Q50.8,27.3 52.6,32.5 L54.3,37.7", "M49.0,-10.0 Q49.0,-10.0 49.8,-5.8 Q50.5,-1.7 51.3,2.5 Q52.0,6.7 51.1,10.8 Q50.2,15.0 48.8,19.2 Q47.3,23.3 47.9,27.5 Q48.5,31.7 50.6,35.8 L52.7,40.0", "M33.0,-11.7 Q33.0,-11.7 35.1,-7.9 Q37.3,-4.0 38.4,0.1 Q39.4,4.2 38.9,8.7 Q38.4,13.3 38.8,17.5 Q39.2,21.8 42.2,25.4 Q45.2,29.0 48.1,32.7 L50.9,36.3", "M16.6,-9.2 Q16.6,-9.2 19.7,-5.4 Q22.8,-1.7 24.3,3.1 Q25.8,7.8 26.7,12.9 Q27.5,17.9 30.6,21.7 Q33.7,25.5 38.5,28.3 Q43.3,31.1 45.9,35.2 L48.5,39.3", "M8.8,6.3 Q8.8,6.3 11.6,9.1 Q14.4,11.9 15.8,16.0 Q17.2,20.1 19.4,23.5 Q21.6,26.8 26.1,27.9 Q30.5,28.9 34.8,30.2 Q39.1,31.4 40.4,35.7 L41.6,40.0", "M-4.8,17.0 Q-4.8,17.0 -1.2,19.7 Q2.4,22.5 5.8,25.6 Q9.2,28.7 13.3,30.5 Q17.5,32.4 22.2,33.2 Q26.9,34.0 30.8,36.2 Q34.7,38.4 37.6,42.5 L40.4,46.5", "M-15.4,31.5 Q-15.4,31.5 -11.3,33.8 Q-7.2,36.0 -2.8,37.6 Q1.5,39.3 6.3,39.0 Q11.1,38.7 15.9,38.7 Q20.6,38.6 24.7,41.1 Q28.7,43.7 32.5,47.2 L36.4,50.7", "M-10.0,50.1 Q-10.0,50.1 -5.8,51.2 Q-1.7,52.3 2.5,51.7 Q6.7,51.1 10.8,49.1 Q15.0,47.1 19.2,47.1 Q23.3,47.0 27.5,49.8 Q31.7,52.5 35.8,53.7 L40.0,55.0", "M-11.5,67.9 Q-11.5,67.9 -7.2,67.3 Q-3.0,66.6 0.7,63.9 Q4.3,61.1 8.0,58.6 Q11.8,56.0 16.3,56.7 Q20.9,57.3 25.7,58.9 Q30.6,60.6 34.4,58.4 L38.2,56.3", "M-8.3,85.0 Q-8.3,85.0 -4.3,82.3 Q-0.2,79.6 3.4,76.2 Q7.0,72.9 11.2,70.5 Q15.4,68.1 20.4,67.0 Q25.4,66.0 29.9,64.2 Q34.5,62.4 37.7,58.4 L41.0,54.5", "M8.5,93.3 Q8.5,93.3 10.5,89.9 Q12.6,86.4 14.8,83.0 Q16.9,79.6 20.5,77.6 Q24.1,75.7 28.1,74.1 Q32.1,72.6 34.3,69.3 Q36.6,66.0 37.5,61.4 L38.4,56.8", "M18.5,105.7 Q18.5,105.7 19.6,101.2 Q20.7,96.6 23.0,92.7 Q25.3,88.9 29.3,86.0 Q33.3,83.1 36.3,79.6 Q39.2,76.1 39.4,71.0 Q39.6,66.0 40.0,61.0 L40.4,56.0", "M31.6,115.5 Q31.6,115.5 31.9,110.8 Q32.2,106.1 34.6,102.0 Q37.1,98.0 40.2,94.0 Q43.3,90.1 43.6,85.5 Q43.9,80.8 42.0,75.5 Q40.1,70.3 41.1,65.8 L42.1,61.4"];
+// Ветви аномалии: светящиеся разряды идут от краёв экрана к кнопке щита.
+const BOLTS=["M52.5,122.9 Q52.5,122.9 49.5,119.2 Q46.5,115.5 48.7,111.8 Q51.0,108.1 50.0,104.4 Q49.1,100.7 49.7,97.0 Q50.4,93.3 47.2,89.6 Q43.9,85.9 44.1,82.2 Q44.3,78.5 46.6,74.8 Q48.9,71.1 49.3,67.4 L49.7,63.7", "M85.6,99.8 Q85.6,99.8 84.0,97.2 Q82.5,94.5 81.6,91.3 Q80.7,88.2 77.3,86.9 Q73.8,85.7 70.1,84.6 Q66.4,83.5 69.1,77.7 Q71.8,72.0 68.7,70.4 Q65.7,68.9 64.6,65.9 Q63.4,63.0 61.5,61.7 L59.5,60.4", "M117.3,71.4 Q117.3,71.4 113.9,69.8 Q110.4,68.2 106.3,68.6 Q102.2,69.0 98.1,69.3 Q94.0,69.7 91.2,66.3 Q88.3,62.8 85.3,59.8 Q82.4,56.8 78.5,56.5 Q74.6,56.2 70.6,56.4 Q66.6,56.5 62.8,55.8 L59.1,55.0", "M112.0,31.9 Q112.0,31.9 109.1,33.5 Q106.2,35.1 103.3,36.6 Q100.4,38.0 97.5,39.7 Q94.7,41.5 91.3,41.3 Q87.8,41.1 84.1,40.0 Q80.3,38.9 76.5,37.6 Q72.7,36.4 71.1,41.9 Q69.5,47.3 66.1,47.2 L62.7,47.1", "M92.9,-6.5 Q92.9,-6.5 91.4,-2.9 Q89.9,0.6 85.2,1.8 Q80.5,3.0 78.5,6.1 Q76.5,9.2 73.4,11.6 Q70.3,14.0 71.8,19.6 Q73.3,25.3 69.0,26.8 Q64.7,28.3 59.4,29.1 Q54.1,29.8 54.3,35.9 L54.5,42.0", "M50.5,-23.7 Q50.5,-23.7 52.2,-19.6 Q54.0,-15.5 50.4,-11.4 Q46.8,-7.3 47.2,-3.2 Q47.7,0.8 45.4,4.9 Q43.2,9.0 44.1,13.1 Q45.0,17.2 43.4,21.3 Q41.7,25.3 45.5,29.4 Q49.2,33.5 48.9,37.6 L48.5,41.7", "M8.3,-10.7 Q8.3,-10.7 11.3,-8.0 Q14.2,-5.2 15.3,-1.1 Q16.3,3.0 20.0,5.2 Q23.7,7.4 22.0,13.6 Q20.3,19.7 22.2,23.3 Q24.0,26.8 31.5,26.3 Q38.9,25.8 42.4,28.2 Q45.9,30.5 45.7,36.2 L45.6,41.9", "M-17.7,27.5 Q-17.7,27.5 -14.6,30.5 Q-11.6,33.5 -7.3,32.8 Q-3.0,32.2 0.9,32.7 Q4.8,33.3 7.3,38.1 Q9.8,42.9 13.5,43.8 Q17.3,44.8 20.6,47.0 Q24.0,49.2 28.2,48.8 Q32.4,48.3 36.5,48.6 L40.6,48.9", "M-16.0,70.1 Q-16.0,70.1 -12.4,69.2 Q-8.7,68.3 -4.6,68.8 Q-0.6,69.4 2.7,67.2 Q5.9,65.1 9.4,63.9 Q12.9,62.8 17.2,63.9 Q21.5,64.9 23.1,57.8 Q24.6,50.6 29.7,54.2 Q34.8,57.8 38.0,56.3 L41.1,54.8", "M10.5,99.8 Q10.5,99.8 13.7,98.2 Q16.8,96.6 18.6,94.1 Q20.4,91.5 20.7,87.9 Q21.0,84.3 24.5,83.0 Q28.0,81.7 29.3,78.8 Q30.6,75.9 32.2,73.3 Q33.9,70.6 37.9,69.7 Q41.9,68.8 41.6,65.4 L41.3,62.1"];
 const COUNT_MS=3000;        // общий отсчёт 3–2–1
 const SHIELD_TTL=6000;      // зависшая запись щита не считается вечным щитом
 const PRESS_MS=2500;        // как часто капитан пишет общее давление в базу
@@ -33,7 +35,7 @@ let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=nu
 let tickTimer=null,startTimer=null,holdHb=null,tOff=0,offRef=null;
 let mediaKey='',mediaRetries=0,endedLocal=false,stageKey='',lastStatusKey='';
 let slots=['','','',''],pos=0,lastSubmit=0,localHintCode=0,localHintProto=0,glitchUntil=0;
-let holding=false,holdAudio=null,voice=null,pressCur=0,pressWrote=0,pressWritten=0;
+let holding=false,holdAudio=null,voice=null,music=null,pressCur=0,pressWrote=0,pressWritten=0;
 let protoDraft=[];
 let countWrote=0,finishWrote=0,cardKey='',localDone=false,autoStarted=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
@@ -47,6 +49,13 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp
 // Голос и звуки идут по ОДНОМУ каналу: новая дорожка глушит предыдущую, иначе
 // при вводе кода и протокола фразы накладываются друг на друга (замечание автора 20.11.2026).
 function playSfx(file,volume){if(!cap())return;try{if(voice){try{voice.pause();voice.currentTime=0;}catch(_){}}voice=new Audio('assets/'+file);voice.volume=volume;voice.play().catch(function(){});}catch(e){}}
+// Тихая фоновая музыка на всех устройствах: на этапе ввода и протокола (без видео).
+function startMusic(){
+if(music)return;
+try{music=new Audio('assets/'+SRC_MUSIC);music.loop=true;music.volume=.05;music.preload='auto';
+const p=music.play();if(p&&p.catch)p.catch(function(){});}catch(e){music=null;}
+}
+function stopMusic(){if(!music)return;try{music.pause();music.currentTime=0;}catch(e){}music=null;}
 function stopVoice(){if(!voice)return;try{voice.pause();voice.currentTime=0;}catch(e){}voice=null;}
 function status(text){
 if(!els.status)return '';
@@ -69,8 +78,6 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<button id="t10-start" class="t10-primary" type="button">▶ Включить инструкцию</button>'+
 '<p class="t10-note" id="t10-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<section class="t10-panel" id="t10-panel" hidden>'+
-'<div class="t10-press"><span>ДАВЛЕНИЕ АНОМАЛИИ</span><b id="t10-pressure">0%</b>'+
-'<div class="t10-pressbar"><i id="t10-pressurefill"></i></div></div>'+
 '<div class="t10-codebox" id="t10-codebox" hidden><p class="t10-eyebrow">КОД ЯДРА</p>'+
 '<div class="t10-coderow"><div class="t10-codecol">'+
 '<div class="t10-cells" id="t10-cells"></div>'+
@@ -88,10 +95,9 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<section class="t10-shield" id="t10-shield" hidden>'+
 '<div class="t10-waves" id="t10-waves">'+
 '<svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
-'<defs><radialGradient id="t10boltGrad" cx="50%" cy="50%" r="62%">'+
-'<stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#7ff3ea"/><stop offset="0.7" stop-color="#30e5dc"/><stop offset="1" stop-color="#0a6c72"/>'+
-'</radialGradient></defs>'+
-BOLTS.map(function(d){return '<path class="t10-bolt" d="'+d+'"/>';}).join('')+
+
+BOLTS.map(function(d,i){return '<g class="t10-boltg" style="animation-delay:'+(i*0.27).toFixed(2)+'s">'+
+'<path class="t10-bolt-glow" d="'+d+'"/><path class="t10-bolt-core" d="'+d+'"/></g>';}).join('')+
 '</svg></div>'+
 '<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
 '<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
@@ -151,11 +157,13 @@ protoDraft=[];
 try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
 try{db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid()).onDisconnect().update({active:false,at:Date.now()});}catch(e){}
 roomOff=NET.onRoom(onRoom);
+root.addEventListener('pointerdown',function(){startMusic();},{once:true});
+startMusic();
 tickTimer=setInterval(tick,400);
 }
 function unmount(){
 if(active)releaseShield();
-stopVoice();
+stopVoice();stopMusic();
 active=false;
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(holdHb){clearInterval(holdHb);holdHb=null;}
@@ -226,6 +234,7 @@ playSfx(SFX_CODE,.8);
 write({stage:'protocol',codeAccepted:true,codeAttempts:+task.codeAttempts||0,protocolStep:0,startsAt:now()+600}).catch(function(){});
 }else{
 const at=(+task.codeAttempts||0)+1;
+playSfx(SFX_ERR,.9);             // звук неправильного ввода (замечание автора 20.11.2026)
 const lvl=at>=4?2:(at>=2?1:0);   // первая ошибка без подсказки: подсказка после двух
 localHintCode=Math.max(localHintCode,lvl);
 if(lvl>(+task.codeHintLevel||0))playSfx(SFX_HINT_CODE,.85);
@@ -252,7 +261,7 @@ if(!cap()||!task||task.stage!=='protocol')return;
 if(protoDraft.length!==3)return;
 const okSeq=protoDraft.every(function(v,i){return v===ORDER[i];});
 if(okSeq){
-playSfx(SFX_CODE,.6);
+playSfx(SFX_WIN,.95);   // звук успеха протокола
 write({protocolStep:3,countdownStart:now()+900}).then(function(){
 setTimeout(function(){if(active)write({stage:'countdown'}).catch(function(){});},350);
 }).catch(function(){});
@@ -262,7 +271,7 @@ const lvl=at>=4?2:(at>=2?1:0);   // первая ошибка без подск�
 localHintProto=Math.max(localHintProto,lvl);
 glitchUntil=Date.now()+5000;
 protoDraft=[];
-playSfx(SFX_RESTART,.9);
+playSfx(SFX_ERR,.95);
 if(lvl>(+task.protocolHintLevel||0))setTimeout(function(){playSfx(SFX_HINT_PROTO,1);},700);
 write({protocolAttempts:at,protocolHintLevel:localHintProto,protocolStep:0}).catch(function(){});
 render();
@@ -437,6 +446,7 @@ stopHold();
 else{
 if(mediaKey)stopMedia();
 stopHold();
+if(st==='city'||st==='done')stopMusic();
 }
 }
 // ——— отрисовка ———
@@ -571,6 +581,7 @@ if(st!=='protocol')protoDraft=[];
 if(st!==stageKey){
 if(c&&st==='code')playSfx(SFX_KOD,1);
 if(c&&st==='protocol')playSfx(SFX_HOLD,1);
+if(st==='countdown'){stopMusic();playSfx(SFX_FINAL,.85);}
 stageKey=st;
 }
 // Постоянные подписи снизу не нужны: всё, что игрок должен делать, написано на самом экране.
