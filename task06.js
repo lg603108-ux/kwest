@@ -66,7 +66,7 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t6';root.innerHTML=
 '<video class="t6-bg" playsinline muted loop preload="auto" src="assets/anomaly_rift.mp4"></video>'+
 '<video class="t6-video" playsinline preload="auto"></video>'+
-'<section class="t6-screen t6-wait"><p class="t6-eyebrow">ЗАДАНИЕ 6</p><h1>Танец Лума</h1><p class="t6-note">Танец откроет путь. Лум покажет его вам. Запомните разные движения в порядке их первого появления. После просмотра выберите движения и расставьте их по порядку. В танце спрятано слово — его нужно разгадать отдельно. Капитан введёт ответ.</p><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t6-note">Видео показывается на всех устройствах. Звук инструкции слышит только капитан.</p></section>'+
+'<section class="t6-screen t6-wait"><h1>Танец Лума</h1><button id="t6-start" class="t6-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t6-note" id="t6-waitnote">Ждём, когда капитан запустит инструкцию…</p><p class="t6-note">Видео показывается на всех устройствах. Звук инструкции слышит только капитан.</p></section>'+
 '<div class="t6-controls" id="t6-controls" hidden><button id="t6-toggle" type="button">⏸ Пауза</button><button id="t6-restart" type="button">↺ В начало</button></div>'+
 '<button class="t6-replay" id="t6-replay" type="button" hidden>↺ Повторить танец</button>'+
 '<div class="t6-order" id="t6-order" hidden>'+
@@ -79,7 +79,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
 '<div class="t6-kbwin" id="t6-kbwin" hidden><p class="t6-kbwin-label">Введите слово</p><div class="t6-kbrow"><input class="t6-kbwin-input" id="t6-kbwin-input" type="text" autocomplete="off" autocapitalize="characters" enterkeyhint="go"><button class="t6-primary t6-kbok" type="button" id="t6-kbwin-ok">Проверить</button></div><button class="t6-kblink" type="button" id="t6-kbwin-cancel">Отмена</button></div>'+
 '<div class="t6-result" id="t6-result" hidden><p class="t6-res-title">Слово разгадано</p><p class="t6-res-word">ПОРТАЛ</p></div>'+
-'<section class="t6-screen t6-done" hidden><p class="t6-eyebrow">ЗАДАНИЕ 6 ЗАВЕРШЕНО</p><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p><p class="t6-note">Слово собрано из первых букв движений. Следующее задание появится в следующем обновлении.</p></section>'+
+'<section class="t6-screen t6-done" hidden><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p></section>'+
 '<div class="t6-status" id="t6-status" role="status" hidden></div>'+
 '<button class="t6-primary t6-mediabtn" id="t6-media" type="button" hidden></button>'+
 '';

@@ -46,9 +46,9 @@ active=true;deckOrder=null;deckPromise=null;secret=null;stageKey='';mediaKey='';
 try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 root=document.createElement('div');root.id='t3';root.innerHTML=
 '<video class="t3-video" playsinline preload="auto" hidden></video>'+
-'<section class="t3-screen t3-wait"><p class="t3-eyebrow">ЗАДАНИЕ 3</p><h1>Чувства Лума</h1><p>Верните Луму десять чувств через пантомиму. Актёр показывает чувство без слов, Судья выбирает его на экране.</p><button id="t3-start" class="t3-primary" type="button">▶ Запустить инструкцию для всех</button><p id="t3-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
+'<section class="t3-screen t3-wait"><h1>Чувства Лума</h1><button id="t3-start" class="t3-primary" type="button">▶ Запустить инструкцию для всех</button><p id="t3-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<section class="t3-screen t3-play" hidden><div id="t3-actor"></div><div id="t3-judge"></div><div id="t3-viewer"></div></section>'+
-'<section class="t3-screen t3-done" hidden><p class="t3-eyebrow">ЗАДАНИЕ 3 ЗАВЕРШЕНО</p><h1>Лум снова жив</h1><p>Все десять чувств возвращены.</p></section>'+
+'<section class="t3-screen t3-done" hidden><h1>Лум снова жив</h1></section>'+
 '<div id="t3-status" role="status" hidden></div>'+
 '<button id="t3-media" class="t3-primary t3-mediabtn" type="button" hidden></button>';
 container.appendChild(root);video=root.querySelector('.t3-video');
@@ -121,7 +121,7 @@ else if(NET.uid===task.judgeUid)playRoleVoice('volt_judge.mp3');
 els.actor.innerHTML='';els.judge.innerHTML='';els.viewer.innerHTML='';
 const number=task.round+1;
 if(NET.uid===task.actorUid){
-els.actor.innerHTML='<p class="t3-eyebrow">ВАША РОЛЬ — АКТЁР · ЧУВСТВО '+number+' ИЗ 10</p><div class="t3-secret" hidden><div class="t3-emotion-name"></div><p class="t3-instruction"></p></div><p class="t3-note">Покажите чувство без слов. Название видите только вы.</p>';
+els.actor.innerHTML='<p class="t3-side">ЧУВСТВО '+number+' ИЗ 10</p><h2 class="t3-big">ВЫ АКТЕР</h2><div class="t3-secret" hidden><div class="t3-emotion-name"></div><p class="t3-instruction"></p></div><p class="t3-note">Покажите без слов.</p>';
 renderActorSecret();
 }else if(NET.uid===task.judgeUid){
 els.judge.innerHTML='<p class="t3-eyebrow">ВАША РОЛЬ — СУДЬЯ · ЧУВСТВО '+number+' ИЗ 10</p><h2>Смотрите на '+escapeHtml(actor.name)+'</h2><p class="t3-note">Какое чувство показывает Актёр?</p><div class="t3-emotions"></div>';
@@ -181,7 +181,7 @@ const b=els.judge.querySelector('.t3-emotion[data-emotion="'+g.emotionId+'"]');i
 clearTimeout(wrongTimer);
 els.judge.querySelectorAll('.t3-emotion.t3-wrong').forEach(function(x){x.classList.remove('t3-wrong');});
 wrongKey=key;b.classList.add('t3-wrong');
-wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');wrongTimer=null;},700);
+wrongTimer=setTimeout(function(){if(b)b.classList.remove('t3-wrong');wrongTimer=null;},2600);
 }
 function stopMedia(){clearWatchdog();if(!video)return;clearTimeout(startTimer);mediaKey='';video.hidden=true;video.onclick=null;video.onended=null;video.pause();hideMediaBtn();}
 // Сторожевой таймер: продолжение не должно зависеть от video.ended.

@@ -45,7 +45,7 @@ try{if(window.__stopQuestAudio)window.__stopQuestAudio();}catch(e){}
 ['movie','street'].forEach(function(id){var v=document.getElementById(id);if(!v)return;try{v.pause();v.muted=true;}catch(e){}});
 root=document.createElement('div');root.id='t8';root.innerHTML=
 '<video class="t8-video" playsinline preload="auto"></video>'+
-'<section class="t8-screen t8-wait"><p class="t8-eyebrow">ЗАДАНИЕ 8</p><h1>Место искажения</h1>'+
+'<section class="t8-screen t8-wait"><h1>Место искажения</h1>'+
 '<button id="t8-start" class="t8-primary" type="button">▶ Включить инструкцию</button>'+
 '<p class="t8-note" id="t8-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<section class="t8-screen t8-ready" id="t8-ready" hidden><p class="t8-eyebrow">ИНСТРУКЦИЯ ПРОСМОТРЕНА</p><h1>Мы у места первого прорыва</h1>'+
