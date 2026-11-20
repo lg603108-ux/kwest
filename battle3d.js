@@ -1,7 +1,7 @@
 /* ОБОРОНА — проверка: локация ровно картинкой, объёмные только разлом и монстр. */
 (function () {
   'use strict';
-  var BUILD = 'b3d05';
+  var BUILD = 'b3d06';
   var doc = document;
   var canvas = doc.getElementById('c');
   var msgEl = doc.getElementById('msg');
@@ -19,7 +19,7 @@
   var renderer, scene, camera, clock;
   var monWrap = null, glowSprite = null, embers = null, emberV = [];
   var startAt = performance.now();
-  var S = 1, SY = 1, AS = 1, loaded = false;
+  var S = 1, SY = 1, AS = 1, loaded = false, uTime = { value: 0 };
 
   function rnd(a, b) { return a + Math.random() * (b - a); }
 
@@ -128,6 +128,17 @@
         m.emissive = new THREE.Color(0x0a2328);
         m.emissiveIntensity = 0.22;
         if (m.map) { try { m.map.encoding = THREE.sRGBEncoding; } catch (e) {} }
+        m.onBeforeCompile = function (sh) {
+          sh.uniforms.uTime = uTime;
+          sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader;
+          sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>',
+            '#include <begin_vertex>\n' +
+            'float lowW = smoothstep(0.06, -0.50, transformed.y);\n' +
+            'float wob = sin(transformed.x * 11.0 + transformed.z * 8.0 + uTime * 12.0);\n' +
+            'transformed.x += wob * 0.055 * lowW;\n' +
+            'transformed.z += cos(transformed.x * 8.0 + uTime * 9.0) * 0.045 * lowW;\n' +
+            'transformed.y += sin(uTime * 6.0 + transformed.x * 4.0) * 0.012 * lowW;');
+        };
         m.needsUpdate = true;
         paint = true;
       }
@@ -154,30 +165,34 @@
     var t = (performance.now() - startAt) / 1000;
 
     if (monWrap) {
-      var base = imgToWorld(RIFT_X, RIFT_Y + 0.30);
-      var emerge = imgToWorld(RIFT_X, RIFT_Y - 0.06);
-      var y = base.y, sc = 1, rot = 0;
-      if (t < 0.7) {
-        y = base.y - SY * 0.32; rot = 0.35;
-      } else if (t < 3.9) {
-        var k1 = (t - 0.7) / 3.2, e = easeOut(k1);
-        y = base.y - SY * 0.32 + (emerge.y - (base.y - SY * 0.32)) * e;
-        sc = 1 + 0.10 * e;
-        rot = 0.35 - 0.35 * e + Math.sin(k1 * 16) * 0.03;
-      } else if (t < 7.4) {
-        var k2 = (t - 3.9) / 3.5;
-        y = emerge.y + SY * 0.045 * k2;
-        sc = 1.10 + 0.12 * k2;
-        rot = Math.sin(k2 * 5.0) * 0.06;
+      var emerge = imgToWorld(RIFT_X, RIFT_Y - 0.04);
+      var start = imgToWorld(RIFT_X - 0.02, RIFT_Y + 0.34);
+      var y, x, sc = 1, rot = Math.PI / 2;   // боком
+      if (t < 0.15) {
+        x = start.x; y = start.y - SY * 0.34; sc = 1;
+      } else if (t < 2.5) {
+        var k1 = (t - 0.15) / 2.35, e = easeOut(k1);
+        x = start.x; y = (start.y - SY * 0.34) + (emerge.y - (start.y - SY * 0.34)) * e;
+        sc = 1 + 0.06 * e;
       } else {
-        y = emerge.y + SY * 0.045 + Math.sin(t * 1.2) * SY * 0.004;
-        sc = 1.22;
-        rot = Math.sin(t * 0.7) * 0.05;
+        // идёт боком вправо, потом обратно — без остановок
+        var walk = t - 2.5;
+        var span = 0.115;                       // сколько экрана проходит в одну сторону
+        var period = 7.5;
+        var ph = (walk % (period * 2)) / period; // 0..2
+        var dir = ph < 1 ? 1 : -1;
+        var frac = ph < 1 ? ph : 2 - ph;
+        var ix = RIFT_X + (frac - 0.5) * span;
+        var w = imgToWorld(ix, RIFT_Y - 0.04);
+        x = w.x; y = w.y + Math.sin(walk * 9.0) * SY * 0.012;
+        sc = 1.06 + 0.03 * frac;
+        rot = Math.PI / 2 * dir;                // повёрнут по ходу движения
       }
-      monWrap.position.x = base.x;
+      monWrap.position.x = x;
       monWrap.position.y = y;
       monWrap.scale.setScalar(sc);
       monWrap.rotation.y = rot;
+      uTime.value = t;
     }
 
     if (embers) {
