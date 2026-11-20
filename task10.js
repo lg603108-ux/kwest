@@ -8,7 +8,7 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0356a';
+const BUILD='0357a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
@@ -24,6 +24,7 @@ const LAYOUT='dome-core-stabilizer';
 const ORDER=[2,0,1];                                        // Стабилизатор → Купол → Ядро
 const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
 const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
+const WAVE_PATH='M0,100 L0,33.5 L4,50.8 L8,52.8 L12,40.8 L16,46.2 L20,54.3 L24,40.4 L28,24.4 L32,20.1 L36,29.0 L40,21.0 L44,12.7 L48,12.5 L52,38.0 L56,49.3 L60,38.6 L64,45.1 L68,54.9 L72,57.6 L76,43.7 L80,22.0 L84,19.4 L88,29.8 L92,18.0 L96,8.0 L100,14.4 L100,30.7 L100,100 Z';
 const COUNT_MS=3000;        // общий отсчёт 3–2–1
 const SHIELD_TTL=6000;      // зависшая запись щита не считается вечным щитом
 const PRESS_MS=2500;        // как часто капитан пишет общее давление в базу
@@ -32,6 +33,7 @@ let tickTimer=null,startTimer=null,holdHb=null,tOff=0,offRef=null;
 let mediaKey='',mediaRetries=0,endedLocal=false,stageKey='',lastStatusKey='';
 let slots=['','','',''],pos=0,lastSubmit=0,localHintCode=0,localHintProto=0,glitchUntil=0;
 let holding=false,holdAudio=null,holdWanted=false,pressCur=0,pressWrote=0,pressWritten=0;
+let protoDraft=[],wPhase=0,wRaf=0,wT0=0;
 let countWrote=0,finishWrote=0,cardKey='',localDone=false,autoStarted=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function now(){return Date.now()+(+tOff||0);}
@@ -71,12 +73,22 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<button class="t10-primary" id="t10-check" type="button">Подтвердить</button></div>'+
 '<p class="t10-err" id="t10-err" hidden>Сигнал искажён. Проверьте код</p></div>'+
 '<div class="t10-proto" id="t10-proto" hidden><p class="t10-eyebrow">ПРОТОКОЛ ЗАПУСКА</p>'+
-'<p class="t10-note">Вспомните плакат на стене из записи камер.</p>'+
-'<div class="t10-btns" id="t10-btns"></div></div>'+
+'<p class="t10-note">Нажмите три установки в порядке с плаката, затем «Проверить».</p>'+
+'<div class="t10-btns" id="t10-btns"></div>'+
+'<p class="t10-pcount" id="t10-pcount">Выбрано: 0 из 3</p>'+
+'<button class="t10-primary t10-pcheck" id="t10-pcheck" type="button" disabled>Проверить</button></div>'+
 '<p class="t10-hint" id="t10-hint" hidden><b id="t10-hintlabel">ПОДСКАЗКА</b><span id="t10-hinttext"></span></p>'+
 '<p class="t10-call" id="t10-call2" hidden>ВСЕ К ЩИТАМ!</p></section>'+
 '<section class="t10-shield" id="t10-shield" hidden>'+
-'<div class="t10-waves" id="t10-waves"><i></i><i></i><i></i></div>'+
+'<div class="t10-waves" id="t10-waves">'+
+'<div class="t10-wv t10-wb"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
+'<defs><linearGradient id="t10waveGrade" x1="0" y1="1" x2="0" y2="0">'+
+'<stop offset="0" stop-color="#0b3f44"/><stop offset="0.55" stop-color="#22b7ad"/><stop offset="1" stop-color="#b5fff8"/>'+
+'</linearGradient></defs><path d="'+WAVE_PATH+'"/></svg></div></div>'+
+'<div class="t10-wv t10-wt"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
+'<div class="t10-wv t10-wl"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
+'<div class="t10-wv t10-wr"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
+'</div>'+
 '<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
 '<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
 '<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.jpg?v=0356a" alt=""></button>'+
@@ -104,6 +116,7 @@ press:root.querySelector('#t10-pressure'),pressfill:root.querySelector('#t10-pre
 codebox:root.querySelector('#t10-codebox'),cells:root.querySelector('#t10-cells'),pad:root.querySelector('#t10-pad'),
 del:root.querySelector('#t10-del'),check:root.querySelector('#t10-check'),err:root.querySelector('#t10-err'),
 proto:root.querySelector('#t10-proto'),btns:root.querySelector('#t10-btns'),
+pcount:root.querySelector('#t10-pcount'),pcheck:root.querySelector('#t10-pcheck'),
 hint:root.querySelector('#t10-hint'),hintLabel:root.querySelector('#t10-hintlabel'),hintText:root.querySelector('#t10-hinttext'),
 call2:root.querySelector('#t10-call2'),shield:root.querySelector('#t10-shield'),
 shieldup:root.querySelector('#t10-shieldup'),shieldbtn:root.querySelector('#t10-shieldbtn'),
@@ -119,6 +132,7 @@ els.del.addEventListener('click',removeDigit);
 els.pad.addEventListener('click',onPadClick);
 els.cells.addEventListener('click',onCellClick);
 els.btns.addEventListener('click',onProtoClick);
+els.pcheck.addEventListener('click',protoCheck);
 els.finish.addEventListener('click',finishLocal);
 // щит: держим пальцем, отпускание/фон/потеря касания снимают защиту
 els.shieldbtn.addEventListener('pointerdown',shieldDown);
@@ -129,6 +143,7 @@ els.shieldbtn.addEventListener('pointerleave',shieldUp);
 els.shieldbtn.addEventListener('contextmenu',function(e){e.preventDefault();});
 document.addEventListener('visibilitychange',onVisibility);
 window.addEventListener('blur',shieldUp);
+protoDraft=[];wPhase=0;wT0=performance.now();if(wRaf)cancelAnimationFrame(wRaf);waveLoop();
 try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
 try{db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid()).onDisconnect().update({active:false,at:Date.now()});}catch(e){}
 roomOff=NET.onRoom(onRoom);
@@ -141,6 +156,7 @@ if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(holdHb){clearInterval(holdHb);holdHb=null;}
 if(offRef){try{offRef.off();}catch(e){}offRef=null;}
 if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
+if(wRaf){cancelAnimationFrame(wRaf);wRaf=0;}
 document.removeEventListener('visibilitychange',onVisibility);
 window.removeEventListener('blur',shieldUp);
 if(typeof roomOff==='function')roomOff();roomOff=null;
@@ -206,7 +222,7 @@ playSfx(SFX_CODE,.8);
 write({stage:'protocol',codeAccepted:true,codeAttempts:+task.codeAttempts||0,protocolStep:0,startsAt:now()+600}).catch(function(){});
 }else{
 const at=(+task.codeAttempts||0)+1;
-const lvl=at>=3?2:1;
+const lvl=at>=4?2:(at>=2?1:0);   // первая ошибка без подсказки: подсказка после двух
 localHintCode=Math.max(localHintCode,lvl);
 if(lvl>(+task.codeHintLevel||0))playSfx(SFX_HINT_CODE,.85);
 if(els.err)els.err.hidden=false;
@@ -220,24 +236,32 @@ const b=e.target&&e.target.closest?e.target.closest('.t10-pbtn'):null;
 if(!b||b.disabled)return;
 const idx=parseInt(b.getAttribute('data-i'),10);
 if(isNaN(idx))return;
-const step=+task.protocolStep||0;
-if(idx===ORDER[step]){
-const next=step+1;
-if(next>=3){
+if(protoDraft.length>=3)return;        // три нажатия, дальше только «Проверить»
+if(protoDraft.indexOf(idx)>=0)return;  // одну установку дважды не выбирают
+protoDraft.push(idx);
+render();
+}
+// Последовательность собрана тремя нажатиями, проверка отдельной кнопкой:
+// до проверки подсказок нет, ошибка не сбрасывает код и не раскрывает порядок.
+function protoCheck(){
+if(!cap()||!task||task.stage!=='protocol')return;
+if(protoDraft.length!==3)return;
+const okSeq=protoDraft.every(function(v,i){return v===ORDER[i];});
+if(okSeq){
+playSfx(SFX_CODE,.6);
 write({protocolStep:3,countdownStart:now()+900}).then(function(){
 setTimeout(function(){if(active)write({stage:'countdown'}).catch(function(){});},350);
 }).catch(function(){});
 }else{
-write({protocolStep:next}).catch(function(){});
-}
-}else{
 const at=(+task.protocolAttempts||0)+1;
-const lvl=at>=3?2:1;
+const lvl=at>=4?2:(at>=2?1:0);   // первая ошибка без подсказки: подсказка после двух
 localHintProto=Math.max(localHintProto,lvl);
 glitchUntil=Date.now()+5000;
+protoDraft=[];
 playSfx(SFX_RESTART,.9);
-if(lvl>(+task.protocolHintLevel||0))setTimeout(function(){playSfx(SFX_HINT_PROTO,.9);},700);
-write({protocolStep:0,protocolAttempts:at,protocolHintLevel:localHintProto}).catch(function(){});
+if(lvl>(+task.protocolHintLevel||0))setTimeout(function(){playSfx(SFX_HINT_PROTO,1);},700);
+write({protocolAttempts:at,protocolHintLevel:localHintProto,protocolStep:0}).catch(function(){});
+render();
 }
 }
 function startCity(){
@@ -386,6 +410,25 @@ if(delay>100){status('Видео начнётся одновременно у в
 startTimer=setTimeout(function(){startTimer=null;if(!active)return;beginPlay();},delay);}
 else beginPlay();
 }
+// ——— волны аномалии: четыре разные кромки (низ, верх, лево, право) наступают к центру ———
+function waveLoop(){
+if(!active)return;
+wRaf=requestAnimationFrame(waveLoop);
+if(!els.waves||!els.waves.children.length)return;
+const st=(task&&task.stage)||'';
+const hush=(st==='countdown'||st==='city'||st==='done');
+const want=(!hush&&!holding)?1:0;    // вне удержания кромки идут внутрь
+wPhase+=(want-wPhase)*(want>wPhase?0.010:0.035);
+const t=performance.now()/1000;
+const wob=Math.sin(t*1.5)*1.4+Math.sin(t*0.62)*1.9;
+const off=wPhase*(16+wob);
+// все четыре кромки двигаются по своей локальной оси «к центру»: поворот задан у обёртки
+const k=els.waves.children;
+for(let i=0;i<k.length;i++){
+const inner=k[i].firstElementChild;
+if(inner)inner.style.transform='translateY('+(-off).toFixed(2)+'%)';
+}
+}
 function coordinate(){
 if(!task)return;
 const st=task.stage||'wait';
@@ -501,14 +544,19 @@ return '<button class="t10-pbtn" data-i="'+i+'" type="button">'+
 '<span class="t10-pstep" data-step="'+i+'"></span></button>';
 }).join('');
 }
-const step=+task.protocolStep||0;
 for(let i=0;i<3;i++){
 const b=els.btns&&els.btns.children[i];if(!b)continue;
-const done=ORDER.indexOf(i)<step;
-b.classList.toggle('t10-done',done);
+const at=protoDraft.indexOf(i);
+b.classList.toggle('t10-done',at>=0);
 const mark=b.querySelector('.t10-pstep');
-if(mark)mark.textContent=done?String(ORDER.indexOf(i)+1):'';
+if(mark)mark.textContent=at>=0?String(at+1):'';
 }
+if(els.pcheck){
+const ready=protoDraft.length===3;
+els.pcheck.disabled=!ready;
+els.pcheck.hidden=st!=='protocol';
+}
+if(els.pcount)els.pcount.textContent='Выбрано: '+protoDraft.length+' из 3';
 }
 // подсказки
 let hint='';
@@ -530,6 +578,8 @@ els.countnum.textContent=left>0?String(Math.min(3,left)):'0';
 }
 // финальная карточка
 if(st==='done')fillCard();
+// протокол собирается тремя нажатиями заново; вне этой стадии черновик пуст
+if(st!=='protocol')protoDraft=[];
 // голос Вольта по стадиям (только капитан): сначала «введите код», после кода — «удерживайте щит»
 if(st!==stageKey){
 if(c&&st==='code')playSfx(SFX_KOD,1);
