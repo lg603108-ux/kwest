@@ -7,8 +7,151 @@
 // Звуки задания звучат только на телефоне капитана (решение автора 19.11.2026).
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
+/* ===== разряды аномалии: canvas, рисуются кодом ===== */
+/* task10arcs.js — разряды аномалии для задания 10 (canvas, рисуются кодом каждый кадр).
+   Подключение: T10Arcs({host: слой-контейнер, button: кнопка щита, state: секция щита}).
+   Секция щита с классом t10-on = кнопка зажата; t10-hush = верный протокол (разряды уходят и гаснут). */
+(function(){
+'use strict';
+var TAU=Math.PI*2;
+function rnd(a,b){return a+Math.random()*(b-a);}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
+function walk(n,amp){var a=[],v=0,i;for(i=0;i<=n;i++){v=v*0.72+rnd(-1,1)*amp;a.push(v);}return a;}
+function mix(a,b,k){var r=[],i;for(i=0;i<a.length;i++)r.push(a[i]*k+b[i]*(1-k));return r;}
+function T10Arcs(o){
+ var host=o.host,btn=o.button,st=o.state||host;
+ var cv=document.createElement('canvas');
+ cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none';
+ host.appendChild(cv);
+ var ctx=cv.getContext('2d');
+ var W=0,H=0,dpr=1,cx=0,cy=0,btnR=60,unit=1,innerR=80;
+ var N=36,BN=12,COUNT=o.count||26;
+ var remeasure=0,bolts=[],raf=0,last=0,time=0,hold=false,hush=false,alpha=1,running=false;
+ var PASS=[[34,.06,'rgba(10,170,200,'],[20,.11,'rgba(20,200,215,'],[10,.24,'rgba(40,228,224,'],[4.4,.7,'rgba(140,250,244,'],[1.7,1,'rgba(245,255,255,']];
+ function build(){
+  var i;bolts=bolts.length===COUNT?bolts:[];
+  for(i=0;i<COUNT;i++){
+   var b=bolts[i]||{reach:rnd(.15,.35),wait:0,bright:1,flash:0};
+   b.ang=(i/COUNT)*TAU+rnd(-.14,.14);
+   b.phase=rnd(0,TAU);b.period=rnd(5,9);b.rate=rnd(1.1,1.9);
+   b.kA=walk(N,1);b.kB=walk(N,1);b.tk=0;b.dur=rnd(.07,.2);
+   b.mph=rnd(0,TAU);b.mamp=rnd(.03,.07);b.nextFlash=rnd(1,4);
+   b.br=[];var nb=2+(Math.random()<.5?1:0),j;
+   for(j=0;j<nb;j++)b.br.push({at:rnd(.12,.8),side:Math.random()<.5?-1:1,ang:rnd(.35,.75),lenF:rnd(.14,.3),
+    A:walk(BN,1),B:walk(BN,1),vis:0,on:1});
+   bolts[i]=b;
+  }
+ }
+ function resize(){
+  var r=host.getBoundingClientRect();
+  W=Math.max(1,r.width);H=Math.max(1,r.height);dpr=Math.min(window.devicePixelRatio||1,1.5);
+  var nw=Math.round(W*dpr),nh=Math.round(H*dpr);if(cv.width!==nw||cv.height!==nh){cv.width=nw;cv.height=nh;}
+  var br=btn&&btn.getBoundingClientRect();
+  if(br&&br.width>10){cx=br.left-r.left+br.width/2;cy=br.top-r.top+br.height/2;btnR=br.width/2;}
+  else{cx=W/2;cy=H/2;btnR=Math.min(W,H)*.15;}
+  unit=clamp(Math.min(W,H)/420,.8,1.6);
+  innerR=btnR*1.32+8*unit;
+  if(!bolts.length)build();
+ }
+ function edgeDist(a){
+  var dx=Math.cos(a),dy=Math.sin(a),tx=1e9,ty=1e9;
+  if(dx>1e-6)tx=(W-cx)/dx;else if(dx<-1e-6)tx=(0-cx)/dx;
+  if(dy>1e-6)ty=(H-cy)/dy;else if(dy<-1e-6)ty=(0-cy)/dy;
+  return Math.min(tx,ty)+26*unit;
+ }
+ function strokePath(pts,from,to,w,al,col){
+  ctx.beginPath();ctx.moveTo(pts[from][0],pts[from][1]);
+  for(var k=from+1;k<=to;k++)ctx.lineTo(pts[k][0],pts[k][1]);
+  ctx.lineWidth=w;ctx.strokeStyle=col+al.toFixed(3)+')';ctx.stroke();
+ }
+ function drawLine(pts,widthK,alK,chunks){
+  var n=pts.length-1,c,p,CS=[1,.82,.62,.4],CA=[1,1,.8,.5];
+  for(p=0;p<PASS.length;p++){
+   for(c=0;c<chunks;c++){
+    var f=Math.floor(n*c/chunks),t=Math.floor(n*(c+1)/chunks);
+    var sc=chunks>1?CS[c]:1,ca=chunks>1?CA[c]:1;
+    strokePath(pts,f,t,PASS[p][0]*unit*widthK*sc,clamp(PASS[p][1]*alK*ca,0,1),PASS[p][2]);
+   }
+  }
+ }
+ function step(b,dt){
+  b.tk+=dt;
+  if(b.tk>=b.dur){
+   b.kA=b.kB;b.kB=mix(b.kA,walk(N,1),.4);b.tk=0;b.dur=rnd(.07,.2);
+   b.bright=rnd(.6,1);
+   for(var j=0;j<b.br.length;j++){var q=b.br[j];q.A=q.B;q.B=mix(q.A,walk(BN,1),.4);q.on=Math.random()<.78?1:0;}
+  }
+  b.nextFlash-=dt;if(b.nextFlash<=0){b.flash=1;b.nextFlash=rnd(1.5,5);}
+  b.flash=Math.max(0,b.flash-dt*3.5);
+  var target;
+  if(hush||hold)target=0;
+  else target=.62+.36*(.5+.5*Math.sin(time/b.period*TAU+b.phase));
+  if(b.wait>0){b.wait-=dt;}
+  else b.reach+=(target-b.reach)*(1-Math.exp(-dt*b.rate*(hold||hush?1.15:.75)));
+ }
+ function drawBolt(b){
+  var d=[Math.cos(b.ang),Math.sin(b.ang)],E=edgeDist(b.ang);
+  var vis=E-26*unit,stub=Math.max(80*unit,(vis-innerR)*.22),tail=E,head=(vis-stub)+(innerR-(vis-stub))*b.reach;
+  var len=tail-head;if(len<6)return;
+  var inx=-d[0],iny=-d[1],px=-iny,py=inx; // направление к кнопке и перпендикуляр
+  var tx=cx+d[0]*tail,ty=cy+d[1]*tail;
+  var u=clamp(b.tk/b.dur,0,1);u=u*u*(3-2*u);
+  var amp=7*unit,pts=[],k;
+  for(k=0;k<=N;k++){
+   var t=k/N,off=(b.kA[k]+(b.kB[k]-b.kA[k])*u)*amp*(1-.35*t)+Math.sin(t*Math.PI*1.3+b.mph+time*.6)*len*b.mamp;
+   pts.push([tx+inx*len*t+px*off,ty+iny*len*t+py*off]);
+  }
+  var fl=1+b.flash*.8,al=b.bright*alpha*(.85+.15*b.flash);
+  drawLine(pts,fl,al,4);
+  // ветви
+  for(var j=0;j<b.br.length;j++){
+   var q=b.br[j];q.vis+=(q.on-q.vis)*.25;if(q.vis<.04)continue;
+   var o0=pts[Math.floor(q.at*N)],ang0=Math.atan2(iny,inx)+q.side*q.ang;
+   var bl=len*q.lenF,bx=Math.cos(ang0),by=Math.sin(ang0),bp=[];
+   for(k=0;k<=BN;k++){
+    var s=k/BN,of2=(q.A[k]+(q.B[k]-q.A[k])*u)*amp*.8;
+    bp.push([o0[0]+bx*bl*s-by*of2,o0[1]+by*bl*s+bx*of2]);
+   }
+   drawLine(bp,.55*fl,al*q.vis*.85,1);
+  }
+ }
+ function frame(ts){
+  raf=0;if(!running)return;
+  var dt=clamp((ts-(last||ts))/1000,0,.05);last=ts;time+=dt;if((remeasure-=dt)<=0){remeasure=.6;resize();}
+  var aT=hush?0:(hold?.85:1);alpha+=(aT-alpha)*(1-Math.exp(-dt*(hush?2.2:3)));
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  if(hush&&alpha<.01){running=false;return;}
+  ctx.globalCompositeOperation='lighter';ctx.lineCap='round';ctx.lineJoin='round';
+  for(var i=0;i<bolts.length;i++){step(bolts[i],dt);drawBolt(bolts[i]);}
+  ctx.globalCompositeOperation='source-over';
+  raf=requestAnimationFrame(frame);
+ }
+ function start(){if(running||st.hidden)return;running=true;last=0;resize();raf=requestAnimationFrame(frame);}
+ function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;}
+ function sync(){
+  var h=st.classList.contains('t10-on'),u=st.classList.contains('t10-hush');
+  if(h!==hold||u!==hush){for(var i=0;i<bolts.length;i++)bolts[i].wait=rnd(0,.4);}
+  hold=h;hush=u;
+  if(st.hidden){stop();return;}
+  if(!running&&!(hush&&alpha<.01))start();
+  if(!hush&&!running)start();
+ }
+ resize();
+ var mo=new MutationObserver(sync);mo.observe(st,{attributes:true,attributeFilter:['class','hidden']});
+ function onRes(){if(!st.hidden)resize();}
+ function onVis(){if(document.hidden)stop();else sync();}
+ window.addEventListener('resize',onRes);
+ document.addEventListener('visibilitychange',onVis);
+ sync();
+ function destroy(){stop();mo.disconnect();window.removeEventListener('resize',onRes);document.removeEventListener('visibilitychange',onVis);if(cv.parentNode)cv.parentNode.removeChild(cv);}
+ return {resize:resize,start:start,stop:stop,destroy:destroy};
+}
+window.T10Arcs=T10Arcs;
+})();
+/* ===== конец разрядов ===== */
 window.Task10=(function(){
-const BUILD='0361a';
+const BUILD='0362a';
+let arcs=null;                                              // живые разряды аномалии (T10Arcs)
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
@@ -26,8 +169,6 @@ const LAYOUT='dome-core-stabilizer';
 const ORDER=[2,0,1];                                        // Стабилизатор → Купол → Ядро
 const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
 const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
-// Ветви аномалии: светящиеся разряды идут от краёв экрана к кнопке щита.
-const BOLTS=["M52.5,122.9 Q52.5,122.9 49.5,119.2 Q46.5,115.5 48.7,111.8 Q51.0,108.1 50.0,104.4 Q49.1,100.7 49.7,97.0 Q50.4,93.3 47.2,89.6 Q43.9,85.9 44.1,82.2 Q44.3,78.5 46.6,74.8 Q48.9,71.1 49.3,67.4 L49.7,63.7", "M85.6,99.8 Q85.6,99.8 84.0,97.2 Q82.5,94.5 81.6,91.3 Q80.7,88.2 77.3,86.9 Q73.8,85.7 70.1,84.6 Q66.4,83.5 69.1,77.7 Q71.8,72.0 68.7,70.4 Q65.7,68.9 64.6,65.9 Q63.4,63.0 61.5,61.7 L59.5,60.4", "M117.3,71.4 Q117.3,71.4 113.9,69.8 Q110.4,68.2 106.3,68.6 Q102.2,69.0 98.1,69.3 Q94.0,69.7 91.2,66.3 Q88.3,62.8 85.3,59.8 Q82.4,56.8 78.5,56.5 Q74.6,56.2 70.6,56.4 Q66.6,56.5 62.8,55.8 L59.1,55.0", "M112.0,31.9 Q112.0,31.9 109.1,33.5 Q106.2,35.1 103.3,36.6 Q100.4,38.0 97.5,39.7 Q94.7,41.5 91.3,41.3 Q87.8,41.1 84.1,40.0 Q80.3,38.9 76.5,37.6 Q72.7,36.4 71.1,41.9 Q69.5,47.3 66.1,47.2 L62.7,47.1", "M92.9,-6.5 Q92.9,-6.5 91.4,-2.9 Q89.9,0.6 85.2,1.8 Q80.5,3.0 78.5,6.1 Q76.5,9.2 73.4,11.6 Q70.3,14.0 71.8,19.6 Q73.3,25.3 69.0,26.8 Q64.7,28.3 59.4,29.1 Q54.1,29.8 54.3,35.9 L54.5,42.0", "M50.5,-23.7 Q50.5,-23.7 52.2,-19.6 Q54.0,-15.5 50.4,-11.4 Q46.8,-7.3 47.2,-3.2 Q47.7,0.8 45.4,4.9 Q43.2,9.0 44.1,13.1 Q45.0,17.2 43.4,21.3 Q41.7,25.3 45.5,29.4 Q49.2,33.5 48.9,37.6 L48.5,41.7", "M8.3,-10.7 Q8.3,-10.7 11.3,-8.0 Q14.2,-5.2 15.3,-1.1 Q16.3,3.0 20.0,5.2 Q23.7,7.4 22.0,13.6 Q20.3,19.7 22.2,23.3 Q24.0,26.8 31.5,26.3 Q38.9,25.8 42.4,28.2 Q45.9,30.5 45.7,36.2 L45.6,41.9", "M-17.7,27.5 Q-17.7,27.5 -14.6,30.5 Q-11.6,33.5 -7.3,32.8 Q-3.0,32.2 0.9,32.7 Q4.8,33.3 7.3,38.1 Q9.8,42.9 13.5,43.8 Q17.3,44.8 20.6,47.0 Q24.0,49.2 28.2,48.8 Q32.4,48.3 36.5,48.6 L40.6,48.9", "M-16.0,70.1 Q-16.0,70.1 -12.4,69.2 Q-8.7,68.3 -4.6,68.8 Q-0.6,69.4 2.7,67.2 Q5.9,65.1 9.4,63.9 Q12.9,62.8 17.2,63.9 Q21.5,64.9 23.1,57.8 Q24.6,50.6 29.7,54.2 Q34.8,57.8 38.0,56.3 L41.1,54.8", "M10.5,99.8 Q10.5,99.8 13.7,98.2 Q16.8,96.6 18.6,94.1 Q20.4,91.5 20.7,87.9 Q21.0,84.3 24.5,83.0 Q28.0,81.7 29.3,78.8 Q30.6,75.9 32.2,73.3 Q33.9,70.6 37.9,69.7 Q41.9,68.8 41.6,65.4 L41.3,62.1"];
 const COUNT_MS=3000;        // общий отсчёт 3–2–1
 const SHIELD_TTL=6000;      // зависшая запись щита не считается вечным щитом
 const PRESS_MS=2500;        // как часто капитан пишет общее давление в базу
@@ -93,15 +234,10 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<div class="t10-protrow"><button class="t10-primary t10-pcheck" id="t10-pcheck" type="button" disabled>Проверить</button>'+
 '<p class="t10-phint" id="t10-phint" hidden></p></div></div></section>'+
 '<section class="t10-shield" id="t10-shield" hidden>'+
-'<div class="t10-waves" id="t10-waves">'+
-'<svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
-
-BOLTS.map(function(d,i){return '<g class="t10-boltg" style="animation-delay:'+(i*0.27).toFixed(2)+'s">'+
-'<path class="t10-bolt-glow" d="'+d+'"/><path class="t10-bolt-core" d="'+d+'"/></g>';}).join('')+
-'</svg></div>'+
+'<div class="t10-waves" id="t10-waves"></div>'+
 '<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
 '<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
-'<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.jpg?v=0356a" alt=""></button>'+
+'<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.png?v=0362a" alt=""></button>'+
 '<p class="t10-shieldstate" id="t10-shieldstate">Щит не активен</p>'+
 '<p class="t10-call" id="t10-call" hidden>ВСЕ К ЩИТАМ!</p>'+
 '<p class="t10-press2">ДАВЛЕНИЕ АНОМАЛИИ: <b id="t10-pressure2">0%</b></p></section>'+
@@ -136,6 +272,7 @@ countnum:root.querySelector('#t10-countnum'),done:root.querySelector('#t10-done'
 names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),
 finish:root.querySelector('#t10-finish'),donewait:root.querySelector('#t10-donewait'),
 status:root.querySelector('#t10-status'),media:root.querySelector('#t10-media')};
+try{arcs=T10Arcs({host:els.waves,button:els.shieldbtn,state:els.shield});}catch(e){arcs=null;}
 els.start.addEventListener('click',startIntro);
 els.check.addEventListener('click',submitCode);
 els.del.addEventListener('click',removeDigit);
@@ -162,6 +299,7 @@ startMusic();
 tickTimer=setInterval(tick,400);
 }
 function unmount(){
+if(arcs){try{arcs.destroy();}catch(e){}arcs=null;}
 if(active)releaseShield();
 stopVoice();stopMusic();
 active=false;

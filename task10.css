@@ -70,23 +70,12 @@ font-size:13.5px;line-height:1.3}
 @keyframes t10glitch{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(2px,-1px)}}
 /* ——— щит игрока: тонкие волнистые линии аномалии от купола ——— */
 #t10 .t10-shield{background:#02100f;gap:16px;overflow:hidden}
-#t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none;transform-origin:50% 50%;
-transition:transform .6s cubic-bezier(.4,0,.2,1),opacity .6s ease;animation:t10creep 4.5s ease-in-out infinite}
-#t10 .t10-waves svg{width:100%;height:100%;display:block;overflow:visible}
-#t10 .t10-boltg{animation:t10flick 2.6s ease-in-out infinite}
-#t10 .t10-bolt-glow{fill:none;stroke:#2fe6dc;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;opacity:.5;filter:blur(2.4px)}
-#t10 .t10-bolt-core{fill:none;stroke:#f2fffd;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;
-filter:drop-shadow(0 0 7px #35e7df)}
-@keyframes t10flick{0%,100%{opacity:1}30%{opacity:.5}55%{opacity:.9}75%{opacity:.4}}
-@keyframes t10creep{0%{transform:scale(1) rotate(-1deg)}50%{transform:scale(.93) rotate(1deg)}100%{transform:scale(1) rotate(-1deg)}}
-/* нажатие: разряды уходят почти за край экрана, отпускание — возвращаются */
-#t10 .t10-shield.t10-on .t10-waves{transform:scale(2.6);opacity:.06;animation:none}
-#t10 .t10-shield.t10-hush .t10-waves{transform:scale(3.2);opacity:0;animation:none}
+#t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none}
 #t10 .t10-shield>*:not(.t10-waves){position:relative;z-index:1}
 #t10 .t10-shieldup{font-size:clamp(20px,3.6vh,28px);font-weight:800;letter-spacing:1.2px;color:#eaffff;margin:0}
 #t10 .t10-shieldbtn{width:min(58vw,min(34vh,240px));aspect-ratio:1/1;border:0;border-radius:50%;padding:0;background:none;
 cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
-display:block;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.6)}
+display:block;overflow:visible;box-shadow:0 14px 40px rgba(0,0,0,.6)}
 #t10 .t10-shieldbtn img{width:100%;height:100%;display:block;border-radius:50%;object-fit:cover}
 #t10 .t10-shieldbtn:disabled{opacity:.5;cursor:default;box-shadow:none}
 #t10 .t10-shield.t10-on .t10-shieldbtn{box-shadow:0 0 0 7px rgba(48,229,220,.8),0 0 46px rgba(48,229,220,.8)}
