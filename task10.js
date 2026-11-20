@@ -8,7 +8,7 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0357a';
+const BUILD='0358a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
@@ -24,7 +24,8 @@ const LAYOUT='dome-core-stabilizer';
 const ORDER=[2,0,1];                                        // Стабилизатор → Купол → Ядро
 const HINT_CODE=['','Вспомните порядок объектов: пробирка, бейдж, часы, сектор.','Пробирка 3, бейдж 9, часы 7, сектор 1. Код — 3971.'];
 const HINT_PROTO=['','Вспомните плакат из записи камер.','Порядок с плаката: Стабилизатор → Купол → Ядро.'];
-const WAVE_PATH='M0,100 L0,33.5 L4,50.8 L8,52.8 L12,40.8 L16,46.2 L20,54.3 L24,40.4 L28,24.4 L32,20.1 L36,29.0 L40,21.0 L44,12.7 L48,12.5 L52,38.0 L56,49.3 L60,38.6 L64,45.1 L68,54.9 L72,57.6 L76,43.7 L80,22.0 L84,19.4 L88,29.8 L92,18.0 L96,8.0 L100,14.4 L100,30.7 L100,100 Z';
+// Тонкие волнистые линии аномалии: расходятся от купола (верхний центр) к краям экрана.
+const BOLTS=["M47.3,2.0 Q47.3,2.0 43.8,4.1 Q40.4,6.1 36.6,7.1 Q32.7,8.0 28.5,8.1 Q24.4,8.1 20.7,9.5 Q17.0,10.9 14.0,14.2 Q11.0,17.4 7.5,19.4 Q4.1,21.3 -0.5,20.5 L-5.0,19.6", "M48.1,4.0 Q48.1,4.0 44.6,6.6 Q41.0,9.3 36.4,10.3 Q31.8,11.3 27.5,13.0 Q23.3,14.6 20.9,18.9 Q18.5,23.2 16.1,27.6 Q13.7,31.9 8.9,32.6 Q4.0,33.3 -1.7,32.7 L-7.4,32.1", "M48.9,4.2 Q48.9,4.2 45.5,6.9 Q42.1,9.6 38.4,12.0 Q34.7,14.4 32.4,18.1 Q30.1,21.8 28.7,26.3 Q27.3,30.8 24.2,33.8 Q21.1,36.8 16.2,38.1 Q11.3,39.4 7.9,42.2 L4.6,44.9", "M49.3,4.1 Q49.3,4.1 46.0,7.0 Q42.7,9.9 40.6,13.5 Q38.5,17.1 38.8,21.9 Q39.1,26.8 38.1,31.0 Q37.2,35.2 32.6,37.4 Q27.9,39.6 23.6,42.0 Q19.3,44.4 19.9,49.4 L20.5,54.4", "M48.6,3.7 Q48.6,3.7 47.0,7.4 Q45.3,11.1 45.5,15.3 Q45.7,19.5 46.2,23.7 Q46.8,28.0 44.7,31.6 Q42.5,35.2 39.0,38.4 Q35.5,41.7 35.1,45.7 Q34.7,49.7 37.2,54.5 L39.7,59.3", "M48.9,4.3 Q48.9,4.3 49.2,8.8 Q49.4,13.3 50.6,17.7 Q51.7,22.2 51.7,26.7 Q51.7,31.2 50.0,35.6 Q48.2,40.1 47.6,44.6 Q46.9,49.1 49.0,53.6 Q51.1,58.0 52.7,62.5 L54.3,67.0", "M49.5,4.4 Q49.5,4.4 51.8,8.3 Q54.0,12.2 56.0,16.2 Q57.9,20.2 57.2,24.9 Q56.5,29.5 55.6,34.2 Q54.7,38.9 57.5,42.7 Q60.2,46.5 64.5,49.9 Q68.8,53.3 68.9,57.8 L69.0,62.2", "M51.5,3.7 Q51.5,3.7 54.3,7.0 Q57.0,10.3 58.6,14.3 Q60.1,18.2 60.6,22.7 Q61.0,27.2 63.2,30.9 Q65.3,34.5 69.4,37.1 Q73.5,39.7 76.1,43.1 Q78.7,46.4 78.2,51.5 L77.6,56.5", "M53.2,2.2 Q53.2,2.2 56.1,5.1 Q59.0,7.9 60.2,12.3 Q61.5,16.6 63.4,20.3 Q65.3,24.1 70.0,25.4 Q74.6,26.8 79.1,28.1 Q83.7,29.5 84.6,34.2 Q85.5,38.8 85.2,44.6 L84.9,50.4", "M53.2,1.4 Q53.2,1.4 56.0,4.3 Q58.8,7.1 61.4,10.4 Q63.9,13.7 67.7,15.2 Q71.4,16.6 76.0,16.9 Q80.5,17.2 83.6,19.8 Q86.6,22.3 88.1,27.1 Q89.6,32.0 92.4,34.8 L95.3,37.6", "M53.2,1.7 Q53.2,1.7 57.1,4.0 Q60.9,6.3 65.0,7.9 Q69.1,9.5 73.8,9.7 Q78.4,9.8 82.8,10.7 Q87.1,11.7 90.7,14.8 Q94.2,18.0 97.8,20.9 Q101.5,23.8 106.2,23.8 L110.9,23.7"];
 const COUNT_MS=3000;        // общий отсчёт 3–2–1
 const SHIELD_TTL=6000;      // зависшая запись щита не считается вечным щитом
 const PRESS_MS=2500;        // как часто капитан пишет общее давление в базу
@@ -32,8 +33,8 @@ let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=nu
 let tickTimer=null,startTimer=null,holdHb=null,tOff=0,offRef=null;
 let mediaKey='',mediaRetries=0,endedLocal=false,stageKey='',lastStatusKey='';
 let slots=['','','',''],pos=0,lastSubmit=0,localHintCode=0,localHintProto=0,glitchUntil=0;
-let holding=false,holdAudio=null,holdWanted=false,pressCur=0,pressWrote=0,pressWritten=0;
-let protoDraft=[],wPhase=0,wRaf=0,wT0=0;
+let holding=false,holdAudio=null,voice=null,pressCur=0,pressWrote=0,pressWritten=0;
+let protoDraft=[];
 let countWrote=0,finishWrote=0,cardKey='',localDone=false,autoStarted=false;
 function cap(){const room=roomState||(window.NET&&NET.room);return !!(window.NET&&NET.uid&&room&&room.captain===NET.uid);}
 function now(){return Date.now()+(+tOff||0);}
@@ -43,7 +44,10 @@ function nodeRef(){return db().ref('rooms/'+NET.room.code+'/tasks/task10');}
 function write(obj){return nodeRef().update(obj).catch(function(e){error(e);throw e;});}
 function error(e){status('Ошибка связи: '+(e&&e.message||e));}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function playSfx(file,volume){if(!cap())return;try{var x=new Audio('assets/'+file);x.volume=volume;x.play().catch(function(){});}catch(e){}}
+// Голос и звуки идут по ОДНОМУ каналу: новая дорожка глушит предыдущую, иначе
+// при вводе кода и протокола фразы накладываются друг на друга (замечание автора 20.11.2026).
+function playSfx(file,volume){if(!cap())return;try{if(voice){try{voice.pause();voice.currentTime=0;}catch(_){}}voice=new Audio('assets/'+file);voice.volume=volume;voice.play().catch(function(){});}catch(e){}}
+function stopVoice(){if(!voice)return;try{voice.pause();voice.currentTime=0;}catch(e){}voice=null;}
 function status(text){
 if(!els.status)return '';
 if(text===undefined)return els.status.textContent||'';
@@ -68,27 +72,27 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<div class="t10-press"><span>ДАВЛЕНИЕ АНОМАЛИИ</span><b id="t10-pressure">0%</b>'+
 '<div class="t10-pressbar"><i id="t10-pressurefill"></i></div></div>'+
 '<div class="t10-codebox" id="t10-codebox" hidden><p class="t10-eyebrow">КОД ЯДРА</p>'+
-'<div class="t10-cells" id="t10-cells"></div><div class="t10-pad" id="t10-pad"></div>'+
+'<div class="t10-coderow"><div class="t10-codecol">'+
+'<div class="t10-cells" id="t10-cells"></div>'+
+'<div class="t10-pad" id="t10-pad"></div>'+
 '<div class="t10-actions"><button class="t10-secondary" id="t10-del" type="button">Удалить</button>'+
 '<button class="t10-primary" id="t10-check" type="button">Подтвердить</button></div>'+
-'<p class="t10-err" id="t10-err" hidden>Сигнал искажён. Проверьте код</p></div>'+
+'<p class="t10-hint" id="t10-hint" hidden><b>ПОДСКАЗКА</b><span id="t10-hinttext"></span></p>'+
+'</div><p class="t10-err" id="t10-err" hidden>Сигнал искажён. Проверьте код</p></div></div>'+
 '<div class="t10-proto" id="t10-proto" hidden><p class="t10-eyebrow">ПРОТОКОЛ ЗАПУСКА</p>'+
 '<p class="t10-note">Нажмите три установки в порядке с плаката, затем «Проверить».</p>'+
 '<div class="t10-btns" id="t10-btns"></div>'+
 '<p class="t10-pcount" id="t10-pcount">Выбрано: 0 из 3</p>'+
-'<button class="t10-primary t10-pcheck" id="t10-pcheck" type="button" disabled>Проверить</button></div>'+
-'<p class="t10-hint" id="t10-hint" hidden><b id="t10-hintlabel">ПОДСКАЗКА</b><span id="t10-hinttext"></span></p>'+
-'<p class="t10-call" id="t10-call2" hidden>ВСЕ К ЩИТАМ!</p></section>'+
+'<div class="t10-protrow"><button class="t10-primary t10-pcheck" id="t10-pcheck" type="button" disabled>Проверить</button>'+
+'<p class="t10-phint" id="t10-phint" hidden></p></div></div></section>'+
 '<section class="t10-shield" id="t10-shield" hidden>'+
 '<div class="t10-waves" id="t10-waves">'+
-'<div class="t10-wv t10-wb"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
-'<defs><linearGradient id="t10waveGrade" x1="0" y1="1" x2="0" y2="0">'+
-'<stop offset="0" stop-color="#0b3f44"/><stop offset="0.55" stop-color="#22b7ad"/><stop offset="1" stop-color="#b5fff8"/>'+
-'</linearGradient></defs><path d="'+WAVE_PATH+'"/></svg></div></div>'+
-'<div class="t10-wv t10-wt"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
-'<div class="t10-wv t10-wl"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
-'<div class="t10-wv t10-wr"><div class="t10-wvi"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+WAVE_PATH+'"/></svg></div></div>'+
-'</div>'+
+'<svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
+'<defs><linearGradient id="t10boltGrad" x1="0" y1="0" x2="0" y2="1">'+
+'<stop offset="0" stop-color="#eafffb"/><stop offset="0.4" stop-color="#30e5dc"/><stop offset="1" stop-color="#0a6c72"/>'+
+'</linearGradient></defs>'+
+BOLTS.map(function(d){return '<path class="t10-bolt" d="'+d+'"/>';}).join('')+
+'</svg></div>'+
 '<p class="t10-eyebrow">ЗАКРЫТИЕ ПОРТАЛА</p>'+
 '<p class="t10-shieldup" id="t10-shieldup">УДЕРЖИВАЙ ЩИТ!</p>'+
 '<button class="t10-shieldbtn" id="t10-shieldbtn" type="button"><img src="assets/t10_shield.jpg?v=0356a" alt=""></button>'+
@@ -117,8 +121,8 @@ codebox:root.querySelector('#t10-codebox'),cells:root.querySelector('#t10-cells'
 del:root.querySelector('#t10-del'),check:root.querySelector('#t10-check'),err:root.querySelector('#t10-err'),
 proto:root.querySelector('#t10-proto'),btns:root.querySelector('#t10-btns'),
 pcount:root.querySelector('#t10-pcount'),pcheck:root.querySelector('#t10-pcheck'),
-hint:root.querySelector('#t10-hint'),hintLabel:root.querySelector('#t10-hintlabel'),hintText:root.querySelector('#t10-hinttext'),
-call2:root.querySelector('#t10-call2'),shield:root.querySelector('#t10-shield'),
+hint:root.querySelector('#t10-hint'),hintText:root.querySelector('#t10-hinttext'),
+phint:root.querySelector('#t10-phint'),shield:root.querySelector('#t10-shield'),
 shieldup:root.querySelector('#t10-shieldup'),shieldbtn:root.querySelector('#t10-shieldbtn'),
 shieldstate:root.querySelector('#t10-shieldstate'),call:root.querySelector('#t10-call'),
 press2:root.querySelector('#t10-pressure2'),count:root.querySelector('#t10-count'),
@@ -143,7 +147,7 @@ els.shieldbtn.addEventListener('pointerleave',shieldUp);
 els.shieldbtn.addEventListener('contextmenu',function(e){e.preventDefault();});
 document.addEventListener('visibilitychange',onVisibility);
 window.addEventListener('blur',shieldUp);
-protoDraft=[];wPhase=0;wT0=performance.now();if(wRaf)cancelAnimationFrame(wRaf);waveLoop();
+protoDraft=[];
 try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
 try{db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid()).onDisconnect().update({active:false,at:Date.now()});}catch(e){}
 roomOff=NET.onRoom(onRoom);
@@ -151,12 +155,12 @@ tickTimer=setInterval(tick,400);
 }
 function unmount(){
 if(active)releaseShield();
+stopVoice();
 active=false;
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(holdHb){clearInterval(holdHb);holdHb=null;}
 if(offRef){try{offRef.off();}catch(e){}offRef=null;}
 if(tickTimer){clearInterval(tickTimer);tickTimer=null;}
-if(wRaf){cancelAnimationFrame(wRaf);wRaf=0;}
 document.removeEventListener('visibilitychange',onVisibility);
 window.removeEventListener('blur',shieldUp);
 if(typeof roomOff==='function')roomOff();roomOff=null;
@@ -410,25 +414,6 @@ if(delay>100){status('Видео начнётся одновременно у в
 startTimer=setTimeout(function(){startTimer=null;if(!active)return;beginPlay();},delay);}
 else beginPlay();
 }
-// ——— волны аномалии: четыре разные кромки (низ, верх, лево, право) наступают к центру ———
-function waveLoop(){
-if(!active)return;
-wRaf=requestAnimationFrame(waveLoop);
-if(!els.waves||!els.waves.children.length)return;
-const st=(task&&task.stage)||'';
-const hush=(st==='countdown'||st==='city'||st==='done');
-const want=(!hush&&!holding)?1:0;    // вне удержания кромки идут внутрь
-wPhase+=(want-wPhase)*(want>wPhase?0.010:0.035);
-const t=performance.now()/1000;
-const wob=Math.sin(t*1.5)*1.4+Math.sin(t*0.62)*1.9;
-const off=wPhase*(16+wob);
-// все четыре кромки двигаются по своей локальной оси «к центру»: поворот задан у обёртки
-const k=els.waves.children;
-for(let i=0;i<k.length;i++){
-const inner=k[i].firstElementChild;
-if(inner)inner.style.transform='translateY('+(-off).toFixed(2)+'%)';
-}
-}
 function coordinate(){
 if(!task)return;
 const st=task.stage||'wait';
@@ -559,18 +544,20 @@ els.pcheck.hidden=st!=='protocol';
 if(els.pcount)els.pcount.textContent='Выбрано: '+protoDraft.length+' из 3';
 }
 // подсказки
+// подсказка кода — под кнопками ввода, подсказка протокола — рядом с «Проверить»
 let hint='';
 if(st==='code'&&c)hint=HINT_CODE[Math.max(localHintCode,+task.codeHintLevel||0)]||'';
+if(els.hint){els.hint.hidden=!hint;if(hint&&els.hintText)els.hintText.textContent=hint;}
+let phint='';
 if((st==='protocol'||st==='countdown')&&c){
 const lvl=Math.max(localHintProto,+task.protocolHintLevel||0);
-hint=HINT_PROTO[lvl]||'';
+phint=HINT_PROTO[lvl]||'';
 }
-if(els.hint){els.hint.hidden=!hint;if(hint&&els.hintText)els.hintText.textContent=hint;}
+if(els.phint){els.phint.hidden=!phint;els.phint.textContent=phint;}
 // «Все к щитам!»
 const share=shieldShare();
 const weak=(st==='protocol'||st==='countdown')&&share<0.5&&pressureTarget()>40;
 if(els.call)els.call.hidden=!weak;
-if(els.call2)els.call2.hidden=!(weak&&c);
 // отсчёт
 if(st==='countdown'&&els.countnum){
 const left=Math.ceil(((+task.countdownStart||0)-now())/1000);
