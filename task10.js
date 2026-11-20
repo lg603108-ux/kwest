@@ -150,7 +150,7 @@ window.T10Arcs=T10Arcs;
 })();
 /* ===== конец разрядов ===== */
 window.Task10=(function(){
-const BUILD='0363a';
+const BUILD='0364a';
 let arcs=null;                                              // живые разряды аномалии (T10Arcs)
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
@@ -290,8 +290,9 @@ protoDraft=[];
 try{offRef=db().ref('.info/serverTimeOffset');offRef.on('value',function(s){tOff=+s.val()||0;});}catch(e){offRef=null;}
 try{db().ref('rooms/'+NET.room.code+'/tasks/task10/shields/'+uid()).onDisconnect().update({active:false,at:Date.now()});}catch(e){}
 roomOff=NET.onRoom(onRoom);
-root.addEventListener('pointerdown',function(){startMusic();},{once:true});
-startMusic();
+// музыка включается не раньше самого задания: во время инструкции она не играет
+root.addEventListener('pointerdown',function(){var t=(roomState&&roomState.tasks&&roomState.tasks.task10)||task;
+if(t&&(t.stage==='code'||t.stage==='protocol'))startMusic();},{once:true});
 tickTimer=setInterval(tick,400);
 }
 function unmount(){
@@ -578,7 +579,8 @@ stopHold();
 else{
 if(mediaKey)stopMedia();
 stopHold();
-if(st==='city'||st==='done')stopMusic();
+// фоновая музыка — только на самом задании (код и протокол), не на инструкции и не в финале
+if(st==='code'||st==='protocol')startMusic();else stopMusic();
 }
 }
 // ——— отрисовка ———
