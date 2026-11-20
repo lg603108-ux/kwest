@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>АНОМАЛИЯ · оборона 3D · проверка</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1113;overflow:hidden;
+    -webkit-touch-callout:none;user-select:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  .cap{position:fixed;left:14px;top:12px;color:#cfe9e7;font-size:13px;line-height:1.35;
+    text-shadow:0 1px 3px #000;pointer-events:none;opacity:.85}
+  .cap b{color:#37e6dc;font-weight:600}
+  .build{position:fixed;right:12px;bottom:10px;color:#7d9a9c;font-size:11px;pointer-events:none}
+  #again{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;padding:12px 26px;
+    border:1px solid #2fd8d0;border-radius:26px;background:rgba(10,30,32,.6);color:#4ff0e6;
+    font-size:15px;letter-spacing:.04em}
+  #again:active{background:rgba(20,70,72,.8)}
+  #msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;
+    padding:24px;color:#ffd9a0;font-size:15px;line-height:1.5;background:#0d1113}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="cap">ОБОРОНА · <b>разлом и монстр в 3D</b><br>проверка вида, к квесту не подключено</div>
+<button id="again">Показать ещё раз</button>
+<div class="build" id="build"></div>
+<div id="msg"></div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="battle3d.js?v=b3d01"></script>
+</body>
+</html>
