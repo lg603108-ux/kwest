@@ -1,322 +1,116 @@
-/* ОБОРОНА 3D — проверочная сцена: настоящий разлом + объёмный монстр.
-   Отдельная страница, с квестом не связана. Ничего из index.html не использует. */
+/* ОБОРОНА — проверка: локация ровно картинкой, объёмные только разлом и монстр.
+   Отдельная страница, с квестом не связана. */
 (function () {
   'use strict';
-  var BUILD = 'b3d01';
+  var BUILD = 'b3d02';
   var doc = document;
   var canvas = doc.getElementById('c');
   var msgEl = doc.getElementById('msg');
   doc.getElementById('build').textContent = 'Сборка ' + BUILD;
 
-  function fail(text) {
-    msgEl.style.display = 'flex';
-    msgEl.textContent = text;
-  }
+  function fail(t) { msgEl.style.display = 'flex'; msgEl.textContent = t; }
+
+  var IMG_W = 2048, IMG_H = 1143;
+  var IMG_ASPECT = IMG_W / IMG_H;
+
+  // положение разлома в долях картинки (0..1 слева / сверху)
+  var RIFT_X = 0.47, RIFT_Y = 0.80;
+  var MON_H = 0.17;          // высота монстра в долях высоты картинки
 
   var renderer, scene, camera, clock;
-  var monster = null, monWrap = null;
-  var tStart = 0, startedAt = performance.now();
-  var debris = [], sparks = null, monLight = null, rimLight = null;
-  var RIFT_NEAR = -4.2, RIFT_FAR = -9.6, RIFT_HALF_X = 30, FLOOR_Y = -9;
+  var monWrap = null, glowSprite = null, embers = null, emberV = [];
+  var startAt = performance.now();
+  var S = 1, SY = 1, AS = 1;
 
   function rnd(a, b) { return a + Math.random() * (b - a); }
 
-  /* ---------- край разлома: рваная линия поперёк улицы ---------- */
-  function edgeNear(x) {
-    return RIFT_NEAR + Math.sin(x * 0.83) * 0.55 + Math.sin(x * 2.31 + 1.7) * 0.30 + Math.sin(x * 5.2 + 0.4) * 0.14;
-  }
-  function edgeFar(x) {
-    return RIFT_FAR + Math.sin(x * 0.71 + 2.1) * 0.75 + Math.sin(x * 1.93 + 0.3) * 0.34 + Math.sin(x * 4.4 + 1.1) * 0.16;
+  // картинка в кадре: повторяет поведение CSS "cover"
+  function layout() {
+    var w = window.innerWidth, h = window.innerHeight;
+    AS = w / h;
+    S = Math.max(IMG_ASPECT, AS);      // сколько world-единиц на всю ширину картинки
+    SY = S / IMG_ASPECT;               // сколько на всю высоту картинки
+    if (renderer) {
+      renderer.setSize(w, h);
+      camera.left = -AS / 2; camera.right = AS / 2;
+      camera.top = 0.5; camera.bottom = -0.5;
+      camera.updateProjectionMatrix();
+    }
   }
 
-  /* ---------- текстуры рисуем сами ---------- */
-  function asphaltTexture() {
-    var s = 512, cv = doc.createElement('canvas'); cv.width = cv.height = s;
-    var g = cv.getContext('2d');
-    g.fillStyle = '#4d5459'; g.fillRect(0, 0, s, s);
-    for (var i = 0; i < 9000; i++) {
-      var v = 40 + Math.random() * 70;
-      g.fillStyle = 'rgba(' + (v | 0) + ',' + ((v + 4) | 0) + ',' + ((v + 6) | 0) + ',' + (0.10 + Math.random() * 0.25) + ')';
-      g.fillRect(Math.random() * s, Math.random() * s, 1.6, 1.6);
-    }
-    // редкие трещины
-    for (var k = 0; k < 7; k++) {
-      g.strokeStyle = 'rgba(20,24,26,0.55)'; g.lineWidth = 1 + Math.random() * 1.6;
-      g.beginPath();
-      var x = Math.random() * s, y = Math.random() * s;
-      g.moveTo(x, y);
-      for (var n = 0; n < 9; n++) { x += rnd(-26, 26); y += rnd(6, 30); g.lineTo(x, y); }
-      g.stroke();
-    }
-    var t = new THREE.CanvasTexture(cv);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    return t;
+  function imgToWorld(ix, iy) {
+    return { x: (ix - 0.5) * S, y: (0.5 - iy) * SY };
   }
 
-  function concreteTexture() {
+  function radialTexture() {
     var s = 256, cv = doc.createElement('canvas'); cv.width = cv.height = s;
     var g = cv.getContext('2d');
-    g.fillStyle = '#3a4145'; g.fillRect(0, 0, s, s);
-    for (var i = 0; i < 2600; i++) {
-      var v = 30 + Math.random() * 60;
-      g.fillStyle = 'rgba(' + (v | 0) + ',' + ((v + 3) | 0) + ',' + ((v + 5) | 0) + ',0.5)';
-      g.fillRect(Math.random() * s, Math.random() * s, 2, 2);
-    }
-    for (var k = 0; k < 6; k++) {
-      g.strokeStyle = 'rgba(15,18,20,0.6)'; g.lineWidth = 1.5;
-      g.beginPath(); var x = Math.random() * s, y = 0; g.moveTo(x, y);
-      for (var n = 0; n < 6; n++) { x += rnd(-18, 18); y += s / 6; g.lineTo(x, y); }
-      g.stroke();
-    }
-    var t = new THREE.CanvasTexture(cv);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    return t;
+    var gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    gr.addColorStop(0, 'rgba(150,255,248,0.95)');
+    gr.addColorStop(0.30, 'rgba(45,225,214,0.45)');
+    gr.addColorStop(0.65, 'rgba(16,120,130,0.12)');
+    gr.addColorStop(1, 'rgba(8,60,70,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, s, s);
+    return new THREE.CanvasTexture(cv);
   }
 
-  // светящаяся трещина: рваная бирюзовая линия с белым ядром
-  function glowTexture() {
-    var w = 256, h = 64, cv = doc.createElement('canvas'); cv.width = w; cv.height = h;
-    var g = cv.getContext('2d');
-    g.clearRect(0, 0, w, h);
-    function line(width, color, yoff) {
-      g.strokeStyle = color; g.lineWidth = width; g.lineCap = 'round';
-      g.beginPath();
-      var y = h / 2 + yoff;
-      g.moveTo(0, y);
-      for (var x = 0; x <= w; x += 16) { y = h / 2 + yoff + rnd(-9, 9); g.lineTo(x, y); }
-      g.stroke();
-    }
-    line(20, 'rgba(20,190,205,0.30)', 0);
-    line(11, 'rgba(45,225,220,0.55)', 0);
-    line(5, 'rgba(160,252,246,0.85)', 0);
-    line(2, 'rgba(255,255,255,0.95)', 0);
-    var t = new THREE.CanvasTexture(cv);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    return t;
-  }
-
-  /* ---------- геометрия ---------- */
-  function groundStrip(side) {
-    var pos = [], uv = [], idx = [];
-    var step = 0.6, n = 0;
-    for (var x = -RIFT_HALF_X; x < RIFT_HALF_X; x += step) {
-      var x0 = x, x1 = x + step;
-      var zA0, zA1, zB0, zB1;
-      if (side === 'near') {
-        zA0 = 14; zA1 = 14; zB0 = edgeNear(x0); zB1 = edgeNear(x1);
-      } else {
-        zA0 = edgeFar(x0); zA1 = edgeFar(x1); zB0 = -48; zB1 = -48;
-      }
-      pos.push(x0, 0, zA0, x1, 0, zA1, x1, 0, zB1);
-      pos.push(x0, 0, zA0, x1, 0, zB1, x0, 0, zB0);
-      uv.push(x0 / 6, zA0 / 6, x1 / 6, zA1 / 6, x1 / 6, zB1 / 6);
-      uv.push(x0 / 6, zA0 / 6, x1 / 6, zB1 / 6, x0 / 6, zB0 / 6);
-      var b = pos.length / 3 - 6;
-      idx.push(b, b + 1, b + 2, b + 3, b + 4, b + 5);
-      n += 2;
-    }
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    geo.computeBoundingSphere();
-    return geo;
-  }
-
-  function wallGeometry(side) {
-    var pos = [], uv = [], idx = [], n = 0;
-    var step = 0.8;
-    var depths = [0, -2.2, -4.6, -7.0, FLOOR_Y];
-    for (var x = -RIFT_HALF_X; x < RIFT_HALF_X; x += step) {
-      var x0 = x, x1 = x + step;
-      var e0 = side === 'near' ? edgeNear(x0) : edgeFar(x0);
-      var e1 = side === 'near' ? edgeNear(x1) : edgeFar(x1);
-      var dir = side === 'near' ? -1 : 1;   // вниз уходим внутрь разлома
-      for (var d = 0; d < depths.length - 1; d++) {
-        var y0 = depths[d], y1 = depths[d + 1];
-        var off0 = (Math.abs(y0) / Math.abs(FLOOR_Y)) * 1.1 * dir;
-        var off1 = (Math.abs(y1) / Math.abs(FLOOR_Y)) * 1.1 * dir;
-        var za0 = e0 + off0, za1 = e1 + off1;
-        var p0 = [x0, y0, za0], p1 = [x1, y0, za1], p2 = [x1, y1, za1 + (off1 - off0)], p3 = [x0, y1, za0 + (off1 - off0)];
-        pos.push(p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
-        pos.push(p0[0], p0[1], p0[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
-        uv.push(x0 / 5, Math.abs(y0) / 5, x1 / 5, Math.abs(y0) / 5, x1 / 5, Math.abs(y1) / 5);
-        uv.push(x0 / 5, Math.abs(y0) / 5, x1 / 5, Math.abs(y1) / 5, x0 / 5, Math.abs(y1) / 5);
-        var b = pos.length / 3 - 6;
-        idx.push(b, b + 1, b + 2, b + 3, b + 4, b + 5);
-        n += 2;
-      }
-    }
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    geo.computeBoundingSphere();
-    return geo;
-  }
-
-  function glowRibbon(side) {
-    var pos = [], uv = [], idx = [], n = 0, step = 0.6;
-    for (var x = -RIFT_HALF_X; x < RIFT_HALF_X; x += step) {
-      var x0 = x, x1 = x + step;
-      var e0 = side === 'near' ? edgeNear(x0) : edgeFar(x0);
-      var e1 = side === 'near' ? edgeNear(x1) : edgeFar(x1);
-      var s = side === 'near' ? -1 : 1;
-      var w = 0.75;
-      pos.push(x0, 0.07, e0, x1, 0.07, e1, x1, 0.07, e1 + s * w);
-      pos.push(x0, 0.07, e0, x1, 0.07, e1 + s * w, x0, 0.07, e0 + s * w);
-      uv.push(x0 / 3, 0, x1 / 3, 0, x1 / 3, 1, x0 / 3, 0, x1 / 3, 1, x0 / 3, 1);
-      var b = pos.length / 3 - 6;
-      idx.push(b, b + 1, b + 2, b + 3, b + 4, b + 5);
-      n += 2;
-    }
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    geo.computeBoundingSphere();
-    return geo;
-  }
-
-  /* ---------- сборка сцены ---------- */
   function init() {
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
     try { renderer.outputEncoding = THREE.sRGBEncoding; } catch (e) {}
-    try { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; } catch (e) {}
+    try { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; } catch (e) {}
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x9aa7ab);
-    scene.fog = new THREE.Fog(0x9eabb0, 26, 78);
-
-    camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 260);
-    camera.position.set(0, 2.35, 10.5);
-    camera.lookAt(0, -1.4, -6.5);
-
+    camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0.01, 20);
+    camera.position.set(0, 0, 5);
+    camera.lookAt(0, 0, 0);
     clock = new THREE.Clock();
 
-    // свет: пасмурный день
-    scene.add(new THREE.HemisphereLight(0xdae3e5, 0x4e5659, 1.05));
-    scene.add(new THREE.AmbientLight(0x9fb0b4, 0.22));
-    var sun = new THREE.DirectionalLight(0xe3ebec, 0.55);
-    sun.position.set(-9, 16, 8); scene.add(sun);
+    // свет под пасмурный день картинки
+    scene.add(new THREE.HemisphereLight(0xdbe4e6, 0x2b3336, 1.15));
+    var key = new THREE.DirectionalLight(0xe8f0f1, 0.85);
+    key.position.set(-0.6, 1.2, 1.5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0x2fd6d0, 1.1);
+    rim.position.set(0.9, -0.4, 0.6); scene.add(rim);
 
-    // дальний план: небо и город той же картинкой
-    var loader = new THREE.TextureLoader();
-    loader.load('assets/bg_defense_sky.jpg', function (tex) {
-      try { tex.encoding = THREE.sRGBEncoding; } catch (e) {}
-      var h = 78 * (tex.image.height / tex.image.width);
-      var mat = new THREE.MeshBasicMaterial({ map: tex, fog: false, depthWrite: false });
-      var plane = new THREE.Mesh(new THREE.PlaneGeometry(78, h), mat);
-      plane.position.set(0, h / 2 - 1.5, -46);
-      plane.renderOrder = -10;
-      scene.add(plane);
+    // свечение из разлома
+    var glowMat = new THREE.SpriteMaterial({
+      map: radialTexture(), transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, opacity: 0.85
     });
+    glowSprite = new THREE.Sprite(glowMat);
+    var gp = imgToWorld(RIFT_X, RIFT_Y + 0.02);
+    glowSprite.position.set(gp.x, gp.y, -0.4);
+    glowSprite.scale.set(SY * 0.55, SY * 0.45, 1);
+    scene.add(glowSprite);
 
-    // земля по обе стороны разлома
-    var asp = asphaltTexture(); asp.repeat.set(1, 1);
-    var groundMat = new THREE.MeshLambertMaterial({ map: asp, color: 0xb9c2c4 });
-    scene.add(new THREE.Mesh(groundStrip('near'), groundMat));
-    scene.add(new THREE.Mesh(groundStrip('far'), groundMat));
-
-    // стенки разлома
-    var con = concreteTexture();
-    var wallMat = new THREE.MeshLambertMaterial({ map: con, color: 0x8e979a, side: THREE.DoubleSide });
-    scene.add(new THREE.Mesh(wallGeometry('near'), wallMat));
-    scene.add(new THREE.Mesh(wallGeometry('far'), wallMat));
-
-    // дно
-    var floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(RIFT_HALF_X * 2, 14),
-      new THREE.MeshLambertMaterial({ color: 0x10171a })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, FLOOR_Y, -7);
-    scene.add(floor);
-
-    // бирюзовые трещины по краям
-    var gt = glowTexture();
-    var glowMat = new THREE.MeshBasicMaterial({
-      map: gt, transparent: true, blending: THREE.AdditiveBlending,
-      depthWrite: false, side: THREE.DoubleSide, color: 0xffffff
-    });
-    var g1 = new THREE.Mesh(glowRibbon('near'), glowMat); g1.renderOrder = 3; scene.add(g1);
-    var g2 = new THREE.Mesh(glowRibbon('far'), glowMat); g2.renderOrder = 3; scene.add(g2);
-
-    // свет изнутри разлома
-    var tube = new THREE.PointLight(0x2fe0d8, 1.35, 14, 2);
-    tube.position.set(-2.5, -2.2, -7); scene.add(tube);
-    var tube2 = new THREE.PointLight(0x2fe0d8, 1.2, 13, 2);
-    tube2.position.set(3.5, -1.6, -6.5); scene.add(tube2);
-    var deep = new THREE.PointLight(0x1fb8c8, 0.9, 16, 2);
-    deep.position.set(0, -6.5, -7); scene.add(deep);
-
-    // обломанные плиты асфальта по краю
-    var slabMat = new THREE.MeshLambertMaterial({ map: asp, color: 0x9aa4a7 });
-    for (var i = 0; i < 22; i++) {
-      var sx = rnd(-16, 16);
-      var isNear = Math.random() < 0.5;
-      var z = isNear ? edgeNear(sx) : edgeFar(sx);
-      var w = rnd(1.0, 2.8), d = rnd(0.8, 1.9);
-      var slab = new THREE.Mesh(new THREE.BoxGeometry(w, rnd(0.18, 0.34), d), slabMat);
-      slab.position.set(sx, rnd(-0.15, 0.08), z + (isNear ? rnd(0.1, 0.9) : rnd(-0.9, -0.1)));
-      slab.rotation.set(rnd(-0.14, 0.14), rnd(0, 3.14), rnd(-0.12, 0.12));
-      scene.add(slab);
+    // искры, поднимающиеся из разлома
+    var n = 140, pos = [], vel = [];
+    for (var i = 0; i < n; i++) {
+      var ix = rnd(RIFT_X - 0.16, RIFT_X + 0.16), iy = rnd(RIFT_Y - 0.12, RIFT_Y + 0.22);
+      var w = imgToWorld(ix, iy);
+      pos.push(w.x, w.y, rnd(-0.3, 0.1));
+      vel.push(rnd(0.012, 0.05));
     }
-
-    // падающие обломки внутрь разлома
-    var debMat = new THREE.MeshLambertMaterial({ map: con, color: 0x6f787b });
-    for (var d2 = 0; d2 < 8; d2++) {
-      var bx = new THREE.Mesh(new THREE.BoxGeometry(rnd(0.25, 0.7), rnd(0.2, 0.6), rnd(0.25, 0.7)), debMat);
-      bx.position.set(rnd(-9, 9), rnd(0.5, -8), rnd(-9, -5));
-      bx.userData.spd = rnd(0.5, 1.4);
-      bx.userData.rot = rnd(-1, 1);
-      scene.add(bx); debris.push(bx);
-    }
-
-    // искры-пыль из глубины
-    var pts = [], NP = 130;
-    for (var p = 0; p < NP; p++) {
-      pts.push(rnd(-11, 11), rnd(FLOOR_Y, 1), rnd(-10, -4.4));
-    }
-    var pg = new THREE.BufferGeometry();
-    pg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    sparks = new THREE.Points(pg, new THREE.PointsMaterial({
-      color: 0x6ff2ea, size: 0.09, transparent: true, opacity: 0.75,
-      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    emberV = vel;
+    embers = new THREE.Points(geo, new THREE.PointsMaterial({
+      color: 0x8ff8ef, size: 0.006, transparent: true, opacity: 0.8,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: false
     }));
-    scene.add(sparks);
+    scene.add(embers);
 
-    // свет на монстра: чтобы он читался как на витрине
-    var spot = new THREE.SpotLight(0xeaf7f6, 2.1, 30, 0.75, 0.85, 1.4);
-    spot.position.set(2.5, 9.5, 1.5);
-    spot.target.position.set(0, 0.6, -6.4);
-    scene.add(spot); scene.add(spot.target);
-    monLight = spot;
-    rimLight = new THREE.DirectionalLight(0x2fd6d0, 0.85);
-    rimLight.position.set(-3, 5, -16);
-    scene.add(rimLight);
-
+    layout();
     loadMonster();
 
-    doc.getElementById('again').addEventListener('click', function () { startedAt = performance.now(); });
-
-    window.addEventListener('resize', onResize);
-    onResize();
+    doc.getElementById('again').addEventListener('click', function () { startAt = performance.now(); });
+    window.addEventListener('resize', layout);
     animate();
     window.__dbg = function () {
-      return { build: BUILD, monster: !!monster, t: ((performance.now() - startedAt) / 1000).toFixed(2) };
+      return { build: BUILD, loaded: !!monster, t: ((performance.now() - startAt) / 1000).toFixed(2) };
     };
-  }
-
-  function onResize() {
-    if (!renderer) return;
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   function loadMonster() {
@@ -331,104 +125,88 @@
           if (m) {
             m.metalness = 0; if ('metalnessMap' in m) m.metalnessMap = null;
             m.roughness = 1;
-            m.side = THREE.FrontSide;
+            m.color = new THREE.Color(0xc8d2d4);      // под свет картинки
+            m.emissive = new THREE.Color(0x0b2e33);
+            m.emissiveIntensity = 0.7;
             if (m.map) { try { m.map.encoding = THREE.sRGBEncoding; } catch (e) {} }
-            m.emissive = new THREE.Color(0x0a2a2e);
-            m.emissiveIntensity = 0.6;
             m.needsUpdate = true;
           }
         }
       });
-      var box = new THREE.Box3();
-      monster.updateMatrixWorld(true);
-      box.setFromObject(monster);
-      var size = new THREE.Vector3(); box.getSize(size);
-      var s = 2.7 / (size.y || 1);
-      monster.scale.setScalar(s);
-      monster.position.set(0, 0, 0);
+      var h = MON_H * SY;                            // высота в world-единицах
+      monster.scale.setScalar(h);                    // модель ровно 1 единица в высоту
+      monster.position.y = h * 0.5;                  // ставим на землю
       monWrap = new THREE.Group();
       monWrap.add(monster);
-      monWrap.position.set(0.4, FLOOR_Y, -7.4);
+      var p0 = imgToWorld(RIFT_X, RIFT_Y + 0.30);
+      monWrap.position.set(p0.x, p0.y, 0);
       scene.add(monWrap);
-      startedAt = performance.now();
+      startAt = performance.now();
     }, undefined, function () {
       fail('Модель монстра не загрузилась. Проверьте связь и обновите страницу.');
     });
   }
 
-  /* ---------- анимация ---------- */
   function easeOut(k) { return 1 - Math.pow(1 - k, 3); }
 
   function animate() {
     requestAnimationFrame(animate);
     var dt = Math.min(0.05, clock.getDelta());
-    var t = (performance.now() - startedAt) / 1000;
+    var t = (performance.now() - startAt) / 1000;
 
-    // монстр: выползает из разлома и идёт на камеру
     if (monWrap) {
-      var y, z, rotY, bob = 0, STAND = 1.35;
-      if (t < 0.6) {
-        y = FLOOR_Y; z = -7.6; rotY = 0.5;
-      } else if (t < 3.4) {
-        var k = (t - 0.6) / 2.8;
-        y = FLOOR_Y + (STAND - FLOOR_Y) * easeOut(k);
-        z = -7.6 + 0.5 * easeOut(k);
-        rotY = 0.5 - 0.5 * easeOut(k);
-        bob = Math.sin(k * 14) * 0.06;
-      } else if (t < 6.6) {
-        var k2 = (t - 3.4) / 3.2;
-        y = STAND + Math.sin(k2 * Math.PI * 3) * 0.05;
-        z = -7.1 + 3.9 * k2;
-        rotY = Math.sin(k2 * 6.0) * 0.05;
-        bob = Math.sin(k2 * Math.PI * 6) * 0.04;
+      var base = imgToWorld(RIFT_X, RIFT_Y + 0.30);
+      var emerge = imgToWorld(RIFT_X, RIFT_Y - 0.02);
+      var x = base.x, y = base.y, sc = 1, rot = 0;
+      if (t < 0.7) {
+        y = base.y - SY * 0.30; rot = 0.35;
+      } else if (t < 3.9) {
+        var k = (t - 0.7) / 3.2, e = easeOut(k);
+        y = base.y - SY * 0.30 + (emerge.y - (base.y - SY * 0.30)) * e;
+        sc = 1 + 0.10 * e;
+        rot = 0.35 - 0.35 * e + Math.sin(k * 16) * 0.03;
+      } else if (t < 7.4) {
+        var k2 = (t - 3.9) / 3.5;
+        y = emerge.y + SY * 0.045 * k2;
+        sc = 1.10 + 0.12 * k2;
+        rot = Math.sin(k2 * 5.0) * 0.06;
       } else {
-        y = STAND + Math.sin(t * 1.3) * 0.045;
-        z = -3.2;
-        rotY = Math.sin(t * 0.8) * 0.07;
+        y = emerge.y + SY * 0.045 + Math.sin(t * 1.2) * SY * 0.004;
+        sc = 1.22;
+        rot = Math.sin(t * 0.7) * 0.05;
       }
-      monWrap.position.set(0.4 + Math.sin(t * 0.9) * 0.05, y + bob, z);
-      monWrap.rotation.y = rotY;
-      monWrap.rotation.z = Math.sin(t * 1.7) * 0.02;
-      if (monLight) {
-        monLight.position.set(0.4 + 2.4, 9.2, z + 3.2);
-        monLight.target.position.set(0.4, y + 0.9, z);
-        monLight.target.updateMatrixWorld();
-      }
+      monWrap.position.x = x;
+      monWrap.position.y = y;
+      monWrap.scale.setScalar(sc);
+      monWrap.rotation.y = rot;
     }
 
-    // обломки падают вниз и возвращаются наверх
-    for (var i = 0; i < debris.length; i++) {
-      var b = debris[i];
-      b.position.y -= b.userData.spd * dt;
-      b.rotation.x += b.userData.rot * dt * 0.8;
-      b.rotation.z += b.userData.rot * dt * 0.5;
-      if (b.position.y < FLOOR_Y - 0.5) {
-        b.position.set(rnd(-9, 9), rnd(10, 16), rnd(-9, -5));
-      }
-    }
-
-    // искры поднимаются
-    if (sparks) {
-      var a = sparks.geometry.attributes.position;
-      for (var s = 0; s < a.count; s++) {
-        var y2 = a.getY(s) + dt * (0.55 + (s % 7) * 0.06);
-        if (y2 > 1.2) y2 = FLOOR_Y + rnd(0, 1.5);
-        a.setY(s, y2);
+    if (embers) {
+      var a = embers.geometry.attributes.position;
+      var top = imgToWorld(RIFT_X, RIFT_Y - 0.22).y;
+      for (var i = 0; i < a.count; i++) {
+        var yy = a.getY(i) + emberV[i] * dt;
+        if (yy > top) {
+          var nb = imgToWorld(rnd(RIFT_X - 0.16, RIFT_X + 0.16), rnd(RIFT_Y + 0.10, RIFT_Y + 0.26));
+          a.setX(i, nb.x); yy = nb.y;
+        }
+        a.setY(i, yy);
       }
       a.needsUpdate = true;
     }
 
-    // лёгкое покачивание камеры
-    camera.position.x = Math.sin(t * 0.35) * 0.08;
-    camera.position.y = 2.35 + Math.sin(t * 0.5) * 0.03;
-    camera.lookAt(0.2, -1.4, -6.5);
+    if (glowSprite) {
+      var p = 1 + Math.sin(t * 2.1) * 0.06;
+      glowSprite.scale.set(SY * 0.55 * p, SY * 0.45 * p, 1);
+      glowSprite.material.opacity = 0.75 + Math.sin(t * 3.3) * 0.12;
+    }
 
     renderer.render(scene, camera);
   }
 
   try {
-    if (!window.THREE) { fail('Библиотека 3D не загрузилась (vendor/three.min.js).'); }
-    else if (!canvas.getContext('webgl') && !canvas.getContext('experimental-webgl')) { fail('Этот браузер не поддерживает 3D. Нужна плоская версия обороны.'); }
+    if (!window.THREE) { fail('Библиотека 3D не загрузилась.'); }
+    else if (!canvas.getContext('webgl') && !canvas.getContext('experimental-webgl')) { fail('Этот браузер не поддерживает 3D.'); }
     else { init(); }
   } catch (e) {
     fail('Не удалось запустить 3D: ' + (e && e.message ? e.message : e));
