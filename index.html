@@ -36,6 +36,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
 #home .home-right .primary{width:100%}
 @media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
+/* Правильные ответы заданий 4–6: фон-референс, белая подпись, бирюзовый ответ прописными */
+#t4 .t4-screen.t4-result,#t5 .t5-result,#t6 .t6-result{background:#000 url('assets/bg_answer.jpg') center/cover no-repeat!important}
+#t4 .t4-res-title,#t5 .t5-res-title,#t6 .t6-res-title{color:#fff!important;text-transform:none!important;font-weight:600!important;letter-spacing:.02em!important;font-size:clamp(16px,2.3vw,28px)!important}
+#t4 .t4-res-names,#t5 .t5-res-phrase,#t6 .t6-res-word{color:#25e9e9!important;text-transform:uppercase!important;font-weight:800!important;letter-spacing:.06em!important;font-size:clamp(26px,4.6vw,62px)!important;text-shadow:0 0 24px rgba(37,233,233,.55);line-height:1.1!important;margin:0!important}
+#t6 .t6-res-word{letter-spacing:.14em!important}
+#t4 .t4-res-charge{display:inline-block;margin:18px 0 0!important;padding:8px 22px;border-radius:10px;background:linear-gradient(110deg,#25c8bd,#30e5dc)!important;color:#fff!important;font-weight:700!important;font-size:clamp(15px,1.9vw,22px)!important;letter-spacing:.06em!important;text-transform:uppercase;box-shadow:0 0 20px rgba(37,233,233,.4)}
 /* Экран завершения обороны: только итог и кнопка продолжения */
 #result .res-final{max-width:520px;text-align:center;padding:26px 24px}
 #result .res-title{margin:0 0 6px;font-size:clamp(22px,3.2vw,40px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
@@ -135,7 +141,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0360a">
+<body data-build="0360b">
 <div id="app">
 
 
@@ -258,8 +264,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="net.js?v=0311b"></script>
 <script src="task02.js?v=0360a"></script>
 <script src="task03.js?v=0360a"></script>
-<script src="task04.js?v=0360a"></script>
-<script src="task05.js?v=0360a"></script>
+<script src="task04.js?v=0360b"></script>
+<script src="task05.js?v=0360b"></script>
 <script src="task06.js?v=0360a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
