@@ -76,16 +76,18 @@ font-size:13.5px;line-height:1.3}
 @keyframes t10glitch{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(2px,-1px)}}
 /* ——— щит игрока: тонкие волнистые линии аномалии от купола ——— */
 #t10 .t10-shield{background:#02100f;gap:16px;overflow:hidden}
-#t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none;transition:opacity .5s,transform .5s;transform-origin:50% 0}
+#t10 .t10-waves{position:absolute;inset:0;z-index:0;pointer-events:none;transform-origin:50% 50%;
+transition:transform .55s ease,opacity .55s ease;animation:t10creep 5s ease-in-out infinite}
 #t10 .t10-waves svg{width:100%;height:100%;display:block}
-#t10 .t10-bolt{fill:none;stroke:url(#t10boltGrad);stroke-width:.55;stroke-linecap:round;
-stroke-dasharray:5 4;filter:drop-shadow(0 0 6px rgba(48,229,220,.85));animation:t10flow 1.8s linear infinite}
-#t10 .t10-bolt:nth-child(2n){stroke-width:.4;animation-duration:2.4s}
-#t10 .t10-bolt:nth-child(3n){stroke-width:.75;animation-duration:1.4s}
-@keyframes t10flow{to{stroke-dashoffset:-36}}
-/* нажатие: линии отходят к куполу и гаснут */
-#t10 .t10-shield.t10-on .t10-waves{opacity:.2;transform:translateY(-14%) scale(.9)}
-#t10 .t10-shield.t10-hush .t10-waves{opacity:0;transform:translateY(-20%) scale(.88)}
+#t10 .t10-bolt{fill:none;stroke:url(#t10boltGrad);stroke-width:.45;stroke-linecap:round;
+stroke-dasharray:4 6;filter:drop-shadow(0 0 5px rgba(48,229,220,.85));animation:t10flowIn 1.9s linear infinite}
+@keyframes t10flowIn{from{stroke-dashoffset:0}to{stroke-dashoffset:-20}}
+@keyframes t10creep{0%,100%{transform:scale(1)}50%{transform:scale(.955)}}
+#t10 .t10-bolt:nth-child(2n){stroke-width:.32;animation-duration:2.5s}
+#t10 .t10-bolt:nth-child(3n){stroke-width:.62;animation-duration:1.35s}
+/* нажатие: линии отступают от кнопки обратно к краям экрана */
+#t10 .t10-shield.t10-on .t10-waves{transform:scale(1.35);opacity:.4;animation:none}
+#t10 .t10-shield.t10-hush .t10-waves{transform:scale(1.6);opacity:0;animation:none}
 #t10 .t10-shield>*:not(.t10-waves){position:relative;z-index:1}
 #t10 .t10-shieldup{font-size:clamp(20px,3.6vh,28px);font-weight:800;letter-spacing:1.2px;color:#eaffff;margin:0}
 #t10 .t10-shieldbtn{width:min(58vw,min(34vh,240px));aspect-ratio:1/1;border:0;border-radius:50%;padding:0;background:none;
