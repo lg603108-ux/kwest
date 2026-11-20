@@ -8,11 +8,11 @@
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 window.Task10=(function(){
-const BUILD='0354a';
+const BUILD='0355a';
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
 const SRC_CITY='assets/city_restored_final.mp4?v=0353a';    // финальный город
-const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3';
+const SFX_CODE='v10_code_accepted.mp3',SFX_RESTART='v10_restart.mp3',SFX_KOD='v10_kod.mp3';
 const SFX_HINT_CODE='v10_hint_code.mp3',SFX_HINT_PROTO='v10_hint_protocol.mp3',SFX_HOLD='v10_hold.mp3';
 // Визуальный порядок кнопок намеренно НЕ совпадает с правильной последовательностью.
 const BTN=[{id:'core',label:'ЯДРО',sym:'◎',cls:'t10-red'},
@@ -252,7 +252,8 @@ write({stage:'done',completed:true,completedAt:Date.now(),revision:(+task.revisi
 function shieldDown(e){
 if(!active||cap()||!task)return;
 const st=task.stage||'wait';
-if(st!=='code'&&st!=='protocol'&&st!=='countdown')return;
+// щит считается только после принятого кода: до этого игроки ждут капитана
+if(st!=='protocol'&&st!=='countdown')return;
 if(e){try{els.shieldbtn.setPointerCapture(e.pointerId);}catch(_){}}
 if(holding)return;
 holding=true;
@@ -402,7 +403,7 @@ stopHold();
 }
 else{
 if(mediaKey)stopMedia();
-if(st==='code'||st==='protocol')ensureHold();else stopHold();
+stopHold();
 }
 }
 // ——— отрисовка ———
@@ -447,6 +448,13 @@ if(els.codebox)els.codebox.hidden=!(c&&st==='code');
 if(els.proto)els.proto.hidden=!(c&&st==='protocol');
 const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
 if(els.shield)els.shield.hidden=!shieldOn;
+const codePhase=(st==='code');
+if(els.shieldbtn)els.shieldbtn.disabled=codePhase;
+if(els.shieldup)els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'ДЕРЖИТЕ ЩИТ';
+if(codePhase){
+if(els.shield)els.shield.classList.remove('t10-on');
+if(els.shieldstate)els.shieldstate.textContent='Щиты понадобятся сразу после этого';
+}else if(!holding&&els.shieldstate){els.shieldstate.textContent='Щит не активен';}
 if(els.wave)els.wave.hidden=!(shieldOn||st==='countdown');
 if(els.count)els.count.hidden=st!=='countdown';
 if(root)root.classList.toggle('t10-glitch',Date.now()<glitchUntil);
@@ -501,7 +509,7 @@ hint=HINT_PROTO[lvl]||'';
 if(els.hint){els.hint.hidden=!hint;if(hint&&els.hintText)els.hintText.textContent=hint;}
 // «Все к щитам!»
 const share=shieldShare();
-const weak=shieldOn&&share<0.5&&pressureTarget()>40;
+const weak=(st==='protocol'||st==='countdown')&&share<0.5&&pressureTarget()>40;
 if(els.call)els.call.hidden=!weak;
 if(els.call2)els.call2.hidden=!(weak&&c);
 // отсчёт
@@ -511,8 +519,12 @@ els.countnum.textContent=left>0?String(Math.min(3,left)):'0';
 }
 // финальная карточка
 if(st==='done')fillCard();
-// запоминаем стадию, чтобы подписи статуса не переписывались каждый такт
-if(st!==stageKey)stageKey=st;
+// голос Вольта по стадиям (только капитан): сначала «введите код», после кода — «удерживайте щит»
+if(st!==stageKey){
+if(c&&st==='code')playSfx(SFX_KOD,1);
+if(c&&st==='protocol')playSfx(SFX_HOLD,1);
+stageKey=st;
+}
 const sk=st+'|'+String(c);
 if(sk!==lastStatusKey){
 lastStatusKey=sk;

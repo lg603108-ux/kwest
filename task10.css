@@ -20,22 +20,24 @@ border-radius:10px;background:#20383e;color:#fff;font-size:15px;font-weight:700;
 #t10 .t10-panel{justify-content:flex-start;gap:8px;padding-top:calc(10px + env(safe-area-inset-top))}
 #t10 .t10-press{width:min(94vw,620px);display:flex;flex-direction:column;align-items:center;gap:4px}
 #t10 .t10-press span{font-size:11px;letter-spacing:1.1px;color:#9fd8d8;font-weight:700}
-#t10 .t10-press b{font-size:22px;color:#ffd166;line-height:1}
-#t10 .t10-pressbar{width:100%;height:9px;border-radius:6px;background:rgba(160,230,230,.16);overflow:hidden}
+#t10 .t10-press b{font-size:19px;color:#ffd166;line-height:1}
+#t10 .t10-pressbar{width:100%;height:7px;border-radius:6px;background:rgba(160,230,230,.16);overflow:hidden}
 #t10 .t10-pressbar i{display:block;height:100%;width:0;border-radius:6px;
 background:linear-gradient(90deg,#2ec4b6,#ffd166,#ff7a59);transition:width .35s linear}
-#t10 .t10-codebox{width:min(94vw,560px);display:flex;flex-direction:column;align-items:center;gap:8px}
-#t10 .t10-cells{display:flex;flex-direction:row;gap:10px}
-#t10 .t10-cell{width:52px;height:62px;display:flex;align-items:center;justify-content:center;
-border:1px dashed rgba(190,245,245,.45);border-radius:10px;background:rgba(6,22,24,.9);
-font-size:28px;font-weight:800;color:#30e5dc;font-family:inherit;cursor:pointer}
+#t10 .t10-codebox{width:min(94vw,560px);display:flex;flex-direction:column;align-items:center;gap:6px}
+#t10 .t10-cells{display:flex;flex-direction:row;gap:8px}
+#t10 .t10-cell{width:44px;height:50px;display:flex;align-items:center;justify-content:center;
+border:1px dashed rgba(190,245,245,.45);border-radius:9px;background:rgba(6,22,24,.9);
+font-size:23px;font-weight:800;color:#30e5dc;font-family:inherit;cursor:pointer}
 #t10 .t10-cell.filled{border-style:solid;border-color:rgba(48,229,220,.6);background:#14292f}
 #t10 .t10-cell.sel{border-style:solid;border-color:#30e5dc;box-shadow:0 0 0 2px rgba(48,229,220,.35) inset}
-#t10 .t10-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(72vw,300px)}
-#t10 .t10-key{min-height:50px;border:1px solid rgba(190,245,245,.35);border-radius:12px;
-background:#14292f;color:#fff;font-size:22px;font-weight:700;font-family:inherit;cursor:pointer}
+/* две строки вместо трёх: пять цифр сверху, четыре снизу — экран телефона не переполняется */
+#t10 .t10-pad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:min(94vw,380px)}
+#t10 .t10-key{min-height:42px;border:1px solid rgba(190,245,245,.35);border-radius:10px;
+background:#14292f;color:#fff;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer}
 #t10 .t10-key:active{border-color:#30e5dc;color:#30e5dc}
-#t10 .t10-actions{display:flex;flex-direction:row;gap:9px;flex-wrap:wrap;justify-content:center}
+#t10 .t10-actions{display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;justify-content:center;width:min(94vw,380px)}
+#t10 .t10-actions .t10-primary,#t10 .t10-actions .t10-secondary{min-height:44px;padding:8px 18px;font-size:15px}
 #t10 .t10-err{max-width:min(92vw,560px);margin:0;background:rgba(60,14,14,.94);
 border:1px solid rgba(255,140,120,.55);border-radius:10px;padding:6px 14px;color:#ffd0c4;
 font-size:13.5px;font-weight:700}
@@ -76,6 +78,7 @@ animation:t10wave 7s ease-in-out infinite}
 background:radial-gradient(circle at 38% 32%,#fff3b0,#ffd23f 46%,#c99a00 100%);
 box-shadow:0 0 0 10px rgba(255,210,63,.16),0 14px 40px rgba(0,0,0,.55);touch-action:none;
 user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:inherit}
+#t10 .t10-shieldbtn:disabled{opacity:.38;cursor:default;box-shadow:none}
 #t10 .t10-shieldbtn span{font-size:clamp(20px,4vh,30px);font-weight:900;color:#3a2a00;letter-spacing:2px}
 #t10 .t10-shieldbtn:active,#t10 .t10-shield.t10-on .t10-shieldbtn{box-shadow:0 0 0 14px rgba(48,229,220,.35),0 0 46px rgba(48,229,220,.6)}
 #t10 .t10-shield.t10-on .t10-shieldwave i{background:radial-gradient(circle,rgba(48,229,220,.55) 0%,rgba(20,140,150,.3) 42%,rgba(4,16,15,0) 70%)}
