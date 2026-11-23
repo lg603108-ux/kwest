@@ -632,7 +632,7 @@ els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕ�
 els.shieldup.hidden=(!codePhase&&holding);   // плашка видна в начале и когда щит отпущен
 }
 if(codePhase&&els.shield)els.shield.classList.remove('t10-on');
-if(els.count)els.count.hidden=st!=='countdown';
+if(els.count)els.count.hidden=true;   // экран с крупной цифрой «0» убран по требованию автора
 // при верном протоколе волна отступает, затем светлое затухание и финальный город
 if(els.shield)els.shield.classList.toggle('t10-hush',st==='countdown'||st==='city');
 if(els.flash)els.flash.classList.toggle('on',st==='city');

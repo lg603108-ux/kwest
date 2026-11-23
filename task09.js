@@ -66,7 +66,7 @@ root=document.createElement('div');root.id='t9';root.innerHTML=
 '<p class="t9-donewait" id="t9-donewait">ЖДЁМ КАПИТАНА</p></section>'+
 '<div class="t9-status" id="t9-status" role="status" hidden></div>'+
 '<button class="t9-primary t9-mediabtn" id="t9-media" type="button" hidden></button>'+
-'<p class="t9-build">Сборка '+BUILD+'</p>';
+'';   // номер сборки на экране убран по требованию автора
 container.appendChild(root);
 video=root.querySelector('.t9-video');
 els={wait:root.querySelector('.t9-wait'),start:root.querySelector('#t9-start'),waitnote:root.querySelector('#t9-waitnote'),

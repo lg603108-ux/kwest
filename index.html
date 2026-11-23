@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="task07.css?v=0349a">
 <link rel="stylesheet" href="task08.css?v=0352a">
 <link rel="stylesheet" href="task09.css?v=0352a">
-<link rel="stylesheet" href="task10.css?v=0363a">
+<link rel="stylesheet" href="task10.css?v=0378a">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -52,8 +52,8 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #t4 .t4-done .t4-charge strong{font-size:clamp(24px,3.4vw,44px);letter-spacing:.04em;color:#30e5dc;font-weight:800;line-height:1}
 /* Задание 3: при ошибке подсказки на всех кнопках судьи */
 #t3 .t3-emotions.t3-reveal small{display:block;color:#9fd8d8;margin-top:4px;font-size:13px}
-/* Видео целиком, без обрезки по краям */
-#movie,#t2 .t2-video,#t3 .t3-video{object-fit:contain!important}
+/* Видео на весь экран: без чёрных полос по краям */
+#movie,#t2 .t2-video,#t3 .t3-video{object-fit:cover!important}
 /* Итог обороны: весь текст по центру */
 #result .res-line{justify-content:center!important;gap:12px;text-align:center}
 /* Задание 3: роли на весь экран */
@@ -176,11 +176,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #t2 .t2-mediareq{position:absolute;inset:0;z-index:36;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.55);padding:20px;text-align:center}
 #t2 .t2-mediareq[hidden]{display:none}
 #t2 .t2-build{position:absolute;bottom:6px;left:10px;font-size:11px;color:#5f8f8f;margin:0;z-index:41}
+#t2 .t2-captainnote{font-size:clamp(16px,2.4vh,22px);color:#30e5dc;font-weight:700;margin:0;text-align:center;max-width:90vw;letter-spacing:.02em}
 #t2 .t2-nextnote{font-size:14px;color:#9fd8d8;margin:0;text-align:center;max-width:80vw}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0377a">
+<body data-build="0378a">
 <div id="app">
 
 
@@ -252,8 +253,9 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <h2 class="res-title">ОБОРОНА ЗАВЕРШЕНА</h2>
 <p class="res-name" id="result-name">Игрок</p>
 <div class="res-line"><span>Общий счёт</span><strong id="result-team">0</strong></div>
+<div class="res-line"><span>Счёт игрока</span><strong id="result-score">0</strong></div>
 <div class="res-line"><span>Уничтожено игроком</span><strong id="result-kills">0</strong></div>
-<div class="hidden"><span id="result-score">0</span><span id="result-stuns">0</span></div>
+<div class="hidden"><span id="result-stuns">0</span></div>
 <div class="row res-actions" id="res-actions"></div>
 </div>
 </section>
@@ -301,18 +303,18 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0375a"></script>
-<script src="task03.js?v=0375a"></script>
+<script src="task02.js?v=0378a"></script>
+<script src="task03.js?v=0378a"></script>
 <script src="task04.js?v=0375a"></script>
 <script src="task05.js?v=0375a"></script>
 <script src="task06.js?v=0375a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="task07.js?v=0375a"></script>
-<script src="task08.js?v=0375a"></script>
-<script src="task09.js?v=0354a"></script>
-<script src="task10.js?v=0364a"></script>
-<script src="app.js?v=0377a"></script>
+<script src="task08.js?v=0378a"></script>
+<script src="task09.js?v=0378a"></script>
+<script src="task10.js?v=0378a"></script>
+<script src="app.js?v=0378a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){

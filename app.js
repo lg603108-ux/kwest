@@ -72,7 +72,24 @@ function getPool(file){if(!pools[file]){pools[file]=Array.from({length:file==='v
 Object.values(fx).forEach(getPool);
 function sound(file,volume=.4){const pool=getPool(file);let a=pool.find(v=>v.paused||v.ended);if(!a){/* все копии уже звучат: удар не обрываем и не перезапускаем — иначе частые касания «заедают» */if(file===fx.impulse)return null;a=pool[0];}a.pause();a.currentTime=0;a.volume=volume;a.muted=muted;diagnostics.counts.sounds[file]=(diagnostics.counts.sounds[file]||0)+1;if(playing.length>40)playing=playing.filter(v=>!v.paused&&!v.ended);if(!playing.includes(a))playing.push(a);a.play().catch(e=>{report('audio-play',file,e);if(file==='v01_hits_rules.mp3')toast('Нажмите «Повторить инструкцию», чтобы включить звук.');});return a;}
 function identify(){player=$('name').value.trim()||'Игрок';store('anomaly-name',player);}
-$('entry').onsubmit=e=>{e.preventDefault();identify();goFullscreen();$('role-name').textContent='Игрок: '+player;screen('role');};
+$('entry').onsubmit=e=>{e.preventDefault();identify();goFullscreen();$('role-name').textContent='Игрок: '+player;const fromQr=roomFromUrl();if(fromQr){screen('role');joinFromLink(fromQr);return;}screen('role');};
+// Игрок пришёл по QR/ссылке капитана: один экран — только имя, дальше сразу в его комнату.
+// Капитан (тот, кто открыл игру без ссылки и купил её) создаёт комнату один раз.
+function roomFromUrl(){try{const m=location.search.match(/[?&]room=([a-zA-Z0-9]{4,8})/);return m?m[1].toLowerCase():'';}catch(e){return '';}}
+async function joinFromLink(code){
+const card=$('role-card');if(!card)return;
+card.classList.add('join-mode');           // у гостя нет кнопок «я капитан» и «я игрок»
+const ib=$('join-box');if(ib)ib.classList.add('hidden');
+if(!window.NET){$('role-status').textContent='Нет связи с Firebase.';if(ib)ib.classList.remove('hidden');$('room-input').value=code;return;}
+$('role-status').textContent='Входим в команду '+code+'…';
+try{await NET.joinRoom(code.toUpperCase(),player);toast('Вы в команде: '+code);screen('lobby');}
+catch(e){
+$('role-status').textContent='';
+if(ib)ib.classList.remove('hidden');
+$('room-input').value=code;
+$('join-error').textContent=e&&e.message?e.message:'Не удалось войти в комнату.';
+}
+}
 const homeBtn=$('home-button');if(homeBtn)homeBtn.onclick=()=>screen('home');
 const preloaded={};
 function preloadVideo(name){if(preloaded[name])return preloaded[name];const v=document.createElement('video');v.src=asset(name);v.muted=true;v.preload='auto';v.playsInline=true;v.load();preloaded[name]=v;return v;}

@@ -19,7 +19,7 @@ const RIGHT=[{id:'oval',digit:1},{id:'infinity',digit:3},{id:'arc',digit:2},{id:
 const CODE=[1,2,3,5,8,9];
 const HINT_SWAP='Расположите цифры по возрастанию: меньшая — левее. Нажмите ОДНУ ячейку, затем ДРУГУЮ — они поменяются местами.';
 const HINT_PLAYER='Расстановку выполняет капитан. Следите за ячейками и подсказывайте голосом.';
-let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait',lastSrc='',stallTimer=null;
+let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,startTimer=null,curStage='wait',lastSrc='',stallTimer=null,phraseDone=false;
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
 function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
@@ -46,7 +46,7 @@ root.innerHTML=
 '<div class="t2-nextwrap" id="t2-nextwrap" hidden><button class="t2-btn primary t2-big" id="t2-continue" type="button">Продолжить квест →</button><p class="t2-nextnote" id="t2-playernote" hidden>Ждём капитана…</p><p class="t2-nextnote" id="t2-donenote" hidden>Задание 3 подключим на этапе интеграции.</p></div>'+
 '<div class="t2-rotate">Поверните телефон горизонтально</div>'+
 '<div class="t2-mediareq" id="t2-mediareq" hidden><button class="t2-btn primary t2-big" id="t2-mediareq-btn" type="button">▶ Нажмите, чтобы начать видео</button><p class="t2-nextnote">Видео продолжится с общего момента — вы не отстанете от команды</p></div>'+
-'<div class="t2-start" id="t2-start"><h1>Кристальный шифр</h1><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p></div>';
+'<div class="t2-start" id="t2-start"><h1>Кристальный шифр</h1><p class="t2-captainnote">Код вводит капитан. Подсказывайте!</p><button id="t2-start-btn" type="button">▶ Запустить видео для всех</button><p class="t2-nextnote" id="t2-waitnote" hidden>Ждём, когда капитан запустит видео…</p></div>';
 video=root.querySelector('.t2-video');
 // Как в исходной версии октября: ролик начинает загружаться и играть сразу при входе в задание,
 // без ожидания нажатия. Звук выключен, картинка закрыта экраном описания. К моменту нажатия
@@ -91,7 +91,7 @@ render(window.NET.room);
 window.NET.onRoom(function(room){if(active)render(room);});
 }
 function makeRow(it){const r=document.createElement('div');r.className='t2-row';r.innerHTML='<span class="shape">'+SHAPES[it.id]+'</span><span class="digit">'+it.digit+'</span>';r.addEventListener('click',function(){onRow(it.digit);});return r;}
-function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);clearTimeout(stallTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';lastSrc='';}
+function unmount(){active=false;clearTimeout(startTimer);clearTimeout(digTimer);clearTimeout(stallTimer);if(video){video.pause();video.removeAttribute('src');video.load();}if(root&&root.parentNode)root.parentNode.removeChild(root);root=null;video=null;els={};lastKey='';curStage='wait';lastSrc='';phraseDone=false;}
 function status(t){if(!els.status)return;els.status.textContent=t||'';els.status.style.display=t?'':'none';}
 function hint(t,kind){if(!els.hint)return;els.hint.textContent=t||'';els.hint.className='t2-hint'+(kind?' '+kind:'');}
 function toggleSound(){if((curStage==='intro'||curStage==='wait')&&!cap()){S.soundOn=false;video.muted=true;els.sound.textContent='×';return;}S.soundOn=!S.soundOn;video.muted=!S.soundOn;els.sound.textContent=S.soundOn?'♪':'×';if(S.soundOn&&video.paused&&(curStage==='intro'||curStage==='sequence'||curStage==='reveal'))video.play().catch(function(){});}
@@ -111,6 +111,8 @@ els.playernote.hidden=!(!cap()&&stage==='done');
 }
 function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);clearTimeout(stallTimer);
+// Фраза при входе в задание: «Код вводит капитан. Подсказывайте!» — один раз и только у капитана.
+if(stage==='wait'&&cap()&&!phraseDone){phraseDone=true;try{const va=new Audio('assets/volt_task2_captain_code.mp3?v=0378a');va.volume=.9;va.play().catch(function(){});window.__t2phrase=va;}catch(e){}}
 // При смене этапа убираем аварийную плашку: иначе она оставалась поверх экрана
 // и перекрывала нажатия по цифрам.
 if(els.mediareq)els.mediareq.hidden=true;

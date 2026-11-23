@@ -64,7 +64,8 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '</section>'+
 '<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1>'+
 '<div id="t8-quiz"><p class="t8-note">Верно ли Лум нажал кнопки протокола запуска?</p>'+
-'<div class="t8-actions"><button class="t8-primary" id="t8-quiz-yes" type="button">Да</button><button class="t8-secondary" id="t8-quiz-no" type="button">Нет</button></div></div>'+
+'<div class="t8-actions"><button class="t8-primary" id="t8-quiz-yes" type="button">Да</button><button class="t8-secondary" id="t8-quiz-no" type="button">Нет</button></div>'+
+'<p class="t8-note t8-caps" id="t8-quizcap" hidden>ОТВЕЧАЕТ КАПИТАН</p></div>'+
 '<div id="t8-protocol" hidden><p class="t8-note t8-caps">ВЕРНЫЙ ПРОТОКОЛ НА ПЛАКАТЕ!</p>'+
 '<button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть видео</button>'+
 '<p class="t8-note t8-caps">ЗАПОМНИТЕ ВЕРНЫЙ ПРОТОКОЛ!</p>'+
@@ -83,14 +84,15 @@ code:root.querySelector('#t8-code'),cells:root.querySelector('#t8-cells'),pad:ro
 del:root.querySelector('#t8-del'),check:root.querySelector('#t8-check'),again:root.querySelector('#t8-again'),
 err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
 hintLabel:root.querySelector('#t8-hint-label'),hintText:root.querySelector('#t8-hint-text'),
-asknote:root.querySelector('#t8-asknote'),askplayer:root.querySelector('#t8-askplayer'),done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),quiz:root.querySelector('#t8-quiz'),protocol:root.querySelector('#t8-protocol'),quizYes:root.querySelector('#t8-quiz-yes'),quizNo:root.querySelector('#t8-quiz-no'),
+asknote:root.querySelector('#t8-asknote'),askplayer:root.querySelector('#t8-askplayer'),done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),quiz:root.querySelector('#t8-quiz'),protocol:root.querySelector('#t8-protocol'),quizYes:root.querySelector('#t8-quiz-yes'),quizNo:root.querySelector('#t8-quiz-no'),quizcap:root.querySelector('#t8-quizcap'),
 watchagain:root.querySelector('#t8-watchagain'),donenote:root.querySelector('#t8-donenote'),cont:root.querySelector('#t8-continue'),
 replaywrap:root.querySelector('#t8-replaywrap'),replayvid:root.querySelector('#t8-replayvid'),replayclose:root.querySelector('#t8-replayclose')};
 els.start.addEventListener('click',startIntro);
 els.watchagain.addEventListener('click',openReplay);
 els.replayclose.addEventListener('click',closeReplay);
 els.cont.addEventListener('click',continueTo9);
-function answerProtocol(){if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;}
+// На вопрос о том, верно ли Лум нажал кнопки, отвечает только капитан.
+function answerProtocol(){if(!cap())return;if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;}
 if(els.quizYes)els.quizYes.addEventListener('click',answerProtocol);
 if(els.quizNo)els.quizNo.addEventListener('click',answerProtocol);
 els.show.addEventListener('click',startView);
@@ -263,6 +265,8 @@ if(!(inIntro&&!endedLocal)&&!inView){try{if(!video.paused)video.pause();}catch(e
 els.controls.hidden=!(c&&inView);
 els.request.hidden=!(inView&&!c);
 els.ask.hidden=!(inCode&&!c);
+// Вопрос про протокол Лума: кнопки «Да»/«Нет» только у капитана.
+if(els.quiz){els.quizYes.hidden=!c;els.quizNo.hidden=!c;if(els.quizcap)els.quizcap.hidden=c;}
 const showCode=inCode&&c&&!!task.fullViewed;
 els.code.hidden=!showCode;
 els.done.hidden=!inDone;
