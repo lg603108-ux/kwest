@@ -76,7 +76,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<div class="t6-actions" id="t6-actions"><button class="t6-primary" id="t6-check-order" type="button">Проверить порядок</button><button class="t6-replay-inline" id="t6-rewatch" type="button">↺ Пересмотреть танец</button></div>'+
 '<div class="t6-hint" id="t6-hint-order" hidden><b id="t6-hint-order-label">Подсказка</b><span id="t6-hint-order-text"></span></div>'+
 '</div>'+
-'<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
+'<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><p class="t6-word-title" id="t6-word-player" hidden>Подсказывайте капитану — он вводит слово.</p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
 '<div class="t6-kbwin" id="t6-kbwin" hidden><p class="t6-kbwin-label">Введите слово</p><div class="t6-kbrow"><input class="t6-kbwin-input" id="t6-kbwin-input" type="text" autocomplete="off" autocapitalize="characters" enterkeyhint="go"><button class="t6-primary t6-kbok" type="button" id="t6-kbwin-ok">Проверить</button></div><button class="t6-kblink" type="button" id="t6-kbwin-cancel">Отмена</button></div>'+
 '<div class="t6-result" id="t6-result" hidden><p class="t6-res-title">Слово разгадано</p><p class="t6-res-word">ПОРТАЛ</p></div>'+
 '<section class="t6-screen t6-done" hidden><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p></section>'+
@@ -91,7 +91,7 @@ replay:root.querySelector('#t6-replay'),order:root.querySelector('#t6-order'),or
 slots:root.querySelector('#t6-slots'),cards:root.querySelector('#t6-cards'),actions:root.querySelector('#t6-actions'),
 checkOrder:root.querySelector('#t6-check-order'),rewatch:root.querySelector('#t6-rewatch'),
 hintOrder:root.querySelector('#t6-hint-order'),hintOrderText:root.querySelector('#t6-hint-order-text'),hintOrderLabel:root.querySelector('#t6-hint-order-label'),
-word:root.querySelector('#t6-word'),wordShow:root.querySelector('#t6-word-show'),wordCheck:root.querySelector('#t6-word-check'),
+word:root.querySelector('#t6-word'),wordPlayer:root.querySelector('#t6-word-player'),wordShow:root.querySelector('#t6-word-show'),wordCheck:root.querySelector('#t6-word-check'),
 wordHide:root.querySelector('#t6-word-hide'),hintWord:root.querySelector('#t6-hint-word'),hintWordText:root.querySelector('#t6-hint-word-text'),
 kbwin:root.querySelector('#t6-kbwin'),kbInput:root.querySelector('#t6-kbwin-input'),kbOk:root.querySelector('#t6-kbwin-ok'),kbCancel:root.querySelector('#t6-kbwin-cancel'),
 result:root.querySelector('#t6-result'),done:root.querySelector('.t6-done'),status:root.querySelector('#t6-status'),media:root.querySelector('#t6-media')};
@@ -303,6 +303,9 @@ els.actions.hidden=!(inOrder&&c);
 if(inIntro){els.order.hidden=true;els.word.hidden=true;}
 if(inOrder){ensureShuffle();renderOrder(c,false);}
 if(inWord)renderOrder(c,true);
+if(els.wordPlayer)els.wordPlayer.hidden=c||!inWord;
+var _wr=els.word?els.word.querySelector('.t6-word-row'):null;if(_wr)_wr.style.display=c?'':'none';
+if(els.wordHide)els.wordHide.style.display=c?'':'none';
 if(inWord&&c){
 const lvl=Math.max(+task.hintWord||0,localHintWord);
 els.hintWord.hidden=!(lvl>0);

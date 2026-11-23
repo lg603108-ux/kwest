@@ -52,6 +52,16 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #t4 .t4-done .t4-charge strong{font-size:clamp(24px,3.4vw,44px);letter-spacing:.04em;color:#30e5dc;font-weight:800;line-height:1}
 /* Задание 3: при ошибке подсказки на всех кнопках судьи */
 #t3 .t3-emotions.t3-reveal small{display:block;color:#9fd8d8;margin-top:4px;font-size:13px}
+/* Видео целиком, без обрезки по краям */
+#movie,#t2 .t2-video,#t3 .t3-video{object-fit:contain!important}
+/* Итог обороны: весь текст по центру */
+#result .res-line{justify-content:center!important;gap:12px;text-align:center}
+/* Задание 3: роли на весь экран */
+#t3 #t3-actor:not(:empty),#t3 #t3-judge:not(:empty){position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;box-sizing:border-box;background:#000 url('assets/bg_answer.jpg') center/cover no-repeat!important}
+/* Химеры: заряд чёрным по бирюзовой плашке */
+#t4 .t4-res-charge{color:#00110f!important}
+/* Стабилизатор: надпись крупнее */
+#t9 .t9-donebig{font-size:clamp(26px,5vh,44px)!important}
 /* Фон-референс на экранах с малым количеством текста */
 #result,#t2 .t2-start,#t3 .t3-wait,#t3 .t3-done,#t3 #t3-actor,#t3 #t3-judge,
 #t4 .t4-wait,#t4 .t4-screen.t4-result,#t4 .t4-done,
@@ -160,7 +170,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0373a">
+<body data-build="0375a">
 <div id="app">
 
 
@@ -283,18 +293,18 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0372a"></script>
-<script src="task03.js?v=0372a"></script>
-<script src="task04.js?v=0372a"></script>
-<script src="task05.js?v=0372a"></script>
-<script src="task06.js?v=0372a"></script>
+<script src="task02.js?v=0375a"></script>
+<script src="task03.js?v=0375a"></script>
+<script src="task04.js?v=0375a"></script>
+<script src="task05.js?v=0375a"></script>
+<script src="task06.js?v=0375a"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
-<script src="task07.js?v=0349a"></script>
-<script src="task08.js?v=0372a"></script>
+<script src="task07.js?v=0375a"></script>
+<script src="task08.js?v=0375a"></script>
 <script src="task09.js?v=0354a"></script>
 <script src="task10.js?v=0364a"></script>
-<script src="app.js?v=0372a"></script>
+<script src="app.js?v=0375a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -695,7 +705,7 @@ var done=document.querySelector('#t5 .t5-done');if(!done)return;
 var note=done.querySelector('.t5-note');
 if(note&&!note.getAttribute('data-bridge6')){note.setAttribute('data-bridge6','1');note.textContent='Дальше — танец Лума: команда расставит движения по порядку, а капитан разгадает слово.';}
 if(!cap()){
-if(!done.querySelector('#t5-waitnext')){var p=document.createElement('p');p.id='t5-waitnext';p.className='t5-note';p.textContent='Капитан переведёт команду к заданию 6…';done.appendChild(p);}
+
 return;
 }
 var old=done.querySelector('#t5-waitnext');if(old)old.parentNode.removeChild(old);
@@ -737,7 +747,7 @@ var done=document.querySelector('#task06-mount .t6-done');if(!done)return;
 var note=done.querySelector('.t6-note');
 if(note&&!note.getAttribute('data-bridge7')){note.setAttribute('data-bridge7','1');note.textContent='Дальше — прорыв к лаборатории: бег по улицам аномалии с капсулой в руках.';}
 if(!cap()){
-if(!done.querySelector('#t6-waitnext')){var p=document.createElement('p');p.id='t6-waitnext';p.className='t6-note';p.textContent='Капитан переведёт команду к заданию 7…';done.appendChild(p);}
+
 return;
 }
 var oldw=done.querySelector('#t6-waitnext');if(oldw)oldw.parentNode.removeChild(oldw);
@@ -826,6 +836,12 @@ var center=(scr==='battle')||(scr==='task02');
 widget.style.left=center?'50%':'auto';
 widget.style.right=center?'auto':'6px';
 widget.style.transform=center?'translateX(-50%)':'none';
+// В задании 2 держим QR по центру сверху и уменьшаем: снизу кнопки, перекрывать нельзя.
+widget.style.top=(scr==='task02')?'2px':'6px';
+var codeEl=document.getElementById('qr-widget-code');
+if(codeEl)codeEl.style.display=(scr==='task02')?'none':'block';
+var imgEl=document.getElementById('qr-widget-img');
+if(imgEl){imgEl.style.width=(scr==='task02')?'34px':'44px';imgEl.style.height=(scr==='task02')?'34px':'44px';}
 if(code){
 document.getElementById('qr-widget-code').textContent=code;
 renderQr(document.getElementById('qr-widget-img'),code,44);
@@ -844,11 +860,7 @@ var shouldMute=instruction&&!c;
 var mode=(shouldMute?'muted':'audible')+'_'+(c?'cap':'player');
 if(mode===lastSoundMode)return;
 lastSoundMode=mode;
-var s=document.getElementById('sound');
-if(!s)return;
-var mutedNow=(s.textContent==='×');
-if(shouldMute&&!mutedNow){s.click();}
-else if(!shouldMute&&mutedNow){s.click();if(c&&instruction)toastMsg('Вы теперь капитан — звук инструкций у вас.');}
+if(window.__setMuted)window.__setMuted(shouldMute);
 }
 // --- подписи «ожидание капитана», когда роль реально перешла ---
 function handleWaitingLabels(){
@@ -991,7 +1003,7 @@ function jump(t,which){
    p=p.then(function(){return setTask(node,u);});
   }else{
    var u2={stage:'done'};
-   if(node==='task07'){u2.result={energy:100,integrity:100,passed:0,failed:0,at:Date.now()};}
+   if(node==='task07'){u2.round=9;u2.result={energy:100,integrity:100,passed:0,failed:0,at:Date.now()};}
    p=p.then(function(){return setTask(node,u2);});
   }
  }

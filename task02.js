@@ -70,6 +70,9 @@ els.mediareqBtn.addEventListener('click',function(){
 els.continueBtn.addEventListener('click',function(){els.continueBtn.hidden=true;els.donenote.hidden=false;});
 // Ролик пошёл — убираем аварийную кнопку.
 video.addEventListener('playing',function(){clearTimeout(stallTimer);if(els.mediareq)els.mediareq.hidden=true;status('');});
+// Игрок не вводит цифры: при нажатии на кнопку задания показываем подсказку.
+function notCaptainHint(){var t=document.getElementById('toast');if(!t)return;t.textContent='Код вводит капитан';t.style.display='block';clearTimeout(window.__t2hint);window.__t2hint=setTimeout(function(){t.style.display='none';},2200);}
+if(root)root.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('button'):null;if(!b)return;if(b.id==='t2-start-btn'||b.id==='t2-mediareq-btn'||b.id==='t2-sound')return;if(!cap())notCaptainHint();},true);
 els.startBtn.addEventListener('click',function(){
 if(!cap())return;
 S.soundOn=true;video.muted=false;els.sound.textContent='♪';

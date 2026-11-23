@@ -53,7 +53,7 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<p class="t8-note" id="t8-readynote" hidden>Ждём капитана: он включит запись.</p></section>'+
 '<div class="t8-controls" id="t8-controls" hidden><button id="t8-toggle" type="button">⏸ Пауза</button><button id="t8-restart" type="button">↺ В начало</button></div>'+
 '<button class="t8-replay" id="t8-request" type="button" hidden>↺ Попросить повтор</button>'+
-'<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p></section>'+
+'<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note" id="t8-asknote">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p><p class="t8-note t8-caps" id="t8-askplayer" hidden>ПОДСКАЗЫВАЙТЕ КАПИТАНУ</p></section>'+
 '<section class="t8-code" id="t8-code" hidden>'+
 '<p class="t8-code-title">Код Ядра</p>'+
 '<div class="t8-cells" id="t8-cells"></div>'+
@@ -62,7 +62,13 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<p class="t8-err" id="t8-err" hidden>Код не принят. Пересмотрите запись.</p>'+
 '<div class="t8-hint" id="t8-hint" hidden><b id="t8-hint-label">Подсказка</b><span id="t8-hint-text"></span></div>'+
 '</section>'+
-'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1><p class="t8-note t8-caps">ЗАПОМНИТЕ ПОРЯДОК КНОПОК НА ПЛАКАТЕ</p><button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть запись</button><p class="t8-note" id="t8-donenote">Ждём капитана: он перейдёт к зарядке Стабилизатора.</p><button id="t8-continue" class="t8-primary" type="button">Продолжить →</button></section>'+
+'<section class="t8-screen t8-done" id="t8-done" hidden><p class="t8-eyebrow">КОД ПРИНЯТ</p><h1>3971 — запомните его</h1>'+
+'<div id="t8-quiz"><p class="t8-note">Верно ли Лум нажал кнопки протокола запуска?</p>'+
+'<div class="t8-actions"><button class="t8-primary" id="t8-quiz-yes" type="button">Да</button><button class="t8-secondary" id="t8-quiz-no" type="button">Нет</button></div></div>'+
+'<div id="t8-protocol" hidden><p class="t8-note t8-caps">ВЕРНЫЙ ПРОТОКОЛ НА ПЛАКАТЕ!</p>'+
+'<button id="t8-watchagain" class="t8-secondary" type="button">↺ Пересмотреть видео</button>'+
+'<p class="t8-note t8-caps">ЗАПОМНИТЕ ВЕРНЫЙ ПРОТОКОЛ!</p>'+
+'<button id="t8-continue" class="t8-primary" type="button">Продолжить квест →</button></div></section>'+
 '<div class="t8-replaywrap" id="t8-replaywrap" hidden><video class="t8-replayvid" id="t8-replayvid" playsinline preload="auto"></video><button class="t8-secondary t8-replayclose" id="t8-replayclose" type="button">✕ Закрыть</button></div>'+
 '<div class="t8-status" id="t8-status" role="status" hidden></div>'+
 '<button class="t8-primary t8-mediabtn" id="t8-media" type="button" hidden></button>'+
@@ -77,13 +83,16 @@ code:root.querySelector('#t8-code'),cells:root.querySelector('#t8-cells'),pad:ro
 del:root.querySelector('#t8-del'),check:root.querySelector('#t8-check'),again:root.querySelector('#t8-again'),
 err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
 hintLabel:root.querySelector('#t8-hint-label'),hintText:root.querySelector('#t8-hint-text'),
-done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),
+asknote:root.querySelector('#t8-asknote'),askplayer:root.querySelector('#t8-askplayer'),done:root.querySelector('#t8-done'),status:root.querySelector('#t8-status'),media:root.querySelector('#t8-media'),quiz:root.querySelector('#t8-quiz'),protocol:root.querySelector('#t8-protocol'),quizYes:root.querySelector('#t8-quiz-yes'),quizNo:root.querySelector('#t8-quiz-no'),
 watchagain:root.querySelector('#t8-watchagain'),donenote:root.querySelector('#t8-donenote'),cont:root.querySelector('#t8-continue'),
 replaywrap:root.querySelector('#t8-replaywrap'),replayvid:root.querySelector('#t8-replayvid'),replayclose:root.querySelector('#t8-replayclose')};
 els.start.addEventListener('click',startIntro);
 els.watchagain.addEventListener('click',openReplay);
 els.replayclose.addEventListener('click',closeReplay);
 els.cont.addEventListener('click',continueTo9);
+function answerProtocol(){if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;}
+if(els.quizYes)els.quizYes.addEventListener('click',answerProtocol);
+if(els.quizNo)els.quizNo.addEventListener('click',answerProtocol);
 els.show.addEventListener('click',startView);
 els.toggle.addEventListener('click',togglePlay);
 els.restart.addEventListener('click',restartView);
@@ -244,6 +253,7 @@ const inIntro=stage==='intro',inView=stage==='view',inCode=stage==='code',inDone
 const introDone=inIntro&&endedLocal;
 els.wait.hidden=stage!=='wait';
 els.start.hidden=!c;els.waitnote.hidden=c;
+if(els.asknote)els.asknote.hidden=!c;if(els.askplayer)els.askplayer.hidden=c;
 els.ready.hidden=!introDone;
 els.show.hidden=!(c&&introDone);els.readynote.hidden=c||!introDone;
 if(video){

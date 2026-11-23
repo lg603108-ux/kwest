@@ -3059,6 +3059,11 @@ function reset(){
 function start(){
   if(!scene) return;
   requestFull(); updateOrient();
+  // Первому бегуну подсказка голосом: «Избегайте препятствий…». Звук — только на его устройстве.
+  if(ROUND===0 && MODE==='runner' && !window.__t7tipPlayed){
+    window.__t7tipPlayed=1;
+    try{ var tip=new Audio('assets/v07_runner_tip.mp3'); tip.volume=.95; tip.play().catch(function(){}); }catch(e){}
+  }
   reset(); running=true;
   if(!SFX.amb) loadSounds();
   try{ SFX.amb.currentTime=0; var p=SFX.amb.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){}
