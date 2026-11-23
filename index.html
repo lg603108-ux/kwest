@@ -119,12 +119,12 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #app .screen{inset:0}
 #home{background:#000 url('assets/bg_answer.jpg') center/cover no-repeat;align-items:center;justify-content:center;padding:0}
 #home .home-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2.6vh,26px);width:min(900px,86vw);padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
-#home .home-kicker{margin:0;font-family:QuestSans;font-weight:700;font-size:clamp(20px,4.6vw,46px);letter-spacing:.02em;color:#25e9e9;text-transform:uppercase;text-align:center;line-height:1;transform:skewX(-7deg);text-shadow:0 0 22px rgba(37,233,233,.6),0 0 48px rgba(37,233,233,.35)}
-#home .home-logo{display:block;width:min(700px,66vw);max-height:44vh;height:auto;object-fit:contain;pointer-events:none;mix-blend-mode:screen}
+#home .home-kicker{margin:0;font-family:QuestSans;font-weight:700;font-size:clamp(15px,2.4vw,27px);letter-spacing:.02em;color:#25e9e9;text-transform:uppercase;text-align:center;line-height:1;transform:skewX(-7deg);text-shadow:0 0 22px rgba(37,233,233,.6),0 0 48px rgba(37,233,233,.35)}
+#home .home-logo{display:block;width:min(820px,80vw);max-height:46vh;height:auto;object-fit:contain;pointer-events:none;mix-blend-mode:screen}
 #home form#entry{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,22px);width:min(470px,44vw);margin:0}
 #home #name{width:100%;height:clamp(46px,7.2vh,64px);margin:0;padding:0 18px;font-size:clamp(18px,2.4vw,26px);color:#fff;background:rgba(4,22,26,.85);border:2px solid #25e9e9;border-radius:12px;box-shadow:0 0 14px rgba(37,233,233,.55),inset 0 0 18px rgba(37,233,233,.18)}
 #home #name:focus{outline:none;box-shadow:0 0 22px rgba(37,233,233,.85),inset 0 0 22px rgba(37,233,233,.25)}
-#home .home-go{width:min(470px,44vw);aspect-ratio:540/146;height:auto;margin:-8px 0 -12px;min-height:0;padding:0;border:0;border-radius:0;background:transparent url('assets/btn_continue.png') center/100% 100% no-repeat;box-shadow:none;mix-blend-mode:screen}
+#home .home-go{width:min(470px,44vw);aspect-ratio:1002/230;height:auto;margin:-8px 0 -12px;min-height:0;padding:0;border:0;border-radius:0;background:transparent url('assets/btn_continue_3d.png') center/100% 100% no-repeat;box-shadow:none;mix-blend-mode:screen}
 #home .home-go:active{transform:scale(.985)}
 @media(max-height:520px){#home .home-logo{max-height:38vh}#home .home-card{gap:6px}}
 /* Лобби: код, QR и кнопка старта — одной строкой */
@@ -186,14 +186,14 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0380a">
+<body data-build="0381a">
 <div id="app">
 
 
 <section class="screen" id="home">
 <div class="home-card">
 <p class="home-kicker">КОМАНДНАЯ ИГРА</p>
-<img class="home-logo" src="assets/logo_anomalia.png" alt="АНОМАЛИЯ">
+<img class="home-logo" src="assets/logo_anomalia_wide.png" alt="АНОМАЛИЯ">
 <form id="entry">
 <label class="sr-only" for="name">Как вас зовут?</label>
 <input id="name" autocomplete="name" enterkeyhint="go" aria-label="Как вас зовут?">
@@ -319,7 +319,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task08.js?v=0378a"></script>
 <script src="task09.js?v=0378a"></script>
 <script src="task10.js?v=0378a"></script>
-<script src="app.js?v=0380a"></script>
+<script src="app.js?v=0381a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
