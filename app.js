@@ -23,7 +23,11 @@ function screen(id){if(current==='cinema')$('movie').pause();document.querySelec
 function stopAudio(){playing.forEach(a=>a.pause());playing=[];try{Object.values(pools).forEach(p=>p.forEach(a=>{try{a.pause();}catch(e){}}));}catch(e){}music.pause();}
 // Задания 2–4 могут попросить остановить музыку боя: иначе она продолжает играть поверх видео.
 window.__stopQuestAudio=stopAudio;
-function goFullscreen(){try{if(!document.fullscreenElement&&$('app').requestFullscreen){$('app').requestFullscreen().catch(()=>{});}}catch{}}
+// Полноэкранный режим просим ОДИН раз за запуск: каждый повторный запрос Android показывает
+// свою подсказку «проведите сверху вниз, чтобы выйти» — автор видит её постоянно.
+let fsAsked=false;
+function goFullscreen(){if(fsAsked)return;fsAsked=true;try{const el=$('app');if(!document.fullscreenElement&&el&&el.requestFullscreen){el.requestFullscreen().catch(()=>{fsAsked=false;});}}catch(e){}}
+window.__goFullscreen=goFullscreen;
 document.addEventListener('pointerdown',function fs(){goFullscreen();document.removeEventListener('pointerdown',fs);},{capture:true});
 (function injectLobbyCSS(){
 const css=`

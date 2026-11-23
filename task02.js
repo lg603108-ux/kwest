@@ -23,7 +23,7 @@ let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,sta
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
 function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
-function goFullscreen(){try{const el=document.documentElement;if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}}catch(e){}}
+function goFullscreen(){/* просим общий полноэкранный режим из app.js: он входит один раз за сессию */try{if(window.__goFullscreen)window.__goFullscreen();}catch(e){}}
 function mount(container){
 if(root)unmount();
 active=true;
