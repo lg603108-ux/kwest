@@ -1,0 +1,14 @@
+{
+  "name": "АНОМАЛИЯ · командная игра",
+  "short_name": "АНОМАЛИЯ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "ru",
+  "icons": [
+    { "src": "assets/logo_anomalia.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -28,7 +28,9 @@ window.__stopQuestAudio=stopAudio;
 let fsAsked=false;
 function goFullscreen(){if(fsAsked)return;fsAsked=true;try{const el=$('app');if(!document.fullscreenElement&&el&&el.requestFullscreen){el.requestFullscreen().catch(()=>{fsAsked=false;});}}catch(e){}}
 window.__goFullscreen=goFullscreen;
-document.addEventListener('pointerdown',function fs(){goFullscreen();document.removeEventListener('pointerdown',fs);},{capture:true});
+// Полный экран включаем уже после экрана с именем — на первом касании в следующем окне.
+// Так подсказка браузера про выход из полного экрана не накрывает экран входа.
+function armFullscreen(){document.addEventListener('pointerdown',function fs(){goFullscreen();document.removeEventListener('pointerdown',fs);},{capture:true});}
 (function injectLobbyCSS(){
 const css=`
 #role,#lobby{align-items:flex-start;overflow-y:auto;overflow-x:hidden}
@@ -76,7 +78,7 @@ function getPool(file){if(!pools[file]){pools[file]=Array.from({length:file==='v
 Object.values(fx).forEach(getPool);
 function sound(file,volume=.4){const pool=getPool(file);let a=pool.find(v=>v.paused||v.ended);if(!a){/* все копии уже звучат: удар не обрываем и не перезапускаем — иначе частые касания «заедают» */if(file===fx.impulse)return null;a=pool[0];}a.pause();a.currentTime=0;a.volume=volume;a.muted=muted;diagnostics.counts.sounds[file]=(diagnostics.counts.sounds[file]||0)+1;if(playing.length>40)playing=playing.filter(v=>!v.paused&&!v.ended);if(!playing.includes(a))playing.push(a);a.play().catch(e=>{report('audio-play',file,e);if(file==='v01_hits_rules.mp3')toast('Нажмите «Повторить инструкцию», чтобы включить звук.');});return a;}
 function identify(){player=$('name').value.trim()||'Игрок';store('anomaly-name',player);}
-$('entry').onsubmit=e=>{e.preventDefault();identify();goFullscreen();$('role-name').textContent='Игрок: '+player;const fromQr=roomFromUrl();if(fromQr){screen('role');joinFromLink(fromQr);return;}screen('role');};
+$('entry').onsubmit=e=>{e.preventDefault();identify();armFullscreen();$('role-name').textContent='Игрок: '+player;const fromQr=roomFromUrl();if(fromQr){screen('role');joinFromLink(fromQr);return;}screen('role');};
 // Игрок пришёл по QR/ссылке капитана: один экран — только имя, дальше сразу в его комнату.
 // Капитан (тот, кто открыл игру без ссылки и купил её) создаёт комнату один раз.
 function roomFromUrl(){try{const m=location.search.match(/[?&]room=([a-zA-Z0-9]{4,8})/);return m?m[1].toLowerCase():'';}catch(e){return '';}}
