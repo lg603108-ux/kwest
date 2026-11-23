@@ -95,7 +95,10 @@ if(repeatIntroBtn)repeatIntroBtn.onclick=intro;
 if(rulesAudioBtn)rulesAudioBtn.onclick=showBrief;
 async function loadAssets(){
 if(mediaConfig)return;
-const config={"motherOpenStart":1.5,"motherOpenEnd":2.8,"crops":{"spider":[266,0,1250,1080],"sphere":[6,6,1908,1068],"octopus":[6,6,1908,1068],"eye":[550,38,799,1003],"mother":[517,0,884,1064]}};
+// Кадры клипов тварей подрезаны на 10 пикселей внутрь: по периметру кадра у вырезания
+// осталась полупрозрачная кромка, и на телефоне она видна тонкими полосками по краю
+// нарисованного прямоугольника. Обрезка симметричная — тварь остаётся ровно по центру.
+const config={"motherOpenStart":1.5,"motherOpenEnd":2.8,"crops":{"spider":[276,10,1230,1060],"sphere":[16,16,1888,1048],"octopus":[16,16,1888,1048],"eye":[560,48,779,983],"mother":[527,10,864,1044]}};
 const loaded={};
 try{await Promise.all(Object.entries(files).map(async([key,name])=>{
 const v=document.createElement('video');v.src=asset(name);v.muted=true;v.loop=true;v.playsInline=true;v.preload='auto';
@@ -113,7 +116,7 @@ function stopMonsters(){Object.values(videos).forEach(v=>v.pause());$('monsters'
 async function playSources(){await Promise.all(Object.entries(videos).map(async([key,v])=>{try{await v.play();}catch(e){report('video-play',files[key],e);throw Error(files[key]+' — '+e.name);}}));}
 function monsterNode(key){return{video:videos[key]};}
 const animationRates={spider:1,octopus:1,eye:1,sphere:1,mother:1};
-function positionMonster(node,key,x,y,size){const v=videos[key];if(v.readyState<2)return;const crop=mediaConfig.crops[key],scale=size/Math.max(crop[2],crop[3]);ctx.drawImage(v,crop[0],crop[1],crop[2],crop[3],x-crop[2]*scale/2,y-crop[3]*scale/2,crop[2]*scale,crop[3]*scale);}
+function positionMonster(node,key,x,y,size){const v=videos[key];if(v.readyState<2)return;const crop=mediaConfig.crops[key],scale=size/Math.max(crop[2],crop[3]);/* рисуем только по целым пикселям: дробный край давал сглаженную полосу на телефоне */const dw=Math.round(crop[2]*scale),dh=Math.round(crop[3]*scale),dx=Math.round(x-dw/2),dy=Math.round(y-dh/2);ctx.drawImage(v,crop[0],crop[1],crop[2],crop[3],dx,dy,dw,dh);}
 function motherCanHit(){if(!game||!game.boss||game.elapsed<game.stunnedUntil)return false;const t=game.boss.video.currentTime;return t>=mediaConfig.motherOpenStart&&t<=mediaConfig.motherOpenEnd&&!game.boss.hitThisCycle;}
 const canvas=$('field'),ctx=canvas.getContext('2d');let width=0,height=0;
 function resize(){const r=canvas.getBoundingClientRect();width=r.width||innerWidth;height=r.height||innerHeight;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
@@ -125,7 +128,7 @@ if(m.child&&m.age<.65){m.vy+=.65*dt;m.x+=m.vx*dt;m.y+=m.vy*dt;return;}
 if(m.type==='spider'){const direction=Math.cos(m.angle)>=0?1:-1;m.x+=direction*speed*2.3*dt;m.y+=(m.lane-m.y)*Math.min(1,dt*9);}
 else{m.x+=Math.cos(m.angle)*speed*1.5*dt;m.y+=Math.sin(m.angle)*speed*1.5*dt;if(m.type==='eye')m.angle+=Math.sin(m.age*3+m.phase)*1.7*dt;if(m.type==='octopus')m.x+=Math.sin(m.age*4+m.phase)*.055*dt;}
 }
-function drawMonster(m,size){const x=m.x*width,y=m.y*height;const actual=size*m.scale;ctx.save();ctx.translate(x,y);let bob=m.type==='spider'?Math.sin(m.age*17+m.phase)*actual*.012:Math.sin(m.age*7+m.phase)*actual*.025;let tilt=m.type==='spider'?Math.sin(m.age*13+m.phase)*.025:Math.sin(m.age*5+m.phase)*.06;ctx.rotate(tilt);if(m.type==='spider'){ctx.save();ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,actual*.32,actual*.36,actual*.06,0,0,Math.PI*2);ctx.fill();ctx.restore();}positionMonster(m.node,m.type,0,bob,actual);ctx.restore();}
+function drawMonster(m,size){/* целые координаты: дробное смещение давало сглаженную полосу по краю кадра на телефоне */const x=Math.round(m.x*width),y=Math.round(m.y*height);const actual=size*m.scale;ctx.save();ctx.translate(x,y);let bob=m.type==='spider'?Math.sin(m.age*17+m.phase)*actual*.012:Math.sin(m.age*7+m.phase)*actual*.025;let tilt=m.type==='spider'?Math.sin(m.age*13+m.phase)*.025:Math.sin(m.age*5+m.phase)*.06;ctx.rotate(tilt);if(m.type==='spider'){ctx.save();ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,actual*.32,actual*.36,actual*.06,0,0,Math.PI*2);ctx.fill();ctx.restore();}positionMonster(m.node,m.type,0,bob,actual);ctx.restore();}
 function tick(now){if(!game)return;if(game.paused){game.last=now;requestAnimationFrame(tick);return;}const dt=Math.min((now-game.last)/1000,.1);game.last=now;game.elapsed+=dt;if(game.elapsed>=game.duration){finish();return;}const wave=waveAt(game.elapsed,game.duration),size=Math.max(90,width*.14);
 game.spawn+=dt;const interval=[1.3,.85,.95,.7,.85][wave];if(wave<4&&game.spawn>=interval&&game.monsters.length<16&&game.elapsed>=game.stunnedUntil){game.spawn=0;const count=wave===1?3:wave===3?2:1;for(let i=0;i<count;i++)spawn(chooseType(wave));}
 game.mother=wave===4;if(window.NET&&NET.inRoom()){game.netClock+=dt;if(game.netClock>=2){game.netClock=0;NET.reportResult({score:game.score,kills:game.kills,stuns:game.stuns}).catch(()=>{if(game&&!game.netWarn){game.netWarn=true;toast('Не удалось отправить счёт — проверьте связь.');}});}}$('clock').textContent=timeLabel(game.duration-game.elapsed);$('score').textContent=game.score;$('team-score').textContent=window.NET&&NET.inRoom()?teamScore+game.score:game.score;
