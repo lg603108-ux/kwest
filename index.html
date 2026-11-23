@@ -80,6 +80,16 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #result .res-line strong{color:#30e5dc;font-size:20px}
 #result .res-actions{margin-top:16px;justify-content:center}
 #result .res-go{min-height:52px;padding:0 28px;font-size:18px}
+/* Оборона: экран перед боем — крупное имя и таблица тварей */
+#brief .brief-title{font-size:clamp(30px,7.5vh,66px);font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#fff;text-align:center;margin:0 0 12px;line-height:1}
+#brief .hit-table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:clamp(15px,2.6vh,21px)}
+#brief .hit-table th{font-size:clamp(11px,1.7vh,15px);letter-spacing:.14em;text-transform:uppercase;color:#9fd8d8;font-weight:600;padding:7px 8px;border-bottom:1px solid rgba(190,245,245,.3);text-align:left}
+#brief .hit-table td{padding:8px;border-bottom:1px solid rgba(190,245,245,.14);color:#eafcfa;text-align:left}
+#brief .hit-table th+th,#brief .hit-table td+td{text-align:center;width:27%}
+#brief .hit-table td+td{color:#30e5dc;font-weight:700}
+/* Итог обороны: карточка по центру экрана, а не сверху */
+#result{justify-content:center!important;align-items:center!important}
+#result>.result-card{margin:auto!important}
 /* Вступления заданий 2–6 — один вид: крупное название прописными и одна кнопка */
 #t2 .t2-start h1,#t3 .t3-wait h1,#t4 .t4-wait h1,#t5 .t5-wait h1,#t6 .t6-wait h1,#t8 .t8-wait h1{font-size:clamp(26px,3.6vw,52px)!important;line-height:1.05!important;font-weight:700!important;letter-spacing:.05em!important;text-transform:uppercase!important;color:#30e5dc!important;margin:0 0 18px!important;text-align:center;text-shadow:0 0 18px rgba(48,229,220,.45)}
 #t2 .t2-start #t2-start-btn,#t3 .t3-wait #t3-start,#t4 .t4-wait #t4-start,#t5 .t5-wait #t5-start,#t6 .t6-wait #t6-start,#t8 .t8-wait #t8-start{min-height:54px!important;padding:0 30px!important;font-size:19px!important;font-weight:700!important;color:#001413!important;background:linear-gradient(110deg,#25c8bd,#30e5dc)!important;border:0!important;border-radius:12px!important;box-shadow:0 0 18px rgba(48,229,220,.35)!important}
@@ -170,7 +180,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0375a">
+<body data-build="0376a">
 <div id="app">
 
 
@@ -208,20 +218,18 @@ body[data-screen="cinema"] #movie-title{top:78px}
 
 <section class="screen" id="brief">
 <div class="glass brief-card">
-<p class="eyebrow">ЗАДАНИЕ 01 · ОБОРОНА</p>
-<h2>Ваш телефон — импульсный стабилизатор</h2>
-<p class="note">Коротко касайтесь тварей. Повторяйте попадания, пока цель не исчезнет.</p>
-<div class="hit-guide">
-<span><b>1</b> Сфера и глаз</span>
-<span><b>2</b> Осьминог</span>
-<span><b>3</b> Паук</span>
-</div>
-<p class="note">На пятой минуте появится Материнская сфера. Поражайте её во время раскрытия: +100 очков и оглушение на 5 секунд.</p>
-<div class="row">
-<button id="rules-audio" class="secondary" type="button">♪ Инструкция</button>
-<button id="repeat-intro" class="secondary" type="button">Повторить видео</button>
-</div>
-<button id="battle-start" class="primary" type="button">Начать оборону →</button>
+<div class="brief-title">ОБОРОНА</div>
+<table class="hit-table">
+<thead><tr><th>Тварь</th><th>Касание</th><th>Очки</th></tr></thead>
+<tbody>
+<tr><td>Сфера</td><td>1</td><td>15</td></tr>
+<tr><td>Глаз</td><td>1</td><td>25</td></tr>
+<tr><td>Осьминог</td><td>2</td><td>20</td></tr>
+<tr><td>Паук</td><td>3</td><td>30</td></tr>
+<tr><td>Материнская сфера</td><td>раскрытие</td><td>100</td></tr>
+</tbody>
+</table>
+<button id="battle-start" class="primary" type="button">Начать оборону</button>
 <p class="note" id="loading-note"></p>
 </div>
 </section>
@@ -304,7 +312,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task08.js?v=0375a"></script>
 <script src="task09.js?v=0354a"></script>
 <script src="task10.js?v=0364a"></script>
-<script src="app.js?v=0375a"></script>
+<script src="app.js?v=0376a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -881,7 +889,8 @@ if(st&&!st.hidden){var sb=document.getElementById('t2-start-btn');var wn=documen
 var brief={key:'',t0:0,fired:false};
 function handleBrief(){
 if(!cap()||!inRoom()||document.body.dataset.screen!=='brief'){brief.key='';return;}
-var r=NET.room;var key=r.code+'_'+(r.state?r.state.startsAt:0);
+var r=NET.room;if(!r||!r.state||r.state.phase!=='brief'){brief.key='';return;}
+var key=r.code+'_'+(r.state?r.state.startsAt:0);
 if(key!==brief.key){brief.key=key;brief.t0=Date.now();brief.fired=false;}
 if(brief.fired)return;
 var me=r.players&&r.players[NET.uid];
