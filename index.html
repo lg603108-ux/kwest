@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="task08.css?v=0352a">
 <link rel="stylesheet" href="task09.css?v=0352a">
 <link rel="stylesheet" href="task10.css?v=0378a">
+<link rel="stylesheet" href="quest-ui.css?v=001">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -41,10 +42,10 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #home .home-left .eyebrow{margin:0}
 #home .home-right label{display:block;font-size:14px;margin-bottom:6px}
 #home .home-right input{width:100%;height:44px;font-size:16px;margin-bottom:8px;padding:0 12px}
-#home .entry-row{display:grid;grid-template-columns:1fr .62fr;gap:8px;margin-bottom:8px}
-#home .entry-row input{margin-bottom:0;min-width:0;height:58px;border:1px solid var(--border);border-radius:12px;font-size:26px;padding:0 16px}
+#home .entry-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+
 #home #access-code{text-transform:uppercase}
-@media(max-width:520px){#home .entry-row{grid-template-columns:1fr 1fr}#home .entry-row input{font-size:20px;padding:0 12px}}
+@media(max-width:520px){#home .entry-row{grid-template-columns:1fr 1fr}}
 #home .home-right .primary{width:100%}
 @media(max-height:500px){#home h1{font-size:26px}#home .home-card{padding:12px 16px;gap:12px}}
 /* Правильные ответы заданий 4–6: фон-референс, белая подпись, бирюзовый ответ прописными */
@@ -129,9 +130,6 @@ body[data-screen="cinema"] #movie-title{top:78px}
 #home .home-kicker{margin:0;font-family:QuestSans;font-weight:700;font-size:clamp(15px,2.4vw,27px);letter-spacing:.02em;color:#25e9e9;text-transform:uppercase;text-align:center;line-height:1;transform:skewX(-7deg);text-shadow:0 0 22px rgba(37,233,233,.6),0 0 48px rgba(37,233,233,.35)}
 #home .home-logo{display:block;width:min(820px,80vw);max-height:46vh;height:auto;object-fit:contain;pointer-events:none;mix-blend-mode:screen}
 #home form#entry{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vh,22px);width:min(470px,44vw);margin:0}
-#home #name{width:100%;height:clamp(46px,7.2vh,64px);margin:0;padding:0 18px;font-size:clamp(18px,2.4vw,26px);color:#fff;background:rgba(4,22,26,.85);border:2px solid #25e9e9;border-radius:12px;box-shadow:0 0 14px rgba(37,233,233,.55),inset 0 0 18px rgba(37,233,233,.18)}
-#home #name::placeholder{color:rgba(159,216,216,.8);opacity:1}
-#home #name:focus{outline:none;box-shadow:0 0 22px rgba(37,233,233,.85),inset 0 0 22px rgba(37,233,233,.25)}
 #home .home-go{width:min(470px,44vw);aspect-ratio:1002/230;height:auto;margin:-8px 0 -12px;min-height:0;padding:0;border:0;border-radius:0;background:transparent url('assets/btn_continue_3d.png') center/100% 100% no-repeat;box-shadow:none;mix-blend-mode:screen}
 #home .home-go:active{transform:scale(.985)}
 @media(max-height:520px){#home .home-logo{max-height:38vh}#home .home-card{gap:6px}}
@@ -194,7 +192,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0383a">
+<body data-build="0384a">
 <div id="app">
 
 
@@ -320,7 +318,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="net.js?v=0311b"></script>
-<script src="task02.js?v=0379a"></script>
+<script src="task02.js?v=0384a"></script>
 <script src="task03.js?v=0378a"></script>
 <script src="task04.js?v=0375a"></script>
 <script src="task05.js?v=0375a"></script>

@@ -1,0 +1,126 @@
+/* ============================================================
+   КВЕСТ «АНОМАЛИЯ» — ЕДИНЫЙ ФАЙЛ СТИЛЕЙ (v3)
+   Образцы взяты с рабочих элементов:
+     • поле ввода — как «Введите имя» на первом экране;
+     • кнопка     — как «▶ Запустить видео для всех» на старте задания
+                    (шрифт 19px, высота 54px, скругление 12).
+   Внизу файла — точечные правки внутри заданий 4 и 8.
+   Область действия: вход, лобби, выбор роли, экран видео,
+   экраны итогов и брифинга. ЭКРАНЫ ЗАДАНИЙ НЕ ТРОГАЮТСЯ.
+   Подключать ПОСЛЕДНИМ в index.html:
+     <link rel="stylesheet" href="quest-ui.css?v=001">
+   ============================================================ */
+
+@font-face{font-family:QuestSans;src:url('assets/fonts/DejaVuSans.ttf')}
+@font-face{font-family:QuestSans;src:url('assets/fonts/DejaVuSans-Bold.ttf');font-weight:700}
+
+:root{
+  /* цвет */
+  --q-accent:#30e5dc;
+  --q-accent-2:#25c8bd;
+  --q-field-border:#25e9e9;
+  --q-glow:rgba(37,233,233,.55);
+  --q-glow-in:rgba(37,233,233,.18);
+  --q-text:#ffffff;
+  --q-text-2:#9fd8d8;
+  --q-panel:#14292f;
+  --q-field-bg:rgba(4,22,26,.85);
+  --q-btn-text:#04141a;
+
+  /* ТРИ РАЗМЕРА ШРИФТА — больше не нужно */
+  --q-fs-h:clamp(26px,3.6vw,52px);      /* ЗАГОЛОВОК — как «Кристальный шифр» */
+  --q-fs-sub:clamp(18px,2.8vh,28px);    /* ПОДЗАГОЛОВОК    */
+  --q-fs-text:clamp(15px,2vh,20px);     /* ТЕКСТ           */
+  --q-field-fs:clamp(18px,2.4vw,26px);  /* буквы в поле — как на входе */
+  --q-btn-fs:19px;                      /* шрифт кнопки — как на старте задания */
+
+  /* размеры */
+  --q-field-h:clamp(46px,7.2vh,64px);
+  --q-btn-h:clamp(46px,7vh,62px);
+  --q-r:12px;
+  --q-r-lg:24px;
+  --q-gap:clamp(10px,2vh,20px);
+}
+
+/* --- база ---------------------------------------------------- */
+body{font-family:QuestSans;color:var(--q-text)}
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) p,
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) label,
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) .note{
+  font-size:var(--q-fs-text);line-height:1.4}
+
+/* ЗАГОЛОВОК */
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) h1,
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) .q-h{
+  font-family:QuestSans;font-weight:700;text-transform:uppercase;
+  font-size:var(--q-fs-h)!important;line-height:1.08!important;
+  letter-spacing:.04em;color:var(--q-accent);margin:0 0 var(--q-gap);
+  text-align:center;text-shadow:0 0 18px rgba(48,229,220,.45);
+}
+/* ПОДЗАГОЛОВОК */
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) h2,
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) .q-sub{
+  font-family:QuestSans;font-weight:700;font-size:var(--q-fs-sub)!important;
+  line-height:1.2!important;color:var(--q-text);margin:0 0 8px;text-align:center;
+}
+
+/* --- ПОЛЕ ВВОДА: как «Введите имя» --------------------------- */
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) input:not([type=checkbox]){
+  font-family:QuestSans;font-size:var(--q-field-fs);color:var(--q-text);
+  height:var(--q-field-h);width:100%;box-sizing:border-box;
+  padding:0 18px;border:2px solid var(--q-field-border);border-radius:var(--q-r);
+  background:var(--q-field-bg);
+  box-shadow:0 0 14px var(--q-glow),inset 0 0 18px var(--q-glow-in);
+}
+:is(#home,#lobby,#role) input::placeholder{color:var(--q-text-2);opacity:1}
+:is(#home,#lobby,#role) input:focus{outline:none;
+  box-shadow:0 0 22px rgba(37,233,233,.85),inset 0 0 22px rgba(37,233,233,.25)}
+#access-code{text-transform:uppercase}
+
+/* --- КНОПКА: как «Продолжить →» ------------------------------ */
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:not(.icon):not(.home-go){
+  font-family:QuestSans;font-weight:700;font-size:var(--q-btn-fs,20px);
+  color:var(--q-btn-text);line-height:1.15;
+  min-height:var(--q-btn-h);padding:0 26px;border:0;border-radius:var(--q-r);
+  background:linear-gradient(110deg,var(--q-accent-2),var(--q-accent));
+  box-shadow:none;display:inline-flex;align-items:center;justify-content:center;
+  gap:10px;cursor:pointer;
+}
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:not(.icon):not(.home-go) *{color:inherit}
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:active{transform:scale(.985)}
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:disabled{opacity:.55}
+
+/* --- панели -------------------------------------------------- */
+:is(#home,#lobby,#role,#brief,#result) .glass{
+  background:var(--q-panel);border:2px solid rgba(190,245,245,.35);
+  border-radius:var(--q-r-lg);box-shadow:none;backdrop-filter:none}
+
+
+/* ============================================================
+   ТОЧЕЧНЫЕ ПРАВКИ ВНУТРИ ЗАДАНИЙ
+   ============================================================ */
+
+/* --- Задание 4 «Химеры»: поле и «Проверить» на одной линии -----
+   Поля стоят с подписью сверху, поэтому кнопка «Проверить» висела
+   выше их нижнего края. Прижимаем кнопки к нижнему краю полей
+   и даём им ту же высоту, что у поля (44 px, на телефоне 38).   */
+#t4 .t4-panel{align-items:flex-end}
+#t4 .t4-panel>.t4-primary,
+#t4 .t4-panel>.t4-secondary{height:44px;min-height:44px;margin:0;padding:0 18px}
+#t4 .t4-kbrow .t4-kbwin-input{height:46px}
+#t4 .t4-kbrow .t4-kbok{height:46px;min-height:46px}
+@media(max-height:520px){
+  #t4 .t4-panel>.t4-primary,
+  #t4 .t4-panel>.t4-secondary{height:38px;min-height:38px}
+}
+
+/* --- Задание 8: вопрос про Лума — как заголовок --------------- */
+#t8-quiz>.t8-note:first-of-type{
+  font-size:clamp(20px,3.2vh,30px);line-height:1.25;font-weight:700;
+  color:var(--q-text);max-width:720px;margin:0 0 10px}
+/* --- Задание 8: «3971 — запомните его» — бирюзовым ------------- */
+#t8 .t8-screen.t8-done>h1{color:var(--q-accent);text-shadow:0 0 22px rgba(48,229,220,.55)}
+/* --- Задание 8: отступ после «Пересмотреть видео» -------------
+   Кнопка остаётся прежней (второстепенный вид), но отходит от
+   следующей строки так же, как от неё до «Продолжить квест».    */
+#t8 #t8-watchagain{margin:6px 0 16px}
