@@ -16,6 +16,12 @@ const fx={impulse:'sfx_impulse.mp3',spider:'sfx_spider_death.mp3',sphere:'sfx_sp
 function store(k,v){try{localStorage.setItem(k,v);}catch{}}
 function read(k){try{return localStorage.getItem(k);}catch{return null;}}
 $('name').value=read('anomaly-name')||'';
+// Код доступа на экране входа. Пока проверяется только формат; настоящая проверка кода
+// появится вместе с автоматической выдачей доступа (см. ТЗ, раздел 24) — там же сервер.
+const CODE_MIN=6;
+function normCode(v){return String(v||'').toUpperCase().replace(/[^0-9A-ZА-ЯЁ-]/g,'');}
+$('access-code').value=read('anomaly-code')||'';
+window.__accessCode=()=>normCode(($('access-code')&&$('access-code').value)||read('anomaly-code')||'');
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>{$('toast').style.display='none';},6000);}
 function screen(id){if(current==='cinema')$('movie').pause();document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id));current=id;document.body.dataset.screen=id;}
 // Глушим и те звуки, что уже успели отзвучать: инструкция обороны оставалась в пуле и могла
@@ -77,8 +83,8 @@ window.__setMuted=function(v){muted=!!v;try{music.muted=muted;}catch(e){}playing
 function getPool(file){if(!pools[file]){pools[file]=Array.from({length:file==='v01_hits_rules.mp3'?1:4},()=>{const v=new Audio(asset(file));v.preload='auto';v.onerror=()=>report('audio-load',file,'MediaError '+v.error?.code);v.addEventListener('playing',()=>{diagnostics.counts.audioPlaying??={};diagnostics.counts.audioPlaying[file]=(diagnostics.counts.audioPlaying[file]||0)+1;});v.load();return v;});}return pools[file];}
 Object.values(fx).forEach(getPool);
 function sound(file,volume=.4){const pool=getPool(file);let a=pool.find(v=>v.paused||v.ended);if(!a){/* все копии уже звучат: удар не обрываем и не перезапускаем — иначе частые касания «заедают» */if(file===fx.impulse)return null;a=pool[0];}a.pause();a.currentTime=0;a.volume=volume;a.muted=muted;diagnostics.counts.sounds[file]=(diagnostics.counts.sounds[file]||0)+1;if(playing.length>40)playing=playing.filter(v=>!v.paused&&!v.ended);if(!playing.includes(a))playing.push(a);a.play().catch(e=>{report('audio-play',file,e);if(file==='v01_hits_rules.mp3')toast('Нажмите «Повторить инструкцию», чтобы включить звук.');});return a;}
-function identify(){player=$('name').value.trim()||'Игрок';store('anomaly-name',player);}
-$('entry').onsubmit=e=>{e.preventDefault();identify();armFullscreen();$('role-name').textContent='Игрок: '+player;const fromQr=roomFromUrl();if(fromQr){screen('role');joinFromLink(fromQr);return;}screen('role');};
+function identify(){player=$('name').value.trim()||'Игрок';store('anomaly-name',player);const c=normCode($('access-code').value);$('access-code').value=c;store('anomaly-code',c);return c;}
+$('entry').onsubmit=e=>{e.preventDefault();const code=identify();if(code&&code.length<CODE_MIN){toast('Код доступа короче, чем нужно — проверьте его');$('access-code').focus();return;}armFullscreen();$('role-name').textContent='Игрок: '+player;const fromQr=roomFromUrl();if(fromQr){screen('role');joinFromLink(fromQr);return;}screen('role');};
 // Игрок пришёл по QR/ссылке капитана: один экран — только имя, дальше сразу в его комнату.
 // Капитан (тот, кто открыл игру без ссылки и купил её) создаёт комнату один раз.
 function roomFromUrl(){try{const m=location.search.match(/[?&]room=([a-zA-Z0-9]{4,8})/);return m?m[1].toLowerCase():'';}catch(e){return '';}}
