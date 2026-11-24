@@ -24,6 +24,8 @@
   --q-text:#ffffff;
   --q-text-2:#9fd8d8;
   --q-panel:#14292f;
+  --q-panel-deep:rgba(13,22,26,.92);
+  --q-border:rgba(190,245,245,.35);
   --q-field-bg:rgba(4,22,26,.85);
   --q-btn-text:#04141a;
 
@@ -75,23 +77,54 @@ body{font-family:QuestSans;color:var(--q-text)}
 :is(#home,#lobby,#role) input::placeholder{color:var(--q-text-2);opacity:1}
 :is(#home,#lobby,#role) input:focus{outline:none;
   box-shadow:0 0 22px rgba(37,233,233,.85),inset 0 0 22px rgba(37,233,233,.25)}
-#access-code{text-transform:uppercase}
 
-/* --- КНОПКА: как «Продолжить →» ------------------------------ */
-:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:not(.icon):not(.home-go){
-  font-family:QuestSans;font-weight:700;font-size:var(--q-btn-fs,20px);
+/* --- КНОПКИ -----------------------------------------------
+   Главная — градиент с тёмным текстом (как на старте задания).
+   Второстепенная — тёмная плашка с рамкой, белый текст.
+   Выбор (роль, размер команды) — тёмная плашка, белая цифра;
+   выбранная — бирюзовая цифра и бирюзовая рамка.              */
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:not(.icon):not(.home-go):not(.secondary):not(.size-pick){
+  font-family:QuestSans;font-weight:700;font-size:var(--q-btn-fs);
   color:var(--q-btn-text);line-height:1.15;
   min-height:var(--q-btn-h);padding:0 26px;border:0;border-radius:var(--q-r);
   background:linear-gradient(110deg,var(--q-accent-2),var(--q-accent));
   box-shadow:none;display:inline-flex;align-items:center;justify-content:center;
   gap:10px;cursor:pointer;
 }
-:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:not(.icon):not(.home-go) *{color:inherit}
+:is(#home,#lobby,#role,#cinema,#brief,#result,.modal) .secondary{
+  font-family:QuestSans;font-weight:700;font-size:var(--q-btn-fs);
+  color:var(--q-text);line-height:1.15;min-height:var(--q-btn-h);padding:0 26px;
+  border:2px solid var(--q-border);border-radius:var(--q-r);
+  background:var(--q-panel-deep);box-shadow:none;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+}
+:is(#role) .size-pick{
+  font-family:QuestSans;font-weight:700;font-size:var(--q-btn-fs);
+  color:#fff;min-height:52px;padding:0;border-radius:var(--q-r);
+  border:2px solid rgba(190,245,245,.35);background:#0b1a1e;
+  box-shadow:none;cursor:pointer;
+}
+:is(#role) .size-pick.primary{
+  color:var(--q-accent);border-color:var(--q-accent);
+  background:#0b1a1e;box-shadow:0 0 14px var(--q-glow);
+}
 :is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:active{transform:scale(.985)}
 :is(#home,#lobby,#role,#cinema,#brief,#result,.modal) button:disabled{opacity:.55}
 
+/* --- ПЕРВЫЙ ЭКРАН: поля длиннее ------------------------------ */
+#home form#entry{width:min(660px,80vw)}
+#home .home-go{width:min(660px,80vw)}
+
+/* --- ВТОРОЙ ЭКРАН: каменный фон, всё по центру --------------- */
+#role{background:#000 url('assets/bg_role.png') center/cover no-repeat;align-items:center;justify-content:center}
+#role .glass{background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;
+  width:min(620px,86vw);padding:0}
+#role .brief-card{display:flex;flex-direction:column;align-items:center;gap:10px}
+#role .lobby-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#role-card.create-mode #create-box{display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
+
 /* --- панели -------------------------------------------------- */
-:is(#home,#lobby,#role,#brief,#result) .glass{
+:is(#home,#lobby,#brief,#result) .glass{
   background:var(--q-panel);border:2px solid rgba(190,245,245,.35);
   border-radius:var(--q-r-lg);box-shadow:none;backdrop-filter:none}
 
@@ -104,9 +137,10 @@ body{font-family:QuestSans;color:var(--q-text)}
    Поля стоят с подписью сверху, поэтому кнопка «Проверить» висела
    выше их нижнего края. Прижимаем кнопки к нижнему краю полей
    и даём им ту же высоту, что у поля (44 px, на телефоне 38).   */
-#t4 .t4-panel{align-items:flex-end}
+#t4 .t4-panel{align-items:center}
 #t4 .t4-panel>.t4-primary,
-#t4 .t4-panel>.t4-secondary{height:44px;min-height:44px;margin:0;padding:0 18px}
+#t4 .t4-panel>.t4-secondary{height:44px;min-height:44px;margin:0;padding:0 18px;
+  display:inline-flex;align-items:center;justify-content:center}
 #t4 .t4-kbrow .t4-kbwin-input{height:46px}
 #t4 .t4-kbrow .t4-kbok{height:46px;min-height:46px}
 @media(max-height:520px){
@@ -124,3 +158,19 @@ body{font-family:QuestSans;color:var(--q-text)}
    Кнопка остаётся прежней (второстепенный вид), но отходит от
    следующей строки так же, как от неё до «Продолжить квест».    */
 #t8 #t8-watchagain{margin:6px 0 16px}
+
+/* --- Задания 5 и 6: поле и кнопка одной высоты, по центру ----- */
+#t5 .t5-panel{align-items:center}
+#t5 .t5-panel input{height:46px}
+#t5 .t5-panel .t5-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+#t5 .t5-kbrow .t5-kbwin-input{height:46px}
+#t5 .t5-kbrow .t5-kbok{height:46px;min-height:46px}
+#t6 .t6-word-row{align-items:center}
+#t6 .t6-word-row input{height:46px}
+#t6 .t6-word-row .t6-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+#t6 .t6-kbrow .t6-kbwin-input{height:46px}
+#t6 .t6-kbrow .t6-kbok{height:46px;min-height:46px}
+@media(max-height:520px){
+  #t5 .t5-panel input,#t5 .t5-panel .t5-primary{height:40px;min-height:40px}
+  #t6 .t6-word-row input,#t6 .t6-word-row .t6-primary{height:40px;min-height:40px}
+}
