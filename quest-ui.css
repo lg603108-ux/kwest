@@ -263,3 +263,36 @@ html body #t8 .t8-video,html body #t8 .t8-replayvid{object-fit:contain!important
 /* ---------- Задание 8: что ввёл капитан — видят игроки ---------- */
 #t8 .t8-draft{margin:10px 0 0;font-size:clamp(18px,3vh,26px);letter-spacing:.3em;
   font-weight:700;color:var(--q-accent);text-align:center}
+
+
+/* ---------- Импульс команды ---------- */
+/* Постоянная плашка: на экране идущего задания и в бою. На входе, в лобби,
+   на инструкции и на итогах её нет — там она закрывала QR и текст. */
+#impulse-plaque{position:fixed;z-index:60;
+  top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));
+  display:none;align-items:center;gap:7px;padding:5px 11px;border-radius:12px;
+  background:rgba(13,22,26,.86);border:1px solid rgba(190,245,245,.35);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;
+  font-family:QuestSans,Arial,sans-serif;line-height:1.1}
+#impulse-plaque .imp-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9fd8d8}
+#impulse-plaque .imp-value{min-width:26px;text-align:center;font-size:18px;font-weight:800;color:#30e5dc;letter-spacing:.02em}
+/* надпись о штрафе висит поверх экрана слева от плашки и не сдвигает её: ширина плашки не скачет */
+#impulse-plaque .imp-delta{display:none;position:absolute;right:0;top:100%;margin-top:5px;
+  white-space:nowrap;padding:2px 7px;border-radius:8px;background:rgba(24,12,8,.94);
+  border:1px solid rgba(255,159,107,.5);font-style:normal;font-size:11px;font-weight:700;color:#ff9f6b}
+#impulse-plaque .imp-delta.show{display:inline-block}
+/* в бою и в задании 7 плашка стоит в общем ряду показателей, а не поверх экрана */
+#impulse-plaque.in-row{position:relative;top:auto;right:auto;box-shadow:none;
+  background:rgba(15,32,37,.82);padding:4px 10px}
+#t7-hud #impulse-plaque.in-row{flex:0 0 auto}
+.battle-hud #impulse-plaque.in-row{align-self:flex-start}
+/* задание 5: сверху по центру стоит своя плашка с номером фрагмента — импульс ниже неё */
+body[data-screen="task05"] #impulse-plaque:not(.in-row){top:calc(62px + env(safe-area-inset-top))}
+@media(max-height:560px){
+  #impulse-plaque{padding:3px 8px;gap:5px}
+  #impulse-plaque .imp-label{font-size:9px}
+  #impulse-plaque .imp-value{font-size:15px}
+}
+/* строка итога на экране завершения задания */
+.imp-result-line{margin:10px 0 0;font-size:13px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:#30e5dc;text-align:center}

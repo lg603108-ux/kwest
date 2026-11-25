@@ -222,6 +222,8 @@ const ok=S.digits.every(function(d,i){return d===CODE[i];});
 if(ok){S.accepted=true;playSfx('sfx_crystal_ready.mp3',.6);stopMusic();hint('Код принят!','ok');writeDigits();put({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
 else{
 S.attempts++;S.hl=null;clearTimeout(digTimer);
+// неверная попытка уходит в комнату: по ней считается импульс команды (-8)
+put({attempts:S.attempts});
 playSfx('sfx_ui_error.mp3',.55);
 els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
 hint('Код не принят. Цифры остались на местах — поменяйте те, что не подходят.','err');

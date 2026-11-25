@@ -67,7 +67,7 @@ var T7_HTML='<div id="t7-stage">'+
 '<div class="t7-pill"><small>Время</small><b id="t7-time">30</b></div>'+
 '<div class="t7-pill"><small>Энергия</small><b id="t7-energy">100%</b></div>'+
 '<div class="t7-pill"><small>Корпус</small><b id="t7-integrity">100%</b></div>'+
-'<div class="t7-pill t7-zone"><small id="t7-sec">Участок 1 из 10</small><b id="t7-zone">Улица</b></div>'+
+'<div class="t7-pill t7-zone"><small id="t7-sec">Участок 1 из 10</small><b id="t7-zone">Улица</b><small id="t7-runner">Бегун: —</small></div>'+
 '</div>'+
 '<div id="t7-alert" class="t7-alert"></div>'+
 '<div id="t7-lab-plate" class="t7-lab-plate hidden">МАРШРУТ ПРОЙДЕН</div>'+
@@ -611,6 +611,8 @@ function setProgress(p){
   // она появляется только у двери лаборатории на десятом участке
 }
 function setRunnerName(n){ OBS_RUNNER_NAME=n||''; var rn=shadow('t7-obs-runner'); if(rn) rn.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
+  // то же имя на экране бегуна: «Участок N из 10 · Бегун: имя» (третья строка в плашке участка)
+  var rn2=document.getElementById('t7-runner'); if(rn2) rn2.textContent='Бегун: '+(OBS_RUNNER_NAME||'—');
   // на экране смены имя обновляем следом: очередь двигается через полсекунды после итога
   if(STAGE==='change'){ var nm=document.getElementById('t7-change-name');
     if(nm) nm.textContent=OBS_RUNNER_NAME?('Новый бегун: '+OBS_RUNNER_NAME):''; } }

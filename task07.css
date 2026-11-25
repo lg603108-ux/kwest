@@ -177,3 +177,10 @@
   padding:6px 14px;border-radius:10px;background:rgba(13,22,26,.9);border:1px solid rgba(190,245,245,.25);
   color:#9fd8d8;font-size:13px}
 .t7-observer #t7-hud,.t7-observer #t7-controls,.t7-observer #t7-topview{display:none!important}
+
+
+/* ——— «Бегун: имя» третьей строкой в плашке участка ---------- */
+#t7-zone small#t7-runner{font-size:9px;letter-spacing:.02em;text-transform:none;color:#30e5dc;margin-top:2px;max-width:132px;overflow:hidden;text-overflow:ellipsis}
+/* импульс команды встаёт в тот же ряд показателей: на узком экране ряд переносится */
+#t7-hud{flex-wrap:wrap}
+#t7-hud #impulse-plaque.in-row{margin:0}

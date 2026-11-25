@@ -337,3 +337,207 @@ if(document.readyState!=='loading')keepAwake();else document.addEventListener('D
 window.__paintCapHint=paintCapHint;
 window.__showSys=showSys;
 })();
+/* ================== ИМПУЛЬС КОМАНДЫ ==================
+   Название только «Импульс команды»; слов «баллы», «очки», «резонанс» нет.
+   Каждое задание даёт до 100, копится до 1000. Штрафы: подсказка -15,
+   «Помощь Вольта» -25, неверная попытка -8, повтор просмотра -5.
+   Ниже нуля задание не опускается, штрафы одного задания на другие не переходят.
+   Счётчики заданий обнуляются на каждом раунде (Химеры, Голос, Танец), поэтому
+   штрафы копятся в комнате: tasks/<задание>/impPen. Пишет только капитан —
+   правила базы разрешают запись в задания; остальные видят общую цифру.
+   Плашка стоит на экране идущего задания и в бою, а на входе, в лобби,
+   на инструкции и на итогах её нет. Итог задания дописывается строкой
+   на экран завершения, в карточке города — отдельной строкой. */
+(function(){
+var ORDER=['task01','task02','task03','task04','task05','task06','task07','task08','task09','task10'];
+var TITLES={task01:'Оборона',task02:'Кристальный шифр',task03:'Чувства Лума',task04:'Химеры',
+task05:'Голос аномалии',task06:'Танец Лума',task07:'Прорыв к лаборатории',task08:'Код Ядра',
+task09:'Стабилизатор',task10:'Город'};
+var P_HINT=15,P_ERR=8,P_REPLAY=5,P_VOLT=25;
+// экраны завершения заданий: куда дописывается строка «ИМПУЛЬС КОМАНДЫ — N»
+var DONE_SEL=['#result .result-card','#t2 .t2-nextwrap','#t3 .t3-done','#t4 .t4-done',
+'#t5 .t5-done','#t6 .t6-done','#t8 .t8-done','#t9 .t9-done','#t10 .t10-done'];
+
+function num(v){v=+v||0;return isFinite(v)?v:0;}
+function sum(o){var s=0;if(o&&typeof o==='object'){for(var k in o)s+=num(o[k]);}else s=num(o);return s;}
+function room(){return (window.NET&&NET.room)||null;}
+function imCap(){try{return !!(window.NET&&NET.isCaptain&&NET.isCaptain());}catch(e){return false;}}
+function phase(){try{return String((room()&&room().state&&room().state.phase)||'');}catch(e){return '';}}
+function node(name){var r=room();return (r&&r.tasks&&r.tasks[name])||null;}
+
+// ——— какие счётчики задания сколько стоят ———
+var WATCH={
+task02:[{id:'tries',get:function(n){return num(n.attempts);},p:P_ERR,w:'ошибка'}],
+task04:[{id:'hint',get:function(n){return sum(n.hintLevel);},p:P_HINT,w:'подсказка'},
+        {id:'tries',get:function(n){return sum(n.attempts);},p:P_ERR,w:'ошибка'},
+        {id:'reps',get:function(n){return num(n.replays);},p:P_REPLAY,w:'повтор'}],
+task05:[{id:'hint',get:function(n){return num(n.hintLevel);},p:function(v){return v>=3?P_VOLT:P_HINT;},w:'подсказка'}],
+task06:[{id:'hint',get:function(n){return num(n.hintOrder)+num(n.hintWord);},p:P_HINT,w:'подсказка'},
+        {id:'tries',get:function(n){return num(n.attemptsOrder)+num(n.attemptsWord);},p:P_ERR,w:'ошибка'},
+        {id:'reps',get:function(n){return num(n.replayClearedAt);},p:P_REPLAY,w:'повтор',stamp:true}],
+task07:[{id:'fails',get:function(n){return num((n.result||{}).failed);},p:P_ERR,w:'ошибка'}],
+task08:[{id:'hint',get:function(n){return num(n.hintLevel);},p:P_HINT,w:'подсказка'},
+        {id:'tries',get:function(n){return num(n.attempts);},p:P_ERR,w:'ошибка'},
+        {id:'reps',get:function(n){return num(n.replayClearedAt);},p:P_REPLAY,w:'повтор',stamp:true}]
+};
+
+var seen={},pen={},seeded={},lastPenalty=null,lastTotal=null,lastParts=null;
+
+// Штрафы копим по приросту счётчиков: сброс раунда (значение уменьшилось) штрафом не считается.
+function ledger(){
+  if(!imCap())return;
+  var r=room();if(!r||!r.code)return;
+  Object.keys(WATCH).forEach(function(name){
+    var n=node(name);if(!n)return;
+    var list=WATCH[name],first=!seeded[name];
+    if(first){seeded[name]=true;pen[name]=Math.max(num(pen[name]),num(n.impPen));
+      list.forEach(function(k){seen[name+':'+k.id]=k.get(n);});
+      return;
+    }
+    var pts=0,why='';
+    list.forEach(function(k){
+      var key=name+':'+k.id,v=k.get(n),prev=seen[key];
+      if(prev===undefined){seen[key]=v;return;}
+      // Счётчик уменьшился — значит начался новый раунд/участок и задание обнулило поле.
+      // Считаем накопленное в нём заново, иначе ошибки нового раунда терялись.
+      if(v<prev)prev=0;
+      if(v>prev){
+        // «Помощь Вольта» дороже обычной подсказки, поэтому каждая прибавленная ступень
+        // оценивается отдельно: prev+1, prev+2, ...
+        var add=0;
+        if(typeof k.p==='function'){for(var i=prev+1;i<=v;i++)add+=k.p(i);}
+        else if(k.stamp)add=k.p;
+        else add=(v-prev)*k.p;
+        pts+=add;why=k.w;
+      }
+      seen[key]=v;
+    });
+    if(pts>0){
+      pen[name]=num(pen[name])+pts;
+      lastPenalty={pts:pts,why:why||'штраф',name:name,at:Date.now()};
+      try{firebase.database().ref('rooms/'+r.code+'/tasks/'+name+'/impPen').set(Math.round(pen[name]));}catch(e){}
+    }
+  });
+}
+
+function doneTask(name){
+  var ph=phase();
+  if(name==='task01')return ph==='result'||/^task\d\d$/.test(ph);
+  var n=node(name);if(!n)return false;
+  if(name==='task07')return num(n.round)>=9||(ph==='task08'||ph==='task09'||ph==='task10');
+  return n.stage==='done'||n.completed===true||num(n.completedAt)>0;
+}
+// Штрафы: у остальных заданий они уже накоплены в комнате, у задания 10 — только по счётчикам.
+function penaltyOf(name){
+  var n=node(name),p=num(pen[name]);
+  if(n){
+    // по заданию 10 в комнату новые поля писать нельзя (правила базы), поэтому считаем
+    // по накопленным счётчикам кода и протокола
+    if(name==='task10')p=Math.max(p,num(n.codeHintLevel)*P_HINT+num(n.protocolHintLevel)*P_HINT+
+      num(n.codeAttempts)*P_ERR+num(n.protocolAttempts)*P_ERR);
+  }
+  return p;
+}
+function scoreOf(name){
+  if(!node(name)&&name!=='task01')return 0;
+  return Math.max(0,Math.min(100,100-Math.round(penaltyOf(name))));
+}
+function totals(){
+  var out={total:0,max:ORDER.length*100,parts:[]};
+  ORDER.forEach(function(name){
+    var done=doneTask(name),sc=0;
+    if(done)sc=scoreOf(name);
+    else if(name!=='task01'&&node(name))sc=scoreOf(name);   // идущее задание видно уже со штрафами
+    out.parts.push({name:name,title:TITLES[name]||name,score:sc,done:done});
+    out.total+=sc;
+  });
+  return out;
+}
+try{window.__impulseTotal=function(){try{return totals().total;}catch(e){return 0;}};
+window.__impulseTotals=function(){try{return totals();}catch(e){return null;}};}catch(e){}
+
+// ——— плашка ———
+function plaque(){
+  var e=document.getElementById('impulse-plaque');
+  if(!e){
+    e=document.createElement('div');e.id='impulse-plaque';
+    e.innerHTML='<span class="imp-label">Импульс</span><b class="imp-value">0</b><i class="imp-delta"></i>';
+    document.body.appendChild(e);
+  }
+  return e;
+}
+function showScreen(ph){
+  if(ph==='battle')return true;
+  if(!/^task\d\d$/.test(ph)||ph==='task01')return false;
+  var n=node(ph),st=n?String(n.stage||''):'';
+  // инструкция и ожидание — плашку не показываем: она закрывала текст и QR
+  if(/intro|wait|change/.test(st))return false;
+  if(ph==='task07')return st==='run'||st==='done';
+  return true;
+}
+function placeIn(e,ph){
+  var host=null;
+  if(ph==='battle')host=document.querySelector('.battle-hud');
+  else if(ph==='task07')host=document.getElementById('t7-hud');
+  if(host){
+    if(e.parentElement!==host)host.appendChild(e);
+    e.classList.add('in-row');
+    return true;
+  }
+  if(e.parentElement!==document.body)document.body.appendChild(e);
+  e.classList.remove('in-row');
+  return false;
+}
+function paint(){
+  var e=plaque(),ph=phase(),t=totals(),val=e.querySelector('.imp-value'),dl=e.querySelector('.imp-delta');
+  val.textContent=t.total;
+  var show=showScreen(ph);
+  if(show)placeIn(e,ph);
+  e.style.display=show?'inline-flex':'none';
+  // строку итога дописываем и когда плашка скрыта: экран завершения задания — не задание
+  if(!show){lastTotal=t.total;lastParts=t.parts;injectResults(t);return;}
+  if(lastTotal!==null&&t.total!==lastTotal){
+    var d=t.total-lastTotal;
+    if(d<0){
+      var why=(lastPenalty&&Date.now()-lastPenalty.at<4000)?(' '+lastPenalty.why):'';
+      dl.textContent='−'+Math.abs(d)+why;
+      dl.className='imp-delta show';
+      clearTimeout(paint._t);
+      paint._t=setTimeout(function(){dl.className='imp-delta';},1600);
+    }
+  }
+  lastTotal=t.total;lastParts=t.parts;
+  injectResults(t);
+}
+
+// ——— строка итога на экране завершения задания ———
+function visible(el){
+  if(!el)return false;
+  var cs=getComputedStyle(el);
+  if(cs.display==='none'||cs.visibility==='hidden')return false;
+  if(el.hidden)return false;
+  var r=el.getBoundingClientRect();
+  return r.width>60&&r.height>20;
+}
+function injectResults(t){
+  var host=null;
+  for(var i=0;i<DONE_SEL.length;i++){
+    var el=document.querySelector(DONE_SEL[i]);
+    if(el&&visible(el)){host=el;break;}
+  }
+  if(!host)return;
+  var line=host.querySelector('.imp-result-line');
+  if(!line){line=document.createElement('p');line.className='imp-result-line';host.appendChild(line);}
+  var txt='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||0);
+  if(line.textContent!==txt)line.textContent=txt;
+}
+
+function tick(){
+  try{ledger();}catch(e){}
+  try{paint();}catch(e){}
+}
+if(window.NET&&NET.onRoom)NET.onRoom(function(){try{ledger();}catch(e){}try{paint();}catch(e){}});
+document.addEventListener('pointerdown',function(){setTimeout(tick,60);},{passive:true});
+setInterval(tick,1200);
+if(document.readyState!=='loading')setTimeout(tick,300);else document.addEventListener('DOMContentLoaded',function(){setTimeout(tick,300);});
+})();
