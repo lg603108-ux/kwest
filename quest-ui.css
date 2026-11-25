@@ -188,9 +188,10 @@ body{font-family:QuestSans;color:var(--q-text)}
 #t4 .t4-watch-hint{color:#9fd8d8;font-size:14px}
 
 /* ================== ИМПУЛЬС КОМАНДЫ ================== */
+/* Плашка: только внутри заданий и в бою. Слева сверху, чтобы не задевать QR справа. */
 #impulse-plaque{
-  position:fixed;top:max(6px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
-  z-index:900;display:inline-flex;align-items:center;gap:8px;pointer-events:none;
+  position:fixed;top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));
+  z-index:900;display:none;align-items:center;gap:8px;pointer-events:none;
   padding:4px 10px;border-radius:10px;font-family:QuestSans;
   background:rgba(9,20,24,.78);border:1px solid rgba(48,229,220,.35);
   color:var(--q-accent);backdrop-filter:blur(4px)}
@@ -200,29 +201,19 @@ body{font-family:QuestSans;color:var(--q-text)}
 #impulse-plaque .imp-delta.show{opacity:1}
 #impulse-plaque .imp-delta.down{color:#ff9f9f}
 
-/* плашку не показываем до начала игры */
-body[data-screen="home"] #impulse-plaque,
-body[data-screen="role"] #impulse-plaque,
-body[data-screen="lobby"] #impulse-plaque,
-body[data-screen="loading"] #impulse-plaque{display:none}
+/* Бой: плашка стоит в общем ряду с таймером и счётом — тогда она ровно по линии */
+body[data-screen="battle"] #impulse-plaque{
+  position:static;top:auto;left:auto;margin:0;padding:6px 12px;border-radius:10px;
+  background:rgba(9,20,24,.86);align-self:stretch;justify-content:center}
+body[data-screen="battle"] #impulse-plaque .imp-value{font-size:24px}
 
-/* где вверху уже занято: в заданиях 2 и 3 справа QR — импульс уходит влево */
-body[data-screen="task02"] #impulse-plaque,
-body[data-screen="task03"] #impulse-plaque{right:auto;left:max(8px,env(safe-area-inset-left))}
+/* Химеры: слева сверху своя плашка химеры — импульс уходит вправо */
+body[data-screen="task04"] #impulse-plaque{left:auto;right:max(10px,env(safe-area-inset-right))}
 
-/* итоговая карточка импульса в конце квеста */
-#impulse-final{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;
-  padding:16px;background:rgba(3,8,10,.88);font-family:QuestSans}
-#impulse-final.show{display:flex}
-#impulse-final .imp-card{width:min(520px,94vw);max-height:92vh;overflow:auto;text-align:center;
-  background:#0b1a1e;border:2px solid rgba(48,229,220,.35);border-radius:20px;padding:18px 18px 14px}
-#impulse-final .imp-cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--q-text-2);margin:0 0 6px}
-#impulse-final .imp-total{font-size:clamp(20px,4vw,30px);color:var(--q-accent);margin:0 0 12px;letter-spacing:.03em}
-#impulse-final .imp-list{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
-#impulse-final .imp-row{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:#fff;
-  padding:6px 10px;border-radius:10px;background:rgba(20,41,47,.7)}
-#impulse-final .imp-row.off{color:#7d9a9a}
-#impulse-final .imp-row b{color:var(--q-accent)}
+/* Импульс в итоге задания */
+.imp-result-line{
+  font-family:QuestSans;font-size:clamp(14px,2.2vh,18px);letter-spacing:.06em;
+  font-weight:700;color:var(--q-accent);text-align:center;margin:10px 0 0}
 
 /* ---------- Служебные надписи: ожидание, загрузка, подсказки ---------- */
 /* Один вид на весь квест: мелкий текст, один оттенок, по центру. */

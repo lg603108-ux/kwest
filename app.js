@@ -326,11 +326,53 @@ dl.className='imp-delta show'+(d<0?' down':'');
 clearTimeout(impPaint._t);
 impPaint._t=setTimeout(function(){dl.className='imp-delta';},1600);
 }
-impPrev=t.total;
-// Отдельную карточку поверх игры не показываем: импульс выводится на итоговом экране
-// десятого задания рядом с общим временем.
+impPrev=t.total;impLastTotal=t.total;
+// Плашку показываем только в самих заданиях и в бою: на входе, в лобби, на инструкции,
+// на брифинге и на итогах она перекрывала QR и плашки заданий.
+var scr=String(document.body.dataset.screen||'');
+var allowed=(scr==='battle');
+e.style.display=allowed?'inline-flex':'none';
+// В бою плашка встаёт в общий ряд с таймером и счётом — тогда она ровно по линии.
+if(scr==='battle'){
+var hud=document.querySelector('.battle-hud');
+if(hud&&e.parentElement!==hud)hud.insertBefore(e,hud.firstChild);
+}else if(e.parentElement&&e.parentElement!==document.body){
+document.body.appendChild(e);
+}
+impInjectResults(t);
 }catch(err){}
 }
+// Импульс в итоге каждого задания: ищем видимый экран завершения и дописываем строку.
+var impLastTotal=0;
+function impVisible(el){
+if(!el)return false;
+var cs=getComputedStyle(el);
+if(cs.display==='none'||cs.visibility==='hidden'||el.hidden)return false;
+var r=el.getBoundingClientRect();
+return r.width>innerWidth*0.4&&r.height>innerHeight*0.25;
+}
+function impDoneScreen(){
+var list=document.querySelectorAll('section,div');
+for(var i=0;i<list.length;i++){
+var el=list[i],cls=String(el.className||'');
+if(!/(done|final|finish)/.test(cls))continue;
+if(el.closest('#impulse-final'))continue;
+if(impVisible(el))return el;
+}
+var card=document.querySelector('#result .result-card');
+if(card&&impVisible(card))return card;
+return null;
+}
+function impInjectResults(t){
+try{
+var host=impDoneScreen();
+if(!host)return;
+var line=host.querySelector('.imp-result-line');
+if(!line){line=document.createElement('p');line.className='imp-result-line';host.appendChild(line);}
+line.textContent='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||impLastTotal||0);
+}catch(e){}
+}
+setInterval(function(){try{impInjectResults(null);}catch(e){}},1200);
 function impShowFinal(t){
 impFinalShown=true;
 var e=document.getElementById('impulse-final');
