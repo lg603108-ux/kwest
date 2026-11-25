@@ -17,7 +17,7 @@ var uid=null,roomCode=null,room=null,subs=[],progressCb=null;
 // Передача капитана (утверждено автором 28.10.2026): автоматически, любой игрок может стать новым
 // капитаном — берём самого раннего по времени входа из находящихся на связи, чтобы все устройства
 // выбрали одного и того же. Время — опытный параметр, менять здесь:
-var CAPTAIN_TIMEOUT_MS=20000;   // через сколько молчания капитан считается потерянным
+var CAPTAIN_TIMEOUT_MS=35000;   // через сколько молчания капитан считается потерянным
 var HEARTBEAT_MS=5000;          // как часто каждый игрок отмечается «я на связи»
 // Реализация: при молчании капитана самый ранний игрок пишет в captainTransfer, затем
 // сам записывает себя в captain (Firebase Rules это разрешают). Если прежний капитан
@@ -28,9 +28,16 @@ function gen(){var s='';for(var i=0;i<4;i++)s+=CH[Math.floor(Math.random()*CH.le
 function emit(){for(var i=0;i<subs.length;i++)subs[i](room);}
 // --- «сердцебиение» и автопередача капитана ---
 var hbTimer=null,capCheckT=null,promoteInFlight=false;
-function startHeartbeat(){stopHeartbeat();var beat=function(){if(roomCode&&uid)db.ref('rooms/'+roomCode+'/players/'+uid).update({segAt:Date.now()}).catch(function(){});};beat();hbTimer=setInterval(beat,HEARTBEAT_MS);}
+function startHeartbeat(){stopHeartbeat();var beat=function(){if(roomCode&&uid)db.ref('rooms/'+roomCode+'/players/'+uid).update({segAt:Date.now(),connected:true}).catch(function(){});};beat();hbTimer=setInterval(beat,HEARTBEAT_MS);}
 function stopHeartbeat(){if(hbTimer){clearInterval(hbTimer);hbTimer=null;}}
-function isOnline(p){if(!p)return false;if(p.connected===false)return false;var hb=(typeof p.segAt==='number')?p.segAt:((p.joinedAt||0)+HEARTBEAT_MS);return (Date.now()-hb)<CAPTAIN_TIMEOUT_MS;}
+function isOnline(p){
+if(!p)return false;
+var hb=(typeof p.segAt==='number')?p.segAt:((p.joinedAt||0)+HEARTBEAT_MS);
+var age=Date.now()-hb;
+// Флаг connected===false сам по себе не повод отнимать роль: он остаётся false после
+// короткого обрыва и сам не возвращается. Смотрим на свежесть сердцебиения.
+if(age>CAPTAIN_TIMEOUT_MS)return false;
+return true;}
 function captainAlive(){if(!room||!room.captain)return true;var p=room.players&&room.players[room.captain];return isOnline(p);}
 function earliestOnline(){var best=null,bt=Infinity;var ps=(room&&room.players)||{};Object.keys(ps).forEach(function(k){var p=ps[k];if(isOnline(p)){var t=p.joinedAt||Infinity;if(t<bt){bt=t;best=k;}}});return best;}
 function checkCaptainTransfer(){

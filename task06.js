@@ -141,10 +141,14 @@ els.status.textContent=text||'';els.status.hidden=!text;return '';
 function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&room.tasks.task06)||{stage:'wait'};render();coordinate();}
 // --- просмотр: инструкция и танец ---
 function startIntro(){
-if(!cap()||!task||task.stage!=='wait')return;
+if(!task)return;
+if(!cap()){if(typeof status==='function')status('Инструкцию запускает капитан');return;}
+if((task.stage||'wait')!=='wait')return;
 els.start.disabled=true;
 write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
 .catch(function(){if(els.start)els.start.disabled=false;});
+// если база не ответила за 4 секунды — кнопка снова нажимается, а не «умирает» насовсем
+setTimeout(function(){try{if(active&&els.start&&(task.stage||'wait')==='wait')els.start.disabled=false;}catch(e){}},4000);
 }
 function introDone(){
 if(!cap()||!task||task.stage!=='intro')return;
