@@ -195,7 +195,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 if(!$('result-team')){const rt=document.createElement('p');rt.className='note';rt.id='result-team';$('result').querySelector('.result-stats').after(rt);}
 (function probeStreet(){const v=$('street');if(v.getAttribute('src'))return;const cand=['defense_street.mp4','street_loop.webm','street.webm','street_loop.mp4','street.mp4'];let i=0;const tryNext=()=>{if(i>=cand.length)return;v.src=asset(cand[i++]);v.onerror=tryNext;v.onloadeddata=()=>{v.onerror=null;};v.load();};tryNext();})();
 const roleSec=document.createElement('section');roleSec.className='screen';roleSec.id='role';
-roleSec.innerHTML='<div class="glass brief-card" id="role-card"><p class="note" id="role-name"></p><p class="note" id="role-hint"></p><div class="lobby-buttons" id="role-buttons"><button class="primary" id="role-captain" type="button">Я капитан — создать код</button><button class="secondary" id="role-join" type="button" style="display:none">Я игрок — ввести код</button></div><div id="create-box" class="hidden"><label>Сколько игроков в команде (включая вас)? Нажмите цифру:</label><div id="size-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<button type="button" class="secondary size-pick" data-n="'+n+'">'+n+'</button>').join('')+'</div><div class="lobby-buttons"><button class="primary" id="create-go" type="button">Создать комнату →</button></div><p class="note" id="create-error"></p></div><div id="join-box" class="hidden"><label for="room-input">Код команды</label><input id="room-input" placeholder="например a1b2c3" autocomplete="off" enterkeyhint="go"><div class="lobby-buttons"><button class="primary" id="join-go" type="button">Войти в команду →</button></div><p class="note" id="join-error"></p></div><p class="note" id="role-status"></p><div class="lobby-buttons"><button class="secondary hidden" id="role-solo" type="button">Продолжить одному</button></div></div>';
+roleSec.innerHTML='<div class="glass brief-card" id="role-card"><p class="note" id="role-name"></p><p class="note" id="role-hint"></p><div class="lobby-buttons" id="role-buttons"><button class="primary" id="role-captain" type="button">Я капитан — создать комнату</button><button class="secondary" id="role-join" type="button" style="display:none">Я игрок — ввести код</button></div><div id="create-box" class="hidden"><label>Сколько игроков в команде (включая вас)? Нажмите цифру:</label><div id="size-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<button type="button" class="secondary size-pick" data-n="'+n+'">'+n+'</button>').join('')+'</div><div class="lobby-buttons"><button class="primary" id="create-go" type="button">Создать комнату →</button></div><p class="note" id="create-error"></p></div><div id="join-box" class="hidden"><label for="room-input">Код команды</label><input id="room-input" placeholder="например a1b2c3" autocomplete="off" enterkeyhint="go"><div class="lobby-buttons"><button class="primary" id="join-go" type="button">Войти в команду →</button></div><p class="note" id="join-error"></p></div><p class="note" id="role-status"></p><div class="lobby-buttons"><button class="secondary hidden" id="role-solo" type="button">Продолжить одному</button></div></div>';
 $('app').append(roleSec);
 function pickSize(n){selectedSize=n;roleSec.querySelectorAll('.size-pick').forEach(b=>{const on=+b.dataset.n===n;b.classList.toggle('primary',on);b.classList.toggle('secondary',!on);});}
 roleSec.addEventListener('click',e=>{const b=e.target.closest?e.target.closest('.size-pick'):null;if(b)pickSize(+b.dataset.n);});
@@ -244,4 +244,96 @@ screen('result');
 if(st.phase==='battle'&&syncBattleAt!==st.startsAt){syncBattleAt=st.startsAt||0;const dur=(st.durationMs||300000)/1000;const startAt=st.startsAt||0;const remain=(startAt+dur*1000-now)/1000;if(remain>1&&!game&&current!=='result'){const d=Math.max(0,startAt-now);if(current!=='brief'&&current!=='battle')showBrief();$('loading-note').textContent=d>0?'Общий старт через '+Math.ceil(d/1000)+'…':'Подключение к идущей обороне…';loadAssets().then(()=>{setTimeout(()=>{const r=NET.room;if(!game&&r&&r.state&&r.state.phase==='battle'){const left=(startAt+dur*1000-Date.now())/1000;if(left>1)playSources().then(()=>begin(left)).catch(()=>begin(left));}},d);}).catch(e=>{syncBattleAt=0;window.__battleRetryN=(window.__battleRetryN||0)+1;if(window.__battleRetryN<=2)toast('Не удалось загрузить видео обороны. Повторяем…');if($('loading-note'))$('loading-note').textContent='Повторяем подключение к обороне…';});}}
 });}
 screen('home');
+})();
+
+// ============================================================
+// Подсказка «чей ход», служебные плашки, защита экрана от сна
+// ============================================================
+(function(){
+var CAP_STAGES={code:1,answer:1,quiz:1,protocol:1,play:1,clip:1,reveal:1,result:1,done:1,
+countdown:1,city:1,run:1,ask:1,reaction:1,guess:1,verdict:1,word:1,order:1};
+var prevCap=null,capHintEl=null,sysEl=null,sysTimer=null,offline=false;
+
+function ensure(id,cls){
+var e=document.getElementById(id);
+if(!e){e=document.createElement('div');e.id=id;if(cls)e.className=cls;document.body.appendChild(e);}
+return e;
+}
+function room(){return (window.NET&&NET.room)||null;}
+function isCap(){return !!(window.NET&&NET.isCaptain&&NET.isCaptain());}
+function taskNode(scr){
+var r=room();if(!r||!r.tasks)return null;
+return r.tasks[scr==='brief'?'task01':scr]||null;
+}
+function showSys(text,warn,ms){
+sysEl=ensure('sys-plaque');
+sysEl.textContent=text;
+sysEl.className='show'+(warn?' warn':'');
+clearTimeout(sysTimer);
+if(ms)sysTimer=setTimeout(function(){if(sysEl)sysEl.className='';},ms);
+}
+function hideSys(){if(sysEl)sysEl.className='';}
+
+// «Следующий шаг у капитана» / «Капитан запускает видео» — только для игроков и только
+// в самих заданиях: на инструкции показываем про видео, в игре — про ход капитана.
+function paintCapHint(){
+try{
+var scr=String(document.body.dataset.screen||'');
+var isTask=/^task\d+$/.test(scr)||scr==='brief';
+var el=ensure('cap-hint');
+if(!isTask||isCap()){el.className='';el.textContent='';return;}
+var n=taskNode(scr),st=n?(n.stage||''):'';
+var txt='';
+if(st==='wait'||st==='intro')txt='Капитан запускает видео — смотрите вместе';
+else if(st&&CAP_STAGES[st])txt='Следующий шаг у капитана';
+if(!txt){el.className='';el.textContent='';return;}
+if(el.textContent!==txt)el.textContent=txt;
+el.className='show';
+}catch(e){}
+}
+
+function onRoom(room){
+try{
+paintCapHint();
+if(!room)return;
+var capUid=room.captain||'';
+if(prevCap&&capUid&&capUid!==prevCap&&capUid!==((window.NET&&NET.uid)||'')){
+var p=(room.players||{})[capUid];
+showSys('Капитан сменился: теперь ведёт '+(p&&p.name?p.name:'другой игрок'),false,7000);
+}
+prevCap=capUid||prevCap;
+}catch(e){}
+}
+ensure('cap-hint');ensure('sys-plaque');
+if(window.NET&&NET.onRoom)NET.onRoom(onRoom);
+setInterval(paintCapHint,1000);
+
+// Нет связи: показываем «Нет связи, ждём…» и сами ждём восстановления —
+// Firebase переподключается сам, повторных нажатий не нужно.
+try{
+firebase.database().ref('.info/connected').on('value',function(s){
+var on=!!s.val();
+if(on===offline)return;
+offline=!on;
+if(!on)showSys('Нет связи, ждём…',true,0);
+else {showSys('Связь восстановлена',false,2500);}
+});
+}catch(e){}
+
+// Экран не должен гаснуть на всём квесте.
+var wakeRef=null;
+function keepAwake(){
+try{
+if(!navigator.wakeLock||!navigator.wakeLock.request||wakeRef)return;
+navigator.wakeLock.request('screen').then(function(s){
+wakeRef=s;s.addEventListener('release',function(){wakeRef=null;});
+}).catch(function(){});
+}catch(e){}
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')keepAwake();});
+document.addEventListener('pointerdown',function(){keepAwake();},{passive:true});
+if(document.readyState!=='loading')keepAwake();else document.addEventListener('DOMContentLoaded',keepAwake);
+
+window.__paintCapHint=paintCapHint;
+window.__showSys=showSys;
 })();

@@ -174,3 +174,28 @@ body{font-family:QuestSans;color:var(--q-text)}
   #t5 .t5-panel input,#t5 .t5-panel .t5-primary{height:40px;min-height:40px}
   #t6 .t6-word-row input,#t6 .t6-word-row .t6-primary{height:40px;min-height:40px}
 }
+
+/* ---------- Служебные надписи: ожидание, загрузка, подсказки ---------- */
+/* Один вид на весь квест: мелкий текст, один оттенок, по центру. */
+[class*="waitnote"],[id*="waitnote"],[class$="-note"],
+.t2-captainnote,.t4-reqnote{
+  font-family:QuestSans;font-size:14px!important;line-height:1.4!important;
+  font-weight:400!important;color:var(--q-text-2)!important;text-align:center;
+  letter-spacing:0;margin:8px 0 0;max-width:92vw}
+
+/* ---------- Подсказка «чей ход» и служебные плашки ---------- */
+#cap-hint{
+  position:fixed;left:50%;transform:translateX(-50%);
+  top:max(8px,env(safe-area-inset-top));z-index:880;display:none;
+  padding:5px 14px;border-radius:10px;font-family:QuestSans;font-size:13px;
+  letter-spacing:.03em;color:var(--q-text-2);background:rgba(9,20,24,.82);
+  border:1px solid rgba(190,245,245,.28);pointer-events:none;text-align:center;max-width:92vw}
+#cap-hint.show{display:block}
+
+#sys-plaque{
+  position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);
+  z-index:1000;display:none;padding:6px 14px;border-radius:10px;font-family:QuestSans;
+  font-size:14px;font-weight:700;letter-spacing:.02em;text-align:center;max-width:92vw;
+  background:rgba(9,20,24,.92);border:1px solid var(--q-accent);color:var(--q-accent)}
+#sys-plaque.show{display:block}
+#sys-plaque.warn{border-color:#ffb35c;color:#ffb35c}
