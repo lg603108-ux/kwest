@@ -304,6 +304,7 @@ out.total+=sc;out.max+=100;
 });
 return out;
 }
+window.__impulseTotal=function(){try{return impTotals((window.NET&&NET.room)||{}).total;}catch(e){return 0;}};
 function impPlaque(){
 var e=document.getElementById('impulse-plaque');
 if(!e){
@@ -326,9 +327,8 @@ clearTimeout(impPaint._t);
 impPaint._t=setTimeout(function(){dl.className='imp-delta';},1600);
 }
 impPrev=t.total;
-// Итоговый экран импульса — когда пройдены все десять заданий
-var allDone=t.parts.every(function(p){return p.done;});
-if(allDone&&!impFinalShown)impShowFinal(t);
+// Отдельную карточку поверх игры не показываем: импульс выводится на итоговом экране
+// десятого задания рядом с общим временем.
 }catch(err){}
 }
 function impShowFinal(t){
