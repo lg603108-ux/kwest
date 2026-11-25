@@ -199,3 +199,30 @@ body{font-family:QuestSans;color:var(--q-text)}
   background:rgba(9,20,24,.92);border:1px solid var(--q-accent);color:var(--q-accent)}
 #sys-plaque.show{display:block}
 #sys-plaque.warn{border-color:#ffb35c;color:#ffb35c}
+
+/* --- Задание 4 «Химеры»: поле и «Проверить» на одной линии -----
+   Поля стоят с подписью сверху, поэтому кнопка «Проверить» висела
+   выше их нижнего края. Прижимаем кнопки к нижнему краю полей
+   и даём им ту же высоту, что у поля (44 px, на телефоне 38).   */
+#t4 .t4-panel{align-items:flex-end}
+/* Общий стиль полей даёт полю отступ снизу 16 px — из-за него поле «выше» кнопки */
+#t4 .t4-panel input{margin:0}
+#t4 .t4-panel>.t4-primary,
+#t4 .t4-panel>.t4-secondary{height:44px;min-height:0;margin:0;padding:0 18px;
+  display:inline-flex;align-items:center;justify-content:center}
+#t4 .t4-kbrow .t4-kbwin-input{height:46px;margin:0}
+#t4 .t4-kbrow .t4-kbok{height:46px;min-height:46px}
+/* у поля в этом задании на низком экране высота 38 — кнопки должны совпасть */
+@media(max-height:560px){
+  #t4 .t4-panel>.t4-primary,
+  #t4 .t4-panel>.t4-secondary{height:38px;min-height:0;padding:0 14px;font-size:13px}
+}
+
+
+/* --- Задание 4: что вводит капитан и подсказки — на экране игрока ---- */
+#t4 .t4-watch-typed,#t4 .t4-watch-hint{
+  background:rgba(13,22,26,.88);border:1px solid rgba(190,245,245,.3);
+  border-radius:12px;padding:8px 14px;font-size:15px;line-height:1.35;
+  color:#fff;text-align:center;max-width:92vw;margin:0}
+#t4 .t4-watch-hint{color:#9fd8d8;font-size:14px}
+
