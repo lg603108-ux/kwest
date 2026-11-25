@@ -53,7 +53,7 @@ root=document.createElement('div');root.id='t8';root.innerHTML=
 '<p class="t8-note" id="t8-readynote" hidden>Ждём капитана: он включит запись.</p></section>'+
 '<div class="t8-controls" id="t8-controls" hidden><button id="t8-toggle" type="button">⏸ Пауза</button><button id="t8-restart" type="button">↺ В начало</button></div>'+
 '<button class="t8-replay" id="t8-request" type="button" hidden>↺ Попросить повтор</button>'+
-'<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note" id="t8-asknote">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p><p class="t8-note t8-caps" id="t8-askplayer" hidden>ПОДСКАЗЫВАЙТЕ КАПИТАНУ</p></section>'+
+'<section class="t8-screen t8-ask" id="t8-ask" hidden><p class="t8-eyebrow">ЗАПИСЬ ПРОСМОТРЕНА</p><h1>Капитан вводит код</h1><p class="t8-note" id="t8-asknote">Обсуждайте цифры вместе: четыре ячейки, порядок — пробирка, бейдж, часы, сектор. Не забудьте плакат на стене — он понадобится в финале.</p><p class="t8-note t8-caps" id="t8-askplayer" hidden>ПОДСКАЗЫВАЙТЕ КАПИТАНУ</p><p class="t8-draft" id="t8-draft" hidden></p></section>'+
 '<section class="t8-code" id="t8-code" hidden>'+
 '<p class="t8-code-title">Код Ядра</p>'+
 '<div class="t8-cells" id="t8-cells"></div>'+
@@ -79,7 +79,7 @@ video=root.querySelector('.t8-video');
 els={wait:root.querySelector('.t8-wait'),start:root.querySelector('#t8-start'),waitnote:root.querySelector('#t8-waitnote'),
 ready:root.querySelector('#t8-ready'),show:root.querySelector('#t8-show'),readynote:root.querySelector('#t8-readynote'),
 controls:root.querySelector('#t8-controls'),toggle:root.querySelector('#t8-toggle'),restart:root.querySelector('#t8-restart'),
-request:root.querySelector('#t8-request'),ask:root.querySelector('#t8-ask'),
+request:root.querySelector('#t8-request'),ask:root.querySelector('#t8-ask'),draft:root.querySelector('#t8-draft'),
 code:root.querySelector('#t8-code'),cells:root.querySelector('#t8-cells'),pad:root.querySelector('#t8-pad'),
 del:root.querySelector('#t8-del'),check:root.querySelector('#t8-check'),again:root.querySelector('#t8-again'),
 err:root.querySelector('#t8-err'),hint:root.querySelector('#t8-hint'),
@@ -270,6 +270,14 @@ if(els.quiz){els.quizYes.hidden=!c;els.quizNo.hidden=!c;if(els.quizcap)els.quizc
 const showCode=inCode&&c&&!!task.fullViewed;
 els.code.hidden=!showCode;
 els.done.hidden=!inDone;
+// Игроки видят, что вводит капитан: черновик кода пишется в комнату на каждую цифру.
+if(els.draft){
+const d=(inCode&&!c)?String(task.codeDraft||''):'';
+els.draft.hidden=!d;
+els.draft.textContent=d?('Капитан ввёл: '+d.split('').join(' ')):'';
+}
+// На вопрос о протоколе отвечает капитан; игроки сразу видят протокол и могут пересмотреть запись.
+if(inDone&&!c){if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;}
 if(els.cont)els.cont.hidden=!c;
 if(els.donenote)els.donenote.hidden=c;
 if(!inDone)closeReplay();

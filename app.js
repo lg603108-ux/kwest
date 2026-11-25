@@ -243,7 +243,7 @@ function cinemaNext(){if(window.NET&&NET.inRoom()){if(NET.isCaptain())NET.setPha
 function introNext(){if(window.NET&&NET.inRoom()){if(NET.isCaptain())NET.setPhase('brief',0);}else showBrief();}
 let syncCinemaAt=0,syncIntroAt=0,syncBattleAt=0;
 if(window.NET){NET.onProgress(t=>{if(current==='role')$('role-status').textContent=t;});
-NET.onRoom(room=>{if(current==='lobby')renderLobby(room);if(!room||!room.state)return;const st=room.state;const now=Date.now();
+NET.onRoom(room=>{if(current==='lobby')renderLobby(room);try{impPaint(room);}catch(e){}if(!room||!room.state)return;const st=room.state;const now=Date.now();
 teamScore=Object.entries(room.players||{}).reduce((s,[uid,p])=>uid===NET.uid?s:s+(p.score||0),0);
 if(game)$('team-score').textContent=teamScore+game.score;
 if(current==='result'){const ownReported=(room.players&&room.players[NET.uid])?room.players[NET.uid].score||0:0;$('result-team').textContent=(teamScore+Math.max(lastOwnFinal,ownReported));}
@@ -261,3 +261,90 @@ if(st.phase==='battle'&&syncBattleAt!==st.startsAt){syncBattleAt=st.startsAt||0;
 });}
 screen('home');
 })();
+// ================== ИМПУЛЬС КОМАНДЫ ==================
+// 100 за каждое задание, накапливается: после 10 заданий максимум 1000.
+// Штрафы: подсказка −15, «Помощь Вольта» −25, неверная попытка −8, повтор просмотра −5.
+var IMP_ORDER=['task01','task02','task03','task04','task05','task06','task07','task08','task09','task10'];
+var IMP_TITLES={task01:'Оборона',task02:'Кристальный шифр',task03:'Чувства Лума',task04:'Химеры',
+task05:'Голос аномалии',task06:'Танец Лума',task07:'Прорыв к лаборатории',task08:'Код Ядра',
+task09:'Стабилизатор',task10:'Город'};
+var impPrev=null, impFinalShown=false;
+function impNum(v){v=+v||0;return isFinite(v)?v:0;}
+function impSum(o){var s=0;if(o&&typeof o==='object'){Object.keys(o).forEach(function(k){s+=impNum(o[k]);});}else{s=impNum(o);}return s;}
+function impDone(n){if(!n)return false;return !!(n.completed===true||n.stage==='done'||n.stage==='finished'||(n.result&&n.result.at));}
+function impTaskScore(name,node){
+if(!node||!impDone(node))return 0;
+var hints=0,tries=0,reps=0,base=100;
+if(name==='task04'){
+base=Math.min(100,impNum(node.energy)||100);      // 10 % за химеру; нет данных о заряде — считаем полностью
+hints=impSum(node.hintLevel);tries=impSum(node.attempts);reps=impNum(node.replays);
+}else if(name==='task05'){
+hints=impSum(node.hintLevel);tries=impNum(node.attempts);
+}else if(name==='task06'){
+hints=impNum(node.hintOrder)+impNum(node.hintWord);
+tries=impNum(node.attemptsOrder)+impNum(node.attemptsWord);
+reps=impNum(node.replayUsed);
+}else if(name==='task07'){
+var r=node.result||{};tries=impNum(r.failed);
+}else if(name==='task08'){
+hints=impSum(node.hintLevel);tries=impNum(node.attempts);
+}else if(name==='task09'||name==='task10'){
+hints=impNum(node.codeHintLevel)+impNum(node.protocolHintLevel);
+tries=impNum(node.codeAttempts)+impNum(node.protocolAttempts);
+}
+var s=base-hints*15-tries*8-reps*5;
+return Math.max(0,Math.min(100,Math.round(s)));
+}
+function impTotals(room){
+var tasks=(room&&room.tasks)||{},out={total:0,max:0,parts:[]};
+IMP_ORDER.forEach(function(name){
+var sc=impTaskScore(name,tasks[name]);
+out.parts.push({name:name,title:IMP_TITLES[name]||name,score:sc,done:impDone(tasks[name])});
+out.total+=sc;out.max+=100;
+});
+return out;
+}
+function impPlaque(){
+var e=document.getElementById('impulse-plaque');
+if(!e){
+e=document.createElement('div');e.id='impulse-plaque';
+e.innerHTML='<span class="imp-label">Импульс</span><b class="imp-value">0</b><i class="imp-delta"></i>';
+document.body.appendChild(e);
+}
+return e;
+}
+function impPaint(room){
+try{
+var t=impTotals(room),e=impPlaque();
+var val=e.querySelector('.imp-value'),dl=e.querySelector('.imp-delta');
+val.textContent=t.total;
+if(impPrev!==null&&t.total!==impPrev){
+var d=t.total-impPrev;
+dl.textContent=(d>0?'+':'')+d;
+dl.className='imp-delta show'+(d<0?' down':'');
+clearTimeout(impPaint._t);
+impPaint._t=setTimeout(function(){dl.className='imp-delta';},1600);
+}
+impPrev=t.total;
+// Итоговый экран импульса — когда пройдены все десять заданий
+var allDone=t.parts.every(function(p){return p.done;});
+if(allDone&&!impFinalShown)impShowFinal(t);
+}catch(err){}
+}
+function impShowFinal(t){
+impFinalShown=true;
+var e=document.getElementById('impulse-final');
+if(!e){
+e=document.createElement('div');e.id='impulse-final';
+document.body.appendChild(e);
+}
+var rows=t.parts.map(function(p){
+return '<div class="imp-row'+(p.done?'':' off')+'"><span>'+p.title+'</span><b>'+p.score+'</b></div>';
+}).join('');
+e.innerHTML='<div class="imp-card"><p class="imp-cap">Квест пройден</p>'+
+'<h2 class="imp-total">ИМПУЛЬС КОМАНДЫ — '+t.total+'</h2>'+
+'<div class="imp-list">'+rows+'</div>'+
+'<button class="primary" type="button" id="imp-close">Закрыть</button></div>';
+e.classList.add('show');
+e.querySelector('#imp-close').onclick=function(){e.classList.remove('show');};
+}
