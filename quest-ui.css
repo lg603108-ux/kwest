@@ -207,8 +207,12 @@ body[data-screen="battle"] #impulse-plaque{
   background:rgba(9,20,24,.86);align-self:stretch;justify-content:center}
 body[data-screen="battle"] #impulse-plaque .imp-value{font-size:24px}
 
-/* Химеры: слева сверху своя плашка химеры — импульс уходит вправо */
-body[data-screen="task04"] #impulse-plaque{left:auto;right:max(10px,env(safe-area-inset-right))}
+/* Где слева сверху уже своя плашка задания (Химеры, Прорыв) — импульс встаёт справа.
+   На остальных экранах заданий слева свободно, справа стоит QR-код. */
+body[data-screen="task04"] #impulse-plaque,
+body[data-screen="task07"] #impulse-plaque{
+  left:max(10px,env(safe-area-inset-left));right:auto;
+  top:calc(max(8px,env(safe-area-inset-top)) + 62px)}
 
 /* Импульс в итоге задания */
 .imp-result-line{
