@@ -281,6 +281,8 @@ try{
 var scr=String(document.body.dataset.screen||'');
 var isTask=/^task\d+$/.test(scr)||scr==='brief';
 var el=ensure('cap-hint');
+// В седьмом задании подсказка «Следующий шаг у капитана» не нужна (просьба автора 25.11)
+if(scr==='task07'){el.className='';el.textContent='';return;}
 if(!isTask||isCap()){el.className='';el.textContent='';return;}
 var n=taskNode(scr),st=n?(n.stage||''):'';
 var txt='';
@@ -430,6 +432,9 @@ function doneTask(name){
 // Штрафы: у остальных заданий они уже накоплены в комнате, у задания 10 — только по счётчикам.
 function penaltyOf(name){
   var n=node(name),p=num(pen[name]);
+  // Своя копия счёта может отставать (капитан ошибся — записал штраф в комнату).
+  // Берём большее: тогда цифра одинаковая у всех устройств.
+  if(n&&num(n.impPen)>p)p=num(n.impPen);
   if(n){
     // по заданию 10 в комнату новые поля писать нельзя (правила базы), поэтому считаем
     // по накопленным счётчикам кода и протокола
@@ -446,8 +451,9 @@ function totals(){
   var out={total:0,max:ORDER.length*100,parts:[]};
   ORDER.forEach(function(name){
     var done=doneTask(name),sc=0;
+    // Задание даёт импульс, когда оно пройдено. Пока идёт — на плашке остаётся
+    // только уже накопленное (иначе «шифр ещё не начался, а импульс уже 200»).
     if(done)sc=scoreOf(name);
-    else if(name!=='task01'&&node(name))sc=scoreOf(name);   // идущее задание видно уже со штрафами
     out.parts.push({name:name,title:TITLES[name]||name,score:sc,done:done});
     out.total+=sc;
   });
@@ -461,7 +467,7 @@ function plaque(){
   var e=document.getElementById('impulse-plaque');
   if(!e){
     e=document.createElement('div');e.id='impulse-plaque';
-    e.innerHTML='<span class="imp-label">Импульс</span><b class="imp-value">0</b><i class="imp-delta"></i>';
+    e.innerHTML='<small class="imp-label">Импульс</small><b class="imp-value">0</b><i class="imp-delta"></i>';
     document.body.appendChild(e);
   }
   return e;
@@ -470,8 +476,9 @@ function showScreen(ph){
   if(ph==='battle')return true;
   if(!/^task\d\d$/.test(ph)||ph==='task01')return false;
   var n=node(ph),st=n?String(n.stage||''):'';
-  // инструкция и ожидание — плашку не показываем: она закрывала текст и QR
-  if(/intro|wait|change/.test(st))return false;
+  // инструкция, ожидание и экран завершения — плашку не показываем:
+  // на инструкции она закрывала текст, на итогах задания хватает строки «ИМПУЛЬС КОМАНДЫ»
+  if(/intro|wait|done|change/.test(st))return false;
   if(ph==='task07')return st==='run'||st==='done';
   return true;
 }
@@ -482,10 +489,11 @@ function placeIn(e,ph){
   if(host){
     if(e.parentElement!==host)host.appendChild(e);
     e.classList.add('in-row');
+    if(ph==='battle')e.classList.add('hud-panel');else e.classList.remove('hud-panel');
     return true;
   }
   if(e.parentElement!==document.body)document.body.appendChild(e);
-  e.classList.remove('in-row');
+  e.classList.remove('in-row');e.classList.remove('hud-panel');
   return false;
 }
 function paint(){
@@ -527,7 +535,14 @@ function injectResults(t){
   }
   if(!host)return;
   var line=host.querySelector('.imp-result-line');
-  if(!line){line=document.createElement('p');line.className='imp-result-line';host.appendChild(line);}
+  if(!line){
+    line=document.createElement('p');line.className='imp-result-line';
+    // строка встаёт сразу под заголовком экрана — это итог задания, а не подпись к кнопке
+    var head=host.querySelector('h1,h2');
+    if(head&&head.parentNode===host&&head.nextSibling)host.insertBefore(line,head.nextSibling);
+    else if(head&&head.parentNode===host)host.appendChild(line);
+    else host.appendChild(line);
+  }
   var txt='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||0);
   if(line.textContent!==txt)line.textContent=txt;
 }
