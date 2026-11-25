@@ -284,7 +284,7 @@ var el=ensure('cap-hint');
 if(!isTask||isCap()){el.className='';el.textContent='';return;}
 var n=taskNode(scr),st=n?(n.stage||''):'';
 var txt='';
-if(st==='wait')txt='Капитан запускает видео — смотрите вместе';
+if(st==='wait')txt='Капитан запускает инструкцию — смотрите вместе';
 else if(st&&st!=='intro'&&CAP_STAGES[st])txt='Следующий шаг у капитана';
 if(!txt){el.className='';el.textContent='';return;}
 if(el.textContent!==txt)el.textContent=txt;

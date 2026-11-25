@@ -141,14 +141,10 @@ els.status.textContent=text||'';els.status.hidden=!text;return '';
 function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&room.tasks.task06)||{stage:'wait'};render();coordinate();}
 // --- просмотр: инструкция и танец ---
 function startIntro(){
-if(!task)return;
-if(!cap()){if(typeof status==='function')status('Инструкцию запускает капитан');return;}
-if((task.stage||'wait')!=='wait')return;
+if(!cap()||!task||task.stage!=='wait')return;
 els.start.disabled=true;
 write({stage:'intro',startsAt:now(),playbackId:1,playing:true,pausedAt:0,watched:false,orderAccepted:false,wordAccepted:false,attemptsOrder:0,attemptsWord:0,hintOrder:0,hintWord:0,selected:['','','','','',''],shuffle:null,completed:false})
 .catch(function(){if(els.start)els.start.disabled=false;});
-// если база не ответила за 4 секунды — кнопка снова нажимается, а не «умирает» насовсем
-setTimeout(function(){try{if(active&&els.start&&(task.stage||'wait')==='wait')els.start.disabled=false;}catch(e){}},4000);
 }
 function introDone(){
 if(!cap()||!task||task.stage!=='intro')return;
@@ -287,11 +283,12 @@ setTimeout(function(){if(active)status('');},5000);
 }
 }
 // --- отрисовка ---
-// Ввод капитана и его подсказку видят все игроки.
+// Показ ввода капитана игрокам. Всё внутри try/catch: если что-то не так,
+// отрисовка экрана продолжается как обычно.
 var watchTimer6=null;
 function publishWatch6(){
-if(!cap()||!task)return;
-if(watchTimer6)return;
+try{
+if(!cap()||!task||watchTimer6)return;
 watchTimer6=setTimeout(function(){
 watchTimer6=null;
 try{
@@ -302,6 +299,7 @@ var hint=st==='word'?HINT_WORD[Math.min(3,lw)]:(st==='order'?HINT_ORDER[Math.min
 write({watch:{text:(st==='word'?String(w).slice(0,60):''),hint:String(hint||'').slice(0,170),stage:st,at:Date.now()}});
 }catch(e){}
 },300);
+}catch(e){}
 }
 function render(){
 if(!root||!task)return;
@@ -326,14 +324,16 @@ if(inWord)renderOrder(c,true);
 if(els.wordPlayer)els.wordPlayer.hidden=c||!inWord;
 var _wr=els.word?els.word.querySelector('.t6-word-row'):null;if(_wr)_wr.style.display=c?'':'none';
 if(els.wordHide)els.wordHide.style.display=c?'':'none';
-if(c){publishWatch6();}
+try{
+if(c)publishWatch6();
 if(els.watchTyped){
-const w=task.watch||{},same=(w.stage===stage);
-const txt=(same&&w.text)?('Капитан вводит слово: '+w.text):'';
-els.watchTyped.hidden=c||!txt;els.watchTyped.textContent=txt;
-const ht=(same&&w.hint)?w.hint:'';
-els.watchHint.hidden=c||!ht;els.watchHint.textContent=ht;
+var _w=task.watch||{},_same=(_w.stage===stage);
+var _txt=(_same&&_w.text)?('Капитан вводит слово: '+_w.text):'';
+els.watchTyped.hidden=c||!_txt;els.watchTyped.textContent=_txt;
+var _ht=(_same&&_w.hint)?_w.hint:'';
+els.watchHint.hidden=c||!_ht;els.watchHint.textContent=_ht;
 }
+}catch(e){}
 if(inWord&&c){
 const lvl=Math.max(+task.hintWord||0,localHintWord);
 els.hintWord.hidden=!(lvl>0);
