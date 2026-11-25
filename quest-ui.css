@@ -137,15 +137,18 @@ body{font-family:QuestSans;color:var(--q-text)}
    Поля стоят с подписью сверху, поэтому кнопка «Проверить» висела
    выше их нижнего края. Прижимаем кнопки к нижнему краю полей
    и даём им ту же высоту, что у поля (44 px, на телефоне 38).   */
-#t4 .t4-panel{align-items:center}
+#t4 .t4-panel{align-items:flex-end}
+/* Общий стиль полей даёт полю отступ снизу 16 px — из-за него поле «выше» кнопки */
+#t4 .t4-panel input{margin:0}
 #t4 .t4-panel>.t4-primary,
-#t4 .t4-panel>.t4-secondary{height:44px;min-height:44px;margin:0;padding:0 18px;
+#t4 .t4-panel>.t4-secondary{height:44px;min-height:0;margin:0;padding:0 18px;
   display:inline-flex;align-items:center;justify-content:center}
-#t4 .t4-kbrow .t4-kbwin-input{height:46px}
+#t4 .t4-kbrow .t4-kbwin-input{height:46px;margin:0}
 #t4 .t4-kbrow .t4-kbok{height:46px;min-height:46px}
-@media(max-height:520px){
+/* у поля в этом задании на низком экране высота 38 — кнопки должны совпасть */
+@media(max-height:560px){
   #t4 .t4-panel>.t4-primary,
-  #t4 .t4-panel>.t4-secondary{height:38px;min-height:38px}
+  #t4 .t4-panel>.t4-secondary{height:38px;min-height:0;padding:0 14px;font-size:13px}
 }
 
 /* --- Задание 8: вопрос про Лума — как заголовок --------------- */
@@ -161,16 +164,25 @@ body{font-family:QuestSans;color:var(--q-text)}
 
 /* --- Задания 5 и 6: поле и кнопка одной высоты, по центру ----- */
 #t5 .t5-panel{align-items:center}
+#t5 .t5-panel input{margin:0}
 #t5 .t5-panel input{height:46px}
 #t5 .t5-panel .t5-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
-#t5 .t5-kbrow .t5-kbwin-input{height:46px}
+#t5 .t5-kbrow .t5-kbwin-input{height:46px;margin:0}
 #t5 .t5-kbrow .t5-kbok{height:46px;min-height:46px}
 #t6 .t6-word-row{align-items:center}
+#t6 .t6-word-row input{margin:0}
 #t6 .t6-word-row input{height:46px}
 #t6 .t6-word-row .t6-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
-#t6 .t6-kbrow .t6-kbwin-input{height:46px}
+#t6 .t6-kbrow .t6-kbwin-input{height:46px;margin:0}
 #t6 .t6-kbrow .t6-kbok{height:46px;min-height:46px}
 @media(max-height:520px){
   #t5 .t5-panel input,#t5 .t5-panel .t5-primary{height:40px;min-height:40px}
   #t6 .t6-word-row input,#t6 .t6-word-row .t6-primary{height:40px;min-height:40px}
 }
+
+/* --- Задание 4: что вводит капитан и подсказки — на экране игрока ---- */
+#t4 .t4-watch-typed,#t4 .t4-watch-hint{
+  background:rgba(13,22,26,.88);border:1px solid rgba(190,245,245,.3);
+  border-radius:12px;padding:8px 14px;font-size:15px;line-height:1.35;
+  color:#fff;text-align:center;max-width:92vw;margin:0}
+#t4 .t4-watch-hint{color:#9fd8d8;font-size:14px}

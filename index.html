@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="task08.css?v=0352a">
 <link rel="stylesheet" href="task09.css?v=0352a">
 <link rel="stylesheet" href="task10.css?v=0378a">
-<link rel="stylesheet" href="quest-ui.css?v=002">
+<link rel="stylesheet" href="quest-ui.css?v=003">
 <script src="vendor/qrcode.min.js?v=0311f"></script>
 <style>
 .hidden{display:none!important}
@@ -192,7 +192,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 @media(max-width:740px){#t2 .t2-panel{width:92px;padding:6px;gap:6px}#t2 .t2-row{padding:8px 6px}#t2 .t2-row .shape{width:26px;height:26px;flex:0 0 26px}#t2 .t2-row .digit{font-size:20px}#t2 .t2-cell{width:40px;height:40px;font-size:20px}#t2 .t2-bottom.compact .t2-cell{width:30px;height:30px;font-size:14px}#t2 .t2-bottom{padding:8px 10px}#t2 .t2-hint{font-size:13px}}
 </style>
 </head>
-<body data-build="0385a">
+<body data-build="0386a">
 <div id="app">
 
 
@@ -320,7 +320,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="net.js?v=0311b"></script>
 <script src="task02.js?v=0385a"></script>
 <script src="task03.js?v=0378a"></script>
-<script src="task04.js?v=0375a"></script>
+<script src="task04.js?v=0386a"></script>
 <script src="task05.js?v=0375a"></script>
 <script src="task06.js?v=0375a"></script>
 <script src="vendor/three.min.js"></script>
@@ -329,7 +329,7 @@ body[data-screen="cinema"] #movie-title{top:78px}
 <script src="task08.js?v=0378a"></script>
 <script src="task09.js?v=0378a"></script>
 <script src="task10.js?v=0378a"></script>
-<script src="app.js?v=0385a"></script>
+<script src="app.js?v=0386a"></script>
 <script>
 // МОСТ: кнопка «Продолжить квест» у капитана и монтаж заданий 2 и 3.
 (function(){
@@ -417,10 +417,11 @@ function t7clearHanded(){try{var p='t7hand:'+((NET.room&&NET.room.code)||'')+':'
 // панель пропусков живёт в отдельной области видимости и берёт функцию отсюда через window
 try{window.__t7clearHanded=t7clearHanded;}catch(e){}
 function t7runnerUid(){var list=t7online();if(!list.length)return null;
+  // Бегун — строго по кругу от номера участка: 1-й, 2-й, 3-й… и снова.
+  // Фильтр «уже передал роль» сюда НЕ применяется: он сдвигал круг, и капитан
+  // мог бежать несколько участков подряд.
   var rnd=(t7node().round||0);
-  var pool=list.filter(function(e){return !t7handed(e[0],rnd);});
-  if(!pool.length)pool=list;
-  return pool[rnd%pool.length][0];}
+  return list[rnd%list.length][0];}
 // участок по номеру хода: чётные — А, нечётные — Б, десятый — В (вход в лабораторию)
 function t7segKey(){var n=+(t7node().round||0);return n>=9?'C':(n%2?'B':'A');}
 function t7runnerName(){var u=t7runnerUid();var r=NET.room;var p=(u&&r&&r.players)?r.players[u]:null;
@@ -445,6 +446,34 @@ function t7stageLocal(){
   return st;
 }
 function t7ref(){return firebase.database().ref('rooms/'+NET.room.code+'/tasks/task07');}
+// Переход к следующему участку. Отметка «этот итог уже учтён» живёт в КОМНАТЕ, а не в
+// памяти телефона: сбой отправки больше не останавливает очередь навсегда.
+// После записи проверяем результат; если номер не изменился — до трёх повторов.
+var t7bump={key:'',tries:0};
+function t7bumpRound(n07){
+  var key=String((n07.result&&n07.result.at)||0);
+  if(!key||key==='0')return;
+  if(String(n07.roundFrom||'')===key){t7bump.key='';t7bump.tries=0;return;}   // уже учтено в комнате
+  if(window.__t7bumpKey===key)return;                                        // уже отправляли с этого устройства
+  if(t7bump.key!==key){t7bump.key=key;t7bump.tries=0;}
+  if((+n07.round||0)>=9)return;
+  if(t7bump.tries>=3){window.__t7bumpKey=key;t7bump.key='';toastMsg('Не удалось перейти к следующему участку — нажмите «Продолжить» ещё раз');return;}
+  t7bump.tries++;
+  var next=Math.min(9,(+n07.round||0)+1);
+  var cur=(+n07.round||0);
+  try{
+    t7ref().child('round').set(next).then(function(){
+      // номер сменился — участок передан; отметку в комнату пишем следом, без повторов
+      window.__t7bumpKey=key;t7bump.key='';t7bump.tries=0;
+      try{t7ref().child('roundFrom').set(key).catch(function(){});}catch(e){}
+    }).catch(function(e){
+      noteT7db('номер хода',e);
+      // повторяем только если номер действительно не изменился
+      setTimeout(function(){var now=t7node();
+        if((+now.round||0)===cur && String(now.roundFrom||'')!==key)t7bumpRound(now);},1200);
+    });
+  }catch(e){noteT7db('номер хода',e);}
+}
 function setStage07(s){try{t7ref().child('stage').set(s);}catch(e){}}
 function publishHint07(h){try{t7ref().child('hint').update({text:String(h.text||''),kind:String(h.kind||'hazard'),at:Date.now()});}catch(e){}}
 function publishProgress07(p){try{t7ref().child('progress').set(Math.max(0,Math.min(100,Math.round(p||0))));}catch(e){}}
@@ -459,20 +488,7 @@ if(t7runnerUid()===NET.uid) window.__t7wasRunner={uid:NET.uid,round:rndNow07};
 // (по правилам базы номер бегуна пишет только капитан). Опорный признак — время итога,
 // а не отдельное значение стадии: его схема задания не предусматривает.
 var n07=t7node();
-if(cap() && n07.result && n07.result.at && (+n07.round||0)<9){
-  var bumpKey=String(n07.result.at||0);
-  // Отметка «этот итог уже учтён» хранится ещё и на устройстве: без неё перезагрузка
-  // страницы (а телефон перезагружается после сна) считала ОДИН И ТОТ ЖЕ забег второй раз,
-  // номер хода перескакивал, и десятый участок с дверью приходился на девятый показ.
-  var bumpStore='';
-  try{ bumpStore=localStorage.getItem('t7bump:'+(NET.room.code||''))||''; }catch(e){}
-  if(window.__t7bumpKey!==bumpKey && bumpStore!==bumpKey){
-    window.__t7bumpKey=bumpKey;
-    try{ localStorage.setItem('t7bump:'+(NET.room.code||''),bumpKey); }catch(e){}
-    var nextRound=Math.min(9,(+n07.round||0)+1);
-    try{t7ref().child('round').set(nextRound).catch(function(e){noteT7db('номер хода',e);});}catch(e){noteT7db('номер хода',e);}
-  }
-}
+if(cap() && n07.result && n07.result.at && (+n07.round||0)<9) t7bumpRound(n07);
 var el7=document.getElementById('task07-mount');
 if(!el7){toastMsg('Контейнер задания 7 не найден');return;}
 if(!window.Task07){

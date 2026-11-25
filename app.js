@@ -37,6 +37,22 @@ window.__goFullscreen=goFullscreen;
 // Полный экран включаем уже после экрана с именем — на первом касании в следующем окне.
 // Так подсказка браузера про выход из полного экрана не накрывает экран входа.
 function armFullscreen(){document.addEventListener('pointerdown',function fs(){goFullscreen();document.removeEventListener('pointerdown',fs);},{capture:true});}
+// Экран не должен гаснуть на всём квесте (раньше это было только в задании 7).
+// Запрос повторяем при возврате из свёрнутого состояния: браузер снимает его сам.
+var wakeLockRef=null;
+function keepScreenAwake(){
+try{
+if(!navigator.wakeLock||!navigator.wakeLock.request)return;
+if(wakeLockRef)return;
+navigator.wakeLock.request('screen').then(function(s){
+wakeLockRef=s;
+s.addEventListener('release',function(){wakeLockRef=null;});
+}).catch(function(){});
+}catch(e){}
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')keepScreenAwake();});
+document.addEventListener('pointerdown',function(){keepScreenAwake();},{passive:true});
+if(document.readyState!=='loading')keepScreenAwake();else document.addEventListener('DOMContentLoaded',keepScreenAwake);
 (function injectLobbyCSS(){
 const css=`
 #role,#lobby{align-items:flex-start;overflow-y:auto;overflow-x:hidden}

@@ -12,7 +12,7 @@ const ROUNDS=[
 {file:'chimera_09_svetlyachok_vydra.mp4',a:{name:'светлячок',words:['светлячок'],h1:'Маленькое насекомое, светящееся летними ночами.',h2:'Это жук со светящимся брюшком; свет помогает находить партнёра.'},b:{name:'выдра',words:['выдра'],h1:'Ловкий водный хищник, живёт у рек и озёр.',h2:'Длинное гибкое тело, короткие лапы с перепонками и сильный хвост; ловит рыбу.'}},
 {file:'chimera_10_utka_zayats.mp4',a:{name:'утка',words:['утка'],h1:'Водоплавающая птица рек и озёр.',h2:'Широкий уплощённый клюв и лапы с перепонками; характерно крякает.'},b:{name:'заяц',words:['заяц'],h1:'Травоядный зверёк, очень быстро бегает.',h2:'Длинные уши, короткие передние и сильные длинные задние лапы для прыжков.'}}
 ];
-let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null;
+let active=false,root=null,video=null,els={},roomState=null,task=null,roomOff=null,watchTimer=null;
 let startTimer=null,watchdogTimer=null,tickTimer=null,mediaKey='',mediaRetries=0,starting=false;
 let t4Music=null,resSfxKey='',finalSfxDone=false,warmEl=null;
 let resultKey='',advanceKey='',sfxCfKey='',sfxAtKey='',stageKey='';
@@ -58,15 +58,15 @@ root=document.createElement('div');root.id='t4';root.innerHTML=
 '<p class="t4-reqnote" id="t4-req" hidden></p>'+
 '</form>'+
 '<div class="t4-kbwin" id="t4-kbwin" hidden><p class="t4-kbwin-label" id="t4-kbwin-label">Животное 1</p><div class="t4-kbrow"><input class="t4-kbwin-input" id="t4-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t4-primary t4-kbok" type="button" id="t4-kbwin-ok">Далее</button></div><p class="t4-kbwin-hint" id="t4-kbwin-hint" hidden></p><button class="t4-kblink" type="button" id="t4-kbwin-cancel">Отмена</button></div>'+
-'<div class="t4-watch" id="t4-watch" hidden><p class="t4-caption">Назовите капитану оба животных</p><button class="t4-secondary" type="button" id="t4-reqbtn">Попросить повтор</button></div>'+
+'<div class="t4-watch" id="t4-watch" hidden><p class="t4-caption">Назовите капитану оба животных</p><p class="t4-watch-typed" id="t4-watch-typed" hidden></p><p class="t4-watch-hint" id="t4-watch-hint" hidden></p><button class="t4-secondary" type="button" id="t4-reqbtn">Попросить повтор</button></div>'+
 '<section class="t4-screen t4-result" id="t4-result" hidden><p class="t4-res-title">Химера угадана</p><p class="t4-res-names" id="t4-res-names"></p><p class="t4-res-charge" id="t4-res-gain"></p></section>'+
-'<section class="t4-screen t4-done" hidden><div class="t4-done-body"><div class="t4-done-main"><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-charge"><span>Заряд</span><strong>100%</strong></p></div><button id="t4-next" class="t4-primary" type="button" hidden>Продолжить квест →</button></div></section>'+
+'<section class="t4-screen t4-done" hidden><div class="t4-done-body"><div class="t4-done-main"><div class="t4-capsule"><img src="assets/capsule_healthy1.png" alt=""><div class="t4-capsule-fill" id="t4-done-fill"><img src="assets/capsule_healthy.png" alt=""></div></div><p class="t4-charge"><span>Заряд</span><strong id="t4-done-energy">0%</strong></p></div><button id="t4-next" class="t4-primary" type="button" hidden>Продолжить квест →</button></div></section>'+
 '<div class="t4-status" id="t4-status" role="status" hidden></div>'+
 '<button class="t4-primary t4-mediabtn" id="t4-media" type="button" hidden></button>'+
 '';
 container.appendChild(root);video=root.querySelector('.t4-video');
 warm('assets/v04_intro.mp4');warm('assets/'+ROUNDS[0].file);
-els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),next:root.querySelector('#t4-next'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
+els={wait:root.querySelector('.t4-wait'),hud:root.querySelector('#t4-hud'),hudRound:root.querySelector('#t4-hud-round'),hudEnergy:root.querySelector('#t4-hud-energy'),start:root.querySelector('#t4-start'),waitnote:root.querySelector('#t4-waitnote'),panel:root.querySelector('#t4-panel'),fa:root.querySelector('#t4-fa'),fb:root.querySelector('#t4-fb'),oka:root.querySelector('#t4-oka'),okb:root.querySelector('#t4-okb'),check:root.querySelector('#t4-check'),replay:root.querySelector('#t4-replay'),kb:root.querySelector('#t4-kb'),time:root.querySelector('#t4-time'),hintA:root.querySelector('#t4-hinta'),hintB:root.querySelector('#t4-hintb'),req:root.querySelector('#t4-req'),watch:root.querySelector('#t4-watch'),watchTyped:root.querySelector('#t4-watch-typed'),watchHint:root.querySelector('#t4-watch-hint'),reqbtn:root.querySelector('#t4-reqbtn'),result:root.querySelector('#t4-result'),resRound:root.querySelector('#t4-res-round'),resNames:root.querySelector('#t4-res-names'),resGain:root.querySelector('#t4-res-gain'),resNote:root.querySelector('#t4-res-note'),done:root.querySelector('.t4-done'),doneEnergy:root.querySelector('#t4-done-energy'),next:root.querySelector('#t4-next'),status:root.querySelector('#t4-status'),media:root.querySelector('#t4-media'),kbwin:root.querySelector('#t4-kbwin'),kbLabel:root.querySelector('#t4-kbwin-label'),kbInput:root.querySelector('#t4-kbwin-input'),kbHint:root.querySelector('#t4-kbwin-hint'),kbOk:root.querySelector('#t4-kbwin-ok'),kbCancel:root.querySelector('#t4-kbwin-cancel')};
 els.start.addEventListener('click',startIntro);
 // Переход к заданию 5 — внутри самого задания: кнопка уже отрисована вместе с экраном
 // завершения, поэтому не зависит от опроса страницы и появляется сразу с капсулой.
@@ -85,6 +85,7 @@ els.fa.addEventListener('click',function(){openKb('a');});
 els.fb.addEventListener('click',function(){openKb('b');});
 els.kbOk.addEventListener('click',kbNext);
 els.kbCancel.addEventListener('click',function(){kbSave();closeKb();});
+els.kbInput.addEventListener('input',publishWatch);
 els.kbInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();kbNext();}});
 els.reqbtn.addEventListener('click',requestReplayByPlayer);
 roomOff=NET.onRoom(onRoom);
@@ -213,7 +214,7 @@ if(cur<2)upd['hintLevel/'+t]=cur+1;
 const both=!!(upd['confirmed/a']||(cf.a))&&!!(upd['confirmed/b']||(cf.b));
 if(both){
 const elapsed=Date.now()-(task.startedAt||Date.now());
-const gain=elapsed<30000?10:elapsed<45000?7:elapsed<60000?3:0;
+const gain=10; /* ТЗ: верно угаданная химера всегда даёт 10 % заряда */
 upd.stage='result';upd.resultAt=Date.now();upd.gained=gain;upd.energy=(task.energy||0)+gain;
 }
 write(upd).catch(function(){});
@@ -257,10 +258,11 @@ els.hud.hidden=!inRound;
 if(inRound){els.hudRound.textContent='ХИМЕРА '+((task.round||0)+1)+' ИЗ 10';const ch=Math.max(0,Math.min(100,task.energy||0));els.hudEnergy.textContent=ch+'%';const hf=document.getElementById('t4-hud-fill');if(hf)hf.style.height=ch+'%';}
 els.panel.hidden=!(stage==='answer'&&cap());
 els.watch.hidden=!(stage==='answer'&&!cap());
+if(stage==='answer'){if(cap())publishWatch();else renderWatch();}
 if(stage!=='answer'&&kbField)closeKb();
 if(stage==='answer'){renderAnswer();renderTime();}
 if(stage==='result')renderResult();
-if(stage==='done'){const df=document.getElementById('t4-done-fill');if(df)df.style.height='100%';if(els.next)els.next.hidden=!cap();if(!finalSfxDone){finalSfxDone=true;playSfx('sfx_crystal_ready.mp3',.6);}}
+if(stage==='done'){const df=document.getElementById('t4-done-fill');const chDone=Math.max(0,Math.min(100,task.energy||0));if(df)df.style.height=chDone+'%';if(els.doneEnergy)els.doneEnergy.textContent=chDone+'%';if(els.next)els.next.hidden=!cap();if(!finalSfxDone){finalSfxDone=true;playSfx('sfx_crystal_ready.mp3',.6);}}
 // Звуки вердикта слышат все: верно — при фиксации вида, неверно — при росте попыток.
 const cf=task.confirmed||{},at=task.attempts||{};
 const cfCount=(cf.a?1:0)+(cf.b?1:0),atCount=(at.a||0)+(at.b||0);
@@ -307,6 +309,29 @@ function renderHint(el,sp,label,level){
 if(!level){el.hidden=true;return;}
 el.hidden=false;
 el.innerHTML='<b>'+label+':</b> '+(level>=2?sp.h2:sp.h1);
+}
+// Что видит капитан и подсказки — игрокам: капитан sends «watch» в комнату.
+function publishWatch(){
+if(!cap()||!task)return;
+if(watchTimer)return;
+watchTimer=setTimeout(function(){
+watchTimer=null;
+try{
+const R=round(),hl=task.hintLevel||{};
+let typed='';
+if(kbField){typed=(kbField==='a'?'Животное 1: ':'Животное 2: ')+((els.kbInput&&els.kbInput.value)||'');}
+else{const a=els.fa&&els.fa.value||'',b=els.fb&&els.fb.value||'';typed=(a?'1: '+a:'')+(a&&b?'   ':'')+(b?'2: '+b:'');}
+const parts=[];
+if(hl.a)parts.push('Подсказка 1: '+(hl.a>=2?R.a.h2:R.a.h1));
+if(hl.b)parts.push('Подсказка 2: '+(hl.b>=2?R.b.h2:R.b.h1));
+write({watch:{text:String(typed).slice(0,120),hint:parts.join(' · ').slice(0,170),round:(task.round||0),at:Date.now()}});
+}catch(e){}
+},250);
+}
+function renderWatch(){
+const w=(task&&task.watch)||{},same=(w.round===(task&&task.round||0));
+if(els.watchTyped){els.watchTyped.hidden=!(same&&w.text);els.watchTyped.textContent=w.text?('Капитан вводит — '+w.text):'';}
+if(els.watchHint){els.watchHint.hidden=!(same&&w.hint);els.watchHint.textContent=w.hint||'';}
 }
 // Крупный результат: чёрный экран, бирюзовый текст — ответ и заряд капсулы.
 function renderResult(){
