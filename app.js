@@ -37,22 +37,6 @@ window.__goFullscreen=goFullscreen;
 // Полный экран включаем уже после экрана с именем — на первом касании в следующем окне.
 // Так подсказка браузера про выход из полного экрана не накрывает экран входа.
 function armFullscreen(){document.addEventListener('pointerdown',function fs(){goFullscreen();document.removeEventListener('pointerdown',fs);},{capture:true});}
-// Экран не должен гаснуть на всём квесте (раньше это было только в задании 7).
-// Запрос повторяем при возврате из свёрнутого состояния: браузер снимает его сам.
-var wakeLockRef=null;
-function keepScreenAwake(){
-try{
-if(!navigator.wakeLock||!navigator.wakeLock.request)return;
-if(wakeLockRef)return;
-navigator.wakeLock.request('screen').then(function(s){
-wakeLockRef=s;
-s.addEventListener('release',function(){wakeLockRef=null;});
-}).catch(function(){});
-}catch(e){}
-}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')keepScreenAwake();});
-document.addEventListener('pointerdown',function(){keepScreenAwake();},{passive:true});
-if(document.readyState!=='loading')keepScreenAwake();else document.addEventListener('DOMContentLoaded',keepScreenAwake);
 (function injectLobbyCSS(){
 const css=`
 #role,#lobby{align-items:flex-start;overflow-y:auto;overflow-x:hidden}
@@ -130,8 +114,7 @@ async function movie(file,title,next,offset){stopAudio();screen('cinema');const 
 v.onended=()=>{clearTimeout(movie.stallT);const segId=(next===cinemaNext)?'cinema':'intro';if(window.NET&&NET.inRoom()){NET.setSeg(segId);if(NET.isCaptain()){movie.gate=segId;refreshMovieGate();movie.forceT=setTimeout(()=>{if(current==='cinema'&&NET.isCaptain()&&$('movie-next').classList.contains('hidden')){$('movie-next').classList.remove('hidden');$('movie-title').textContent='Продолжаем без отстающих';}},12000);}else{$('movie-next').classList.add('hidden');$('movie-title').textContent='Ожидание капитана…';}}else{$('movie-next').classList.remove('hidden');}};v.onwaiting=()=>{clearTimeout(movie.stallT);movie.stallT=setTimeout(()=>{if(window.NET&&NET.inRoom()&&NET.isCaptain()&&current==='cinema'&&!v.ended){toast('Видео застряло. Нажмите «Продолжить», чтобы вести команду дальше.');$('movie-next').classList.remove('hidden');}},12000);};v.onplaying=()=>{clearTimeout(movie.stallT);};v.onerror=()=>{toast('Не удалось загрузить видео.');$('movie-retry').classList.remove('hidden');};$('movie-title').textContent=title;$('movie-next').classList.add('hidden');$('movie-retry').classList.add('hidden');$('movie-next').onclick=(window.NET&&NET.inRoom()&&NET.isCaptain())?((next===cinemaNext)?cinemaNext:introNext):next;try{await v.play();}catch{setTimeout(()=>{v.play().catch(()=>{$('movie-retry').classList.remove('hidden');});},1200);}}
 $('movie-retry').onclick=()=>{$('movie').play().then(()=>$('movie-retry').classList.add('hidden')).catch(()=>toast('Коснитесь кнопки ещё раз, чтобы включить видео.'));};
 
-function showBrief(){
-try{var bj=$('battle-join');if(bj)bj.onclick=function(){btTried.n=0;bj.style.display='none';battleEnsure();};}catch(e){}screen('brief');const online=window.NET&&NET.inRoom();const cap=online&&NET.isCaptain();$('battle-start').disabled=true;$('loading-note').textContent=online&&!cap?'Ждём, когда капитан начнёт оборону…':'';const enable=()=>{if(window.NET&&NET.inRoom()){NET.setSeg('rules');if(NET.isCaptain()){refreshBattleGate();clearTimeout(showBrief.forceT);showBrief.forceT=setTimeout(()=>{if(current==='brief'&&NET.isCaptain()&&$('battle-start').disabled){$('battle-start').disabled=false;$('loading-note').textContent='';toast('Не все игроки ответили — продолжаем.');}},25000);}else{$('battle-start').disabled=true;$('loading-note').textContent='Ждём, когда капитан начнёт оборону…';}}else{$('battle-start').disabled=false;$('loading-note').textContent='';}};const a=sound('v01_hits_rules.mp3',.9);if(a){a.onended=enable;a.onerror=()=>{toast('Не удалось загрузить инструкцию.');enable();};}else{enable();}if(online)loadAssets().catch(()=>{});}
+function showBrief(){screen('brief');const online=window.NET&&NET.inRoom();const cap=online&&NET.isCaptain();$('battle-start').disabled=true;$('loading-note').textContent=online&&!cap?'Ждём, когда капитан начнёт оборону…':'';const enable=()=>{if(window.NET&&NET.inRoom()){NET.setSeg('rules');if(NET.isCaptain()){refreshBattleGate();clearTimeout(showBrief.forceT);showBrief.forceT=setTimeout(()=>{if(current==='brief'&&NET.isCaptain()&&$('battle-start').disabled){$('battle-start').disabled=false;$('loading-note').textContent='';toast('Не все игроки ответили — продолжаем.');}},25000);}else{$('battle-start').disabled=true;$('loading-note').textContent='Ждём, когда капитан начнёт оборону…';}}else{$('battle-start').disabled=false;$('loading-note').textContent='';}};const a=sound('v01_hits_rules.mp3',.9);if(a){a.onended=enable;a.onerror=()=>{toast('Не удалось загрузить инструкцию.');enable();};}else{enable();}if(online)loadAssets().catch(()=>{});}
 function intro(){movie('v01_intro.mp4','ВОЛЬТ · ОБОРОНА',showBrief);}
 $('start').onclick=()=>{goFullscreen();movie('prologue_volt_city.mp4','ПРОЛОГ · ГОРОД',intro);};
 // Кнопок «Инструкция» и «Повторить видео» на экране обороны больше нет — проверяем, что они есть,
@@ -244,58 +227,7 @@ function cinemaNext(){if(window.NET&&NET.inRoom()){if(NET.isCaptain())NET.setPha
 function introNext(){if(window.NET&&NET.inRoom()){if(NET.isCaptain())NET.setPhase('brief',0);}else showBrief();}
 let syncCinemaAt=0,syncIntroAt=0,syncBattleAt=0;
 if(window.NET){NET.onProgress(t=>{if(current==='role')$('role-status').textContent=t;});
-// ===== Вход в оборону: устойчивый, с диагностикой =====
-// Раньше вход молча пропускался, если до старта осталось меньше секунды, а повтор ждал
-// нового события из комнаты. Теперь: серверное время, повтор по таймеру, ручная кнопка.
-var btOffset=0,btTried={startsAt:0,n:0},btErr='';
-try{firebase.database().ref('.info/serverTimeOffset').on('value',function(sn){btOffset=+sn.val()||0;});}catch(e){}
-function btNow(){return Date.now()+btOffset;}
-function btDiag(o){
-var el=document.getElementById('battle-diag');if(!el)return;
-el.textContent='фаза '+(o.phase||'—')+' · осталось '+Math.round(o.left)+' c · попытка '+(o.n||0)+
-(o.offset?' · часы '+Math.round(o.offset/1000)+' c':'')+(o.err?' · '+o.err:'');
-}
-function battleEnsure(stIn){
-var st=stIn||(window.NET&&NET.room&&NET.room.state)||null;
-if(!st||st.phase!=='battle')return false;
-if(game||current==='result')return false;
-var dur=(st.durationMs||300000)/1000,startAt=st.startsAt||0;
-var left=(startAt+dur*1000-btNow())/1000;
-if(current!=='brief'&&current!=='battle')showBrief();
-if(btTried.startsAt!==startAt){btTried.startsAt=startAt;btTried.n=0;btErr='';}
-if(left<=0){
-  btDiag({phase:st.phase,left:left,n:btTried.n,offset:btOffset});
-  $('loading-note').textContent='Оборона уже закончилась — показан итог.';
-  screen('result');return false;
-}
-if(btTried.n>=10){
-  $('loading-note').textContent='Не удалось подключиться. Нажмите «Войти в оборону».';
-  $('battle-join').style.display='';
-  return false;
-}
-btTried.n++;
-var d=Math.max(0,startAt-btNow());
-$('loading-note').textContent=d>500?'Общий старт через '+Math.ceil(d/1000)+'…':'Подключение к идущей обороне…';
-btDiag({phase:st.phase,left:left,n:btTried.n,offset:btOffset,err:btErr});
-loadAssets().then(function(){
-  setTimeout(function(){
-    var r=window.NET&&NET.room;
-    if(game||!r||!r.state||r.state.phase!=='battle')return;
-    var left2=(startAt+dur*1000-btNow())/1000;
-    if(left2>0){playSources().then(function(){begin(left2);}).catch(function(){begin(left2);});}
-    else {$('loading-note').textContent='Оборона уже закончилась.';screen('result');}
-  },Math.max(0,Math.min(d,8000)));
-}).catch(function(e){
-  btErr='видео: '+((e&&e.message)||'ошибка');
-  btDiag({phase:st.phase,left:left,n:btTried.n,offset:btOffset,err:btErr});
-  $('loading-note').textContent='Не удалось загрузить видео. Повторяем…';
-  setTimeout(function(){battleEnsure();},1500);
-});
-return true;
-}
-window.__battleEnsure=battleEnsure;   // ручная проверка входа в оборону
-
-NET.onRoom(room=>{if(current==='lobby')renderLobby(room);try{impPaint(room);}catch(e){}if(!room||!room.state)return;const st=room.state;const now=Date.now();
+NET.onRoom(room=>{if(current==='lobby')renderLobby(room);if(!room||!room.state)return;const st=room.state;const now=Date.now();
 teamScore=Object.entries(room.players||{}).reduce((s,[uid,p])=>uid===NET.uid?s:s+(p.score||0),0);
 if(game)$('team-score').textContent=teamScore+game.score;
 if(current==='result'){const ownReported=(room.players&&room.players[NET.uid])?room.players[NET.uid].score||0:0;$('result-team').textContent=(teamScore+Math.max(lastOwnFinal,ownReported));}
@@ -309,156 +241,7 @@ if(st.phase==='result'&&(current==='battle'||current==='brief')){
 if(game){const g=game;game=null;stopMonsters();$('street').pause();stopAudio();lastOwnFinal=g.score;$('result-score').textContent=g.score;$('result-name').textContent=player;$('result-kills').textContent=(g.kills+g.stuns);$('result-stuns').textContent=g.stuns;$('pause-modal').classList.add('hidden');}
 screen('result');
 }
-if(st.phase==='battle')battleEnsure();
+if(st.phase==='battle'&&syncBattleAt!==st.startsAt){syncBattleAt=st.startsAt||0;const dur=(st.durationMs||300000)/1000;const startAt=st.startsAt||0;const remain=(startAt+dur*1000-now)/1000;if(remain>1&&!game&&current!=='result'){const d=Math.max(0,startAt-now);if(current!=='brief'&&current!=='battle')showBrief();$('loading-note').textContent=d>0?'Общий старт через '+Math.ceil(d/1000)+'…':'Подключение к идущей обороне…';loadAssets().then(()=>{setTimeout(()=>{const r=NET.room;if(!game&&r&&r.state&&r.state.phase==='battle'){const left=(startAt+dur*1000-Date.now())/1000;if(left>1)playSources().then(()=>begin(left)).catch(()=>begin(left));}},d);}).catch(e=>{syncBattleAt=0;window.__battleRetryN=(window.__battleRetryN||0)+1;if(window.__battleRetryN<=2)toast('Не удалось загрузить видео обороны. Повторяем…');if($('loading-note'))$('loading-note').textContent='Повторяем подключение к обороне…';});}}
 });}
 screen('home');
-setInterval(function(){try{if(window.NET&&NET.room&&NET.room.state&&NET.room.state.phase==='battle'&&!game&&current!=='result')battleEnsure();}catch(e){}},1500);
 })();
-// ================== ИМПУЛЬС КОМАНДЫ ==================
-// 100 за каждое задание, накапливается: после 10 заданий максимум 1000.
-// Штрафы: подсказка −15, «Помощь Вольта» −25, неверная попытка −8, повтор просмотра −5.
-var IMP_ORDER=['task01','task02','task03','task04','task05','task06','task07','task08','task09','task10'];
-var IMP_TITLES={task01:'Оборона',task02:'Кристальный шифр',task03:'Чувства Лума',task04:'Химеры',
-task05:'Голос аномалии',task06:'Танец Лума',task07:'Прорыв к лаборатории',task08:'Код Ядра',
-task09:'Стабилизатор',task10:'Город'};
-var impPrev=null, impFinalShown=false;
-function impNum(v){v=+v||0;return isFinite(v)?v:0;}
-function impSum(o){var s=0;if(o&&typeof o==='object'){Object.keys(o).forEach(function(k){s+=impNum(o[k]);});}else{s=impNum(o);}return s;}
-function impDone(n){if(!n)return false;return !!(n.completed===true||n.stage==='done'||n.stage==='finished'||(n.result&&n.result.at));}
-function impTaskScore(name,node){
-if(!node||!impDone(node))return 0;
-var hints=0,tries=0,reps=0,base=100;
-if(name==='task04'){
-base=Math.min(100,impNum(node.energy)||100);      // 10 % за химеру; нет данных о заряде — считаем полностью
-hints=impSum(node.hintLevel);tries=impSum(node.attempts);reps=impNum(node.replays);
-}else if(name==='task05'){
-hints=impSum(node.hintLevel);tries=impNum(node.attempts);
-}else if(name==='task06'){
-hints=impNum(node.hintOrder)+impNum(node.hintWord);
-tries=impNum(node.attemptsOrder)+impNum(node.attemptsWord);
-reps=impNum(node.replayUsed);
-}else if(name==='task07'){
-var r=node.result||{};tries=impNum(r.failed);
-}else if(name==='task08'){
-hints=impSum(node.hintLevel);tries=impNum(node.attempts);
-}else if(name==='task09'||name==='task10'){
-hints=impNum(node.codeHintLevel)+impNum(node.protocolHintLevel);
-tries=impNum(node.codeAttempts)+impNum(node.protocolAttempts);
-}
-var s=base-hints*15-tries*8-reps*5;
-return Math.max(0,Math.min(100,Math.round(s)));
-}
-function impTotals(room){
-var tasks=(room&&room.tasks)||{},out={total:0,max:0,parts:[]};
-IMP_ORDER.forEach(function(name){
-var sc=impTaskScore(name,tasks[name]);
-out.parts.push({name:name,title:IMP_TITLES[name]||name,score:sc,done:impDone(tasks[name])});
-out.total+=sc;out.max+=100;
-});
-return out;
-}
-window.__impulseTotal=function(){try{return impTotals((window.NET&&NET.room)||{}).total;}catch(e){return 0;}};
-function impIntroVisible(){
-try{
-var list=document.querySelectorAll('section,div');
-for(var i=0;i<list.length;i++){
-var el=list[i];
-if(!/(intro|wait|brief)/.test(String(el.className||'')))continue;
-if(el.id==='impulse-plaque')continue;
-var cs=getComputedStyle(el);
-if(cs.display==='none'||cs.visibility==='hidden'||el.hidden)continue;
-var r=el.getBoundingClientRect();
-if(r.width>innerWidth*0.3&&r.height>innerHeight*0.3)return true;
-}
-}catch(e){}
-return false;
-}
-function impPlaque(){
-var e=document.getElementById('impulse-plaque');
-if(!e){
-e=document.createElement('div');e.id='impulse-plaque';
-e.innerHTML='<span class="imp-label">Импульс</span><b class="imp-value">0</b><i class="imp-delta"></i>';
-document.body.appendChild(e);
-}
-return e;
-}
-function impPaint(room){
-try{
-var t=impTotals(room),e=impPlaque();
-var val=e.querySelector('.imp-value'),dl=e.querySelector('.imp-delta');
-val.textContent=t.total;
-if(impPrev!==null&&t.total!==impPrev){
-var d=t.total-impPrev;
-dl.textContent=(d>0?'+':'')+d;
-dl.className='imp-delta show'+(d<0?' down':'');
-clearTimeout(impPaint._t);
-impPaint._t=setTimeout(function(){dl.className='imp-delta';},1600);
-}
-impPrev=t.total;impLastTotal=t.total;
-// Плашку показываем только в самих заданиях и в бою: на входе, в лобби, на инструкции,
-// на брифинге и на итогах она перекрывала QR и плашки заданий.
-var scr=String(document.body.dataset.screen||'');
-// Плашка импульса: в бою и в самих заданиях, но НЕ на инструкции/ожидании задания.
-// Инструкция — это видимый полноэкранный блок с классом wait/intro; пока он на экране,
-// плашку прячем, чтобы она не перекрывала QR и текст инструкции.
-var allowed=(scr==='battle')||(/^task\d+$/.test(scr)&&!impIntroVisible());
-e.style.display=allowed?'inline-flex':'none';
-// В бою плашка встаёт в общий ряд с таймером и счётом — тогда она ровно по линии.
-if(scr==='battle'){
-var hud=document.querySelector('.battle-hud');
-if(hud&&e.parentElement!==hud)hud.insertBefore(e,hud.firstChild);
-}else if(e.parentElement&&e.parentElement!==document.body){
-document.body.appendChild(e);
-}
-impInjectResults(t);
-}catch(err){}
-}
-// Импульс в итоге каждого задания: ищем видимый экран завершения и дописываем строку.
-var impLastTotal=0;
-function impVisible(el){
-if(!el)return false;
-var cs=getComputedStyle(el);
-if(cs.display==='none'||cs.visibility==='hidden'||el.hidden)return false;
-var r=el.getBoundingClientRect();
-return r.width>innerWidth*0.4&&r.height>innerHeight*0.25;
-}
-function impDoneScreen(){
-var list=document.querySelectorAll('section,div');
-for(var i=0;i<list.length;i++){
-var el=list[i],cls=String(el.className||'');
-if(!/(done|final|finish)/.test(cls))continue;
-if(el.closest('#impulse-final'))continue;
-if(impVisible(el))return el;
-}
-var card=document.querySelector('#result .result-card');
-if(card&&impVisible(card))return card;
-return null;
-}
-function impInjectResults(t){
-try{
-var host=impDoneScreen();
-if(!host)return;
-var line=host.querySelector('.imp-result-line');
-if(!line){line=document.createElement('p');line.className='imp-result-line';host.appendChild(line);}
-line.textContent='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||impLastTotal||0);
-}catch(e){}
-}
-setInterval(function(){try{impInjectResults(null);}catch(e){}},1200);
-setInterval(function(){try{impPaint((window.NET&&NET.room)||{});}catch(e){}},1500);
-function impShowFinal(t){
-impFinalShown=true;
-var e=document.getElementById('impulse-final');
-if(!e){
-e=document.createElement('div');e.id='impulse-final';
-document.body.appendChild(e);
-}
-var rows=t.parts.map(function(p){
-return '<div class="imp-row'+(p.done?'':' off')+'"><span>'+p.title+'</span><b>'+p.score+'</b></div>';
-}).join('');
-e.innerHTML='<div class="imp-card"><p class="imp-cap">Квест пройден</p>'+
-'<h2 class="imp-total">ИМПУЛЬС КОМАНДЫ — '+t.total+'</h2>'+
-'<div class="imp-list">'+rows+'</div>'+
-'<button class="primary" type="button" id="imp-close">Закрыть</button></div>';
-e.classList.add('show');
-e.querySelector('#imp-close').onclick=function(){e.classList.remove('show');};
-}

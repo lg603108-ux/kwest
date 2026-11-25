@@ -245,7 +245,7 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<section class="t10-screen t10-done" id="t10-done" hidden><p class="t10-eyebrow">ПОРТАЛ ЗАКРЫТ</p><h1>ГОРОД СПАСЁН</h1>'+
 '<div class="t10-card"><p class="t10-cardlabel">КОМАНДА</p><p class="t10-names" id="t10-names"></p>'+
 '<p class="t10-row"><span>ОБЩЕЕ ВРЕМЯ</span><b id="t10-time">—</b></p>'+
-'<p class="t10-row"><span>ОБОРОНА</span><b id="t10-def">0</b></p>'+ '<p class="t10-row"><span>ИМПУЛЬС КОМАНДЫ</span><b id="t10-impulse">—</b></p></div>'+
+'<p class="t10-row"><span>ОБОРОНА</span><b id="t10-def">0</b></p></div>'+
 '<button id="t10-finish" class="t10-primary" type="button">Завершить</button>'+
 '<p class="t10-note" id="t10-donewait" hidden>ЖДЁМ КАПИТАНА</p></section>'+
 '<div class="t10-status" id="t10-status" role="status" hidden></div>'+
@@ -265,7 +265,7 @@ phint:root.querySelector('#t10-phint'),shield:root.querySelector('#t10-shield'),
 shieldup:root.querySelector('#t10-shieldup'),shieldbtn:root.querySelector('#t10-shieldbtn'),
 press2:root.querySelector('#t10-pressure2'),count:root.querySelector('#t10-count'),
 countnum:root.querySelector('#t10-countnum'),done:root.querySelector('#t10-done'),
-names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),impulse:root.querySelector('#t10-impulse'),
+names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),
 finish:root.querySelector('#t10-finish'),donewait:root.querySelector('#t10-donewait'),
 status:root.querySelector('#t10-status'),media:root.querySelector('#t10-media')};
 try{arcs=T10Arcs({host:els.waves,button:els.shieldbtn,state:els.shield});}catch(e){arcs=null;}
@@ -602,15 +602,13 @@ return {names:names,defense:def,time:start?end-start:0};
 }
 function fillCard(){
 if(!els.names)return;
-const imp=(window.__impulseTotal?window.__impulseTotal():0);
-const key=(task&&+task.completedAt||0)+'|'+((roomState&&roomState.createdAt)||0)+'|'+imp;
+const key=(task&&+task.completedAt||0)+'|'+((roomState&&roomState.createdAt)||0);
 if(cardKey===key)return;
 cardKey=key;
 const d=cardData();
 els.names.innerHTML=d.names.length?d.names.map(function(n){return '<span>'+esc(n)+'</span>';}).join(''):'<span>—</span>';
 if(els.time)els.time.textContent=fmtTime(d.time);
 if(els.def)els.def.textContent=String(d.def);
-if(els.impulse)els.impulse.textContent=String(imp);
 }
 function render(){
 if(!root||!task)return;
