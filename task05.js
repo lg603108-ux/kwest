@@ -57,7 +57,7 @@ root=document.createElement('div');root.id='t5';root.innerHTML=
 '<video class="t5-video" playsinline preload="auto"></video>'+
 '<section class="t5-screen t5-wait"><h1>Голос аномалии</h1><button id="t5-start" class="t5-primary" type="button">▶ Запустить инструкцию для всех</button><p class="t5-note" id="t5-waitnote">Ждём, когда капитан запустит инструкцию…</p></section>'+
 '<div class="t5-top" id="t5-top" hidden><div class="t5-dots"><span class="t5-dot" data-i="0"></span><span class="t5-dot" data-i="1"></span><span class="t5-dot" data-i="2"></span><span class="t5-dot" data-i="3"></span></div><span class="t5-frag" id="t5-frag">Фрагмент 1 из 4</span></div>'+
-'<div class="t5-center" id="t5-center" hidden><div class="t5-hint" id="t5-hint" hidden><b id="t5-hint-label">Подсказка</b><span id="t5-hint-text"></span><button class="t5-clean" id="t5-clean" type="button" hidden>Помощь Вольта: чистая запись</button></div><p class="t5-pstatus" id="t5-pstatus">Обсудите услышанное</p><button class="t5-listen-big" id="t5-play" type="button">▶ СЛУШАТЬ</button><div class="t5-wave" id="t5-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>'+
+'<div class="t5-center" id="t5-center" hidden><div class="t5-hint" id="t5-hint" hidden><b id="t5-hint-label">Подсказка</b><span id="t5-hint-text"></span><button class="t5-clean" id="t5-clean" type="button" hidden>▶ Помощь Вольта: чистая запись</button></div><p class="t5-pstatus" id="t5-pstatus">Обсудите услышанное</p><p class="t5-watch-typed" id="t5-watch-typed" hidden></p><p class="t5-watch-hint" id="t5-watch-hint" hidden></p><button class="t5-listen-big" id="t5-play" type="button">▶ СЛУШАТЬ</button><div class="t5-wave" id="t5-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>'+
 '<form class="t5-panel" id="t5-panel" hidden autocomplete="off"><label for="t5-answer">Фраза</label><input id="t5-answer" readonly inputmode="none" autocomplete="off" autocapitalize="off" placeholder="Введите услышанную фразу"><button class="t5-primary" type="submit" id="t5-check">Проверить</button></form>'+
 '<div class="t5-kbwin" id="t5-kbwin" hidden><p class="t5-kbwin-label">Введите услышанную фразу</p><div class="t5-kbrow"><input class="t5-kbwin-input" id="t5-kbwin-input" type="text" autocomplete="off" autocapitalize="off" enterkeyhint="go"><button class="t5-primary t5-kbok" type="button" id="t5-kbwin-ok">Проверить</button></div><button class="t5-kblink" type="button" id="t5-kbwin-cancel">Отмена</button></div>'+
 '<div class="t5-result" id="t5-result" hidden><p class="t5-res-title">Фраза разгадана</p><p class="t5-res-phrase" id="t5-res-phrase"></p></div>'+
@@ -67,7 +67,7 @@ root=document.createElement('div');root.id='t5';root.innerHTML=
 '';
 container.appendChild(root);
 video=root.querySelector('.t5-video');bg=root.querySelector('.t5-bg');
-els={wait:root.querySelector('.t5-wait'),start:root.querySelector('#t5-start'),waitnote:root.querySelector('#t5-waitnote'),top:root.querySelector('#t5-top'),frag:root.querySelector('#t5-frag'),dots:root.querySelectorAll('.t5-dot'),play:root.querySelector('#t5-play'),center:root.querySelector('#t5-center'),wave:root.querySelector('#t5-wave'),pstatus:root.querySelector('#t5-pstatus'),panel:root.querySelector('#t5-panel'),answer:root.querySelector('#t5-answer'),check:root.querySelector('#t5-check'),hint:root.querySelector('#t5-hint'),hintLabel:root.querySelector('#t5-hint-label'),hintText:root.querySelector('#t5-hint-text'),clean:root.querySelector('#t5-clean'),kbwin:root.querySelector('#t5-kbwin'),kbInput:root.querySelector('#t5-kbwin-input'),kbOk:root.querySelector('#t5-kbwin-ok'),kbCancel:root.querySelector('#t5-kbwin-cancel'),result:root.querySelector('#t5-result'),resPhrase:root.querySelector('#t5-res-phrase'),done:root.querySelector('.t5-done'),full:root.querySelector('#t5-full'),status:root.querySelector('#t5-status'),media:root.querySelector('#t5-media')};
+els={wait:root.querySelector('.t5-wait'),start:root.querySelector('#t5-start'),waitnote:root.querySelector('#t5-waitnote'),top:root.querySelector('#t5-top'),frag:root.querySelector('#t5-frag'),dots:root.querySelectorAll('.t5-dot'),play:root.querySelector('#t5-play'),center:root.querySelector('#t5-center'),wave:root.querySelector('#t5-wave'),pstatus:root.querySelector('#t5-pstatus'),panel:root.querySelector('#t5-panel'),answer:root.querySelector('#t5-answer'),check:root.querySelector('#t5-check'),hint:root.querySelector('#t5-hint'),hintLabel:root.querySelector('#t5-hint-label'),hintText:root.querySelector('#t5-hint-text'),clean:root.querySelector('#t5-clean'),watchTyped:root.querySelector('#t5-watch-typed'),watchHint:root.querySelector('#t5-watch-hint'),kbwin:root.querySelector('#t5-kbwin'),kbInput:root.querySelector('#t5-kbwin-input'),kbOk:root.querySelector('#t5-kbwin-ok'),kbCancel:root.querySelector('#t5-kbwin-cancel'),result:root.querySelector('#t5-result'),resPhrase:root.querySelector('#t5-res-phrase'),done:root.querySelector('.t5-done'),full:root.querySelector('#t5-full'),status:root.querySelector('#t5-status'),media:root.querySelector('#t5-media')};
 els.start.addEventListener('click',startIntro);
 els.play.addEventListener('click',function(){playRecord(false);});
 els.clean.addEventListener('click',function(){playRecord(true);});
@@ -76,6 +76,7 @@ els.check.addEventListener('click',function(){submitAnswer();});
 els.answer.addEventListener('click',openKb);
 els.kbOk.addEventListener('click',function(){kbSubmit();});
 els.kbCancel.addEventListener('click',function(){kbSave();closeKb();});
+els.kbInput.addEventListener('input',function(){publishWatch();render();});
 els.kbInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();kbSubmit();}});
 try{bg.play().catch(function(){});}catch(e){}
 if(bg)bg.onerror=function(){if(bg)bg.style.display='none';};
@@ -197,6 +198,22 @@ if(st==='intro'&&t0&&now>t0+120000)introDone();
 if(st==='play'&&task.listening&&task.playingAt&&now>task.playingAt+40000){write({listening:false}).catch(function(){});}
 }
 // --- отрисовка ---
+// Что вводит капитан и его подсказку видят все: капитан пишет «watch» в комнату.
+var watchTimer=null;
+function publishWatch(){
+if(!cap()||!task)return;
+if(watchTimer)return;
+watchTimer=setTimeout(function(){
+watchTimer=null;
+try{
+var i=Math.min(3,Math.max(0,task.fragment||0)),F=FRAGS[i];
+var lvl=Math.max(task.hintLevel||0,localHint);
+var typed=(kbOpen&&els.kbInput)?(els.kbInput.value||''):((els.answer&&els.answer.value)||'');
+var hint=lvl>0?(lvl===1?F.h1:(lvl>=2?F.h2:F.h1)):'';
+write({watch:{text:String(typed).slice(0,120),hint:String(hint).slice(0,170),fragment:i,at:Date.now()}});
+}catch(e){}
+},300);
+}
 function render(){
 if(!root||!task)return;
 const stage=task.stage||'wait',i=Math.min(3,Math.max(0,task.fragment||0)),F=FRAGS[i];
@@ -230,6 +247,14 @@ els.answer.disabled=listening;
 const lvl=Math.max(task.hintLevel||0,localHint);
 if((task.hintLevel||0)>=localHint)localHint=0;
 els.hint.hidden=!(c&&lvl>0);
+if(c){publishWatch();}
+if(els.watchTyped){
+const w=task.watch||{},same=(w.fragment===i);
+const txt=(same&&w.text)?('Капитан вводит: '+w.text):'';
+els.watchTyped.hidden=c||!txt;els.watchTyped.textContent=txt;
+const ht=(same&&w.hint)?w.hint:'';
+els.watchHint.hidden=c||!ht;els.watchHint.textContent=ht;
+}
 if(c&&lvl>0){
 els.hintLabel.textContent=lvl>=3?'Помощь Вольта':'Подсказка '+Math.min(2,lvl);
 els.hintText.innerHTML=escapeHtml(lvl===1?F.h1:(lvl>=2?F.h2:F.h1));

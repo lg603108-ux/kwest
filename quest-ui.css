@@ -226,3 +226,33 @@ body{font-family:QuestSans;color:var(--q-text)}
   color:#fff;text-align:center;max-width:92vw;margin:0}
 #t4 .t4-watch-hint{color:#9fd8d8;font-size:14px}
 
+
+/* --- Задание 5 «Голос аномалии»: поле и кнопка одной высоты ---------- */
+#t5 .t5-watch-typed,#t5 .t5-watch-hint{
+  background:rgba(13,22,26,.88);border:1px solid rgba(190,245,245,.3);
+  border-radius:12px;padding:8px 14px;font-size:15px;line-height:1.35;
+  color:#fff;text-align:center;max-width:92vw;margin:8px auto 0}
+#t5 .t5-watch-hint{color:#9fd8d8;font-size:14px}
+#t5 .t5-panel{align-items:center}
+#t5 .t5-panel input{margin:0;height:46px}
+#t5 .t5-panel .t5-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+#t5 .t5-kbrow .t5-kbwin-input{height:46px;margin:0}
+#t5 .t5-kbrow .t5-kbok{height:46px;min-height:46px}
+@media(max-height:560px){
+  #t5 .t5-panel input,#t5 .t5-panel .t5-primary{height:40px;min-height:40px}
+}
+
+/* --- Задание 6 «Танец Лума»: ввод слова и кнопка одной высоты --------- */
+#t6 .t6-watch-typed,#t6 .t6-watch-hint{
+  background:rgba(13,22,26,.88);border:1px solid rgba(190,245,245,.3);
+  border-radius:12px;padding:8px 14px;font-size:15px;line-height:1.35;
+  color:#fff;text-align:center;max-width:92vw;margin:8px auto 0}
+#t6 .t6-watch-hint{color:#9fd8d8;font-size:14px}
+#t6 .t6-word-row{align-items:center}
+#t6 .t6-word-row input{margin:0;height:46px}
+#t6 .t6-word-row .t6-primary{height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+#t6 .t6-kbrow .t6-kbwin-input{height:46px;margin:0}
+#t6 .t6-kbrow .t6-kbok{height:46px;min-height:46px}
+@media(max-height:560px){
+  #t6 .t6-word-row input,#t6 .t6-word-row .t6-primary{height:40px;min-height:40px}
+}

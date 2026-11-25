@@ -23,6 +23,10 @@ let root=null,video=null,els={},S=null,active=false,lastKey='',digTimer=null,sta
 function cap(){return !!(window.NET&&window.NET.isCaptain());}
 function ref(){return firebase.database().ref('rooms/'+window.NET.room.code+'/tasks/task02');}
 function put(obj){ref().update(obj).catch(function(e){status('Ошибка записи: '+(e&&e.message||e));if(els.startBtn)els.startBtn.disabled=false;});}
+function playSfx(file,volume){try{var a=new Audio('assets/'+file);a.volume=volume;a.play().catch(function(){});}catch(e){}}
+var t2Music=null;
+function startMusic(){if(t2Music){if(t2Music.paused)t2Music.play().catch(function(){});return;}try{t2Music=new Audio('assets/music_defense_loop.mp3');t2Music.loop=true;t2Music.volume=.05;t2Music.play().catch(function(){});}catch(e){t2Music=null;}}
+function stopMusic(){if(t2Music){try{t2Music.pause();}catch(e){}}}
 function goFullscreen(){/* просим общий полноэкранный режим из app.js: он входит один раз за сессию */try{if(window.__goFullscreen)window.__goFullscreen();}catch(e){}}
 function mount(container){
 if(root)unmount();
@@ -111,6 +115,7 @@ els.playernote.hidden=!(!cap()&&stage==='done');
 }
 function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);clearTimeout(stallTimer);
+if(stage==='swap')startMusic();else stopMusic();
 // Фраза звучит ПОСЛЕ видеоинструкции — когда открывается ввод кода (стадия swap), только у капитана.
 if(stage==='swap'&&cap()&&!phraseDone){phraseDone=true;try{const va=new Audio('assets/volt_task2_captain_code.mp3?v=0378a');va.volume=.9;va.play().catch(function(){});window.__t2phrase=va;}catch(e){}}
 // При смене этапа убираем аварийную плашку: иначе она оставалась поверх экрана
@@ -214,11 +219,12 @@ els.remove.disabled=(S.hl===null);
 function onCheck(){
 if(!cap()||S.accepted||curStage!=='swap'||S.digits.length!==6)return;
 const ok=S.digits.every(function(d,i){return d===CODE[i];});
-if(ok){S.accepted=true;hint('Код принят!','ok');writeDigits();put({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
+if(ok){S.accepted=true;playSfx('sfx_crystal_ready.mp3',.6);stopMusic();hint('Код принят!','ok');writeDigits();put({stage:'reveal',startsAt:Date.now()+1500,accepted:true});}
 else{
-S.attempts++;S.hl=null;S.digits=[];clearTimeout(digTimer);put({digits:''});
+S.attempts++;S.hl=null;clearTimeout(digTimer);
+playSfx('sfx_ui_error.mp3',.55);
 els.cells.classList.add('shake');setTimeout(function(){els.cells.classList.remove('shake');},500);
-hint('Код не принят. Цифры очищены: повторите видео и соберите код заново.','err');
+hint('Код не принят. Цифры остались на местах — поменяйте те, что не подходят.','err');
 const a=S.attempts;
 setTimeout(function(){if(S.accepted)return;
 if(a===1)hint('Подсказка 1: берите только полностью собранные фигуры из таблицы.');

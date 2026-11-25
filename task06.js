@@ -76,7 +76,7 @@ root=document.createElement('div');root.id='t6';root.innerHTML=
 '<div class="t6-actions" id="t6-actions"><button class="t6-primary" id="t6-check-order" type="button">Проверить порядок</button><button class="t6-replay-inline" id="t6-rewatch" type="button">↺ Пересмотреть танец</button></div>'+
 '<div class="t6-hint" id="t6-hint-order" hidden><b id="t6-hint-order-label">Подсказка</b><span id="t6-hint-order-text"></span></div>'+
 '</div>'+
-'<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><p class="t6-word-title" id="t6-word-player" hidden>Подсказывайте капитану — он вводит слово.</p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
+'<div class="t6-word" id="t6-word" hidden><p class="t6-word-title">Порядок верный. Какое слово зашифровано?</p><p class="t6-word-title" id="t6-word-player" hidden>Подсказывайте капитану — он вводит слово.</p><p class="t6-watch-typed" id="t6-watch-typed" hidden></p><p class="t6-watch-hint" id="t6-watch-hint" hidden></p><div class="t6-word-row"><input id="t6-word-show" readonly inputmode="none" autocomplete="off" placeholder="Слово"><button class="t6-primary" id="t6-word-check" type="button">Проверить слово</button></div><button class="t6-word-hide" id="t6-word-hide" type="button">Скрыть клавиатуру</button><div class="t6-hint" id="t6-hint-word" hidden><b>Подсказка</b><span id="t6-hint-word-text"></span></div></div>'+
 '<div class="t6-kbwin" id="t6-kbwin" hidden><p class="t6-kbwin-label">Введите слово</p><div class="t6-kbrow"><input class="t6-kbwin-input" id="t6-kbwin-input" type="text" autocomplete="off" autocapitalize="characters" enterkeyhint="go"><button class="t6-primary t6-kbok" type="button" id="t6-kbwin-ok">Проверить</button></div><button class="t6-kblink" type="button" id="t6-kbwin-cancel">Отмена</button></div>'+
 '<div class="t6-result" id="t6-result" hidden><p class="t6-res-title">Слово разгадано</p><p class="t6-res-word">ПОРТАЛ</p></div>'+
 '<section class="t6-screen t6-done" hidden><h1>Танец открыл путь</h1><p class="t6-final-word">ПОРТАЛ</p></section>'+
@@ -92,7 +92,7 @@ slots:root.querySelector('#t6-slots'),cards:root.querySelector('#t6-cards'),acti
 checkOrder:root.querySelector('#t6-check-order'),rewatch:root.querySelector('#t6-rewatch'),
 hintOrder:root.querySelector('#t6-hint-order'),hintOrderText:root.querySelector('#t6-hint-order-text'),hintOrderLabel:root.querySelector('#t6-hint-order-label'),
 word:root.querySelector('#t6-word'),wordPlayer:root.querySelector('#t6-word-player'),wordShow:root.querySelector('#t6-word-show'),wordCheck:root.querySelector('#t6-word-check'),
-wordHide:root.querySelector('#t6-word-hide'),hintWord:root.querySelector('#t6-hint-word'),hintWordText:root.querySelector('#t6-hint-word-text'),
+wordHide:root.querySelector('#t6-word-hide'),watchTyped:root.querySelector('#t6-watch-typed'),watchHint:root.querySelector('#t6-watch-hint'),hintWord:root.querySelector('#t6-hint-word'),hintWordText:root.querySelector('#t6-hint-word-text'),
 kbwin:root.querySelector('#t6-kbwin'),kbInput:root.querySelector('#t6-kbwin-input'),kbOk:root.querySelector('#t6-kbwin-ok'),kbCancel:root.querySelector('#t6-kbwin-cancel'),
 result:root.querySelector('#t6-result'),done:root.querySelector('.t6-done'),status:root.querySelector('#t6-status'),media:root.querySelector('#t6-media')};
 els.start.addEventListener('click',startIntro);
@@ -244,7 +244,7 @@ localHintOrder=0;
 write({orderAccepted:true,stage:'word',hintOrder:0}).catch(function(){});
 playSfx('sfx_ui_confirm.mp3',.55);
 }else{
-localHintOrder=1;localOrderAt=Date.now();
+localHintOrder=Math.min(3,localHintOrder+1);localOrderAt=Date.now();
 setTimeout(function(){if(active)localHintOrder=0;},6000);
 write({attemptsOrder:(+task.attemptsOrder||0)+1,hintOrder:Math.min(3,(+task.hintOrder||0)+1)}).catch(function(){});
 playSfx('sfx_ui_error.mp3',.5);
@@ -274,7 +274,7 @@ playSfx('sfx_crystal_ready.mp3',.6);
 }else{
 closeKb();
 if(els.wordShow)els.wordShow.value='';
-localHintWord=1;localFailWordAt=Date.now();
+localHintWord=Math.min(3,localHintWord+1);localFailWordAt=Date.now();
 setTimeout(function(){if(active)localHintWord=0;},6000);
 write({attemptsWord:(+task.attemptsWord||0)+1,hintWord:Math.min(3,(+task.hintWord||0)+1)}).catch(function(){});
 playSfx('sfx_ui_error.mp3',.5);
@@ -283,6 +283,22 @@ setTimeout(function(){if(active)status('');},5000);
 }
 }
 // --- отрисовка ---
+// Ввод капитана и его подсказку видят все игроки.
+var watchTimer6=null;
+function publishWatch6(){
+if(!cap()||!task)return;
+if(watchTimer6)return;
+watchTimer6=setTimeout(function(){
+watchTimer6=null;
+try{
+var st=task.stage||'';
+var w=(kbOpen&&els.kbInput)?(els.kbInput.value||''):((els.wordShow&&els.wordShow.value)||'');
+var lw=Math.max(+task.hintWord||0,localHintWord),lo=Math.max(+task.hintOrder||0,localHintOrder);
+var hint=st==='word'?HINT_WORD[Math.min(3,lw)]:(st==='order'?HINT_ORDER[Math.min(3,lo)]:'');
+write({watch:{text:(st==='word'?String(w).slice(0,60):''),hint:String(hint||'').slice(0,170),stage:st,at:Date.now()}});
+}catch(e){}
+},300);
+}
 function render(){
 if(!root||!task)return;
 const stage=task.stage||'wait',c=cap();
@@ -306,6 +322,14 @@ if(inWord)renderOrder(c,true);
 if(els.wordPlayer)els.wordPlayer.hidden=c||!inWord;
 var _wr=els.word?els.word.querySelector('.t6-word-row'):null;if(_wr)_wr.style.display=c?'':'none';
 if(els.wordHide)els.wordHide.style.display=c?'':'none';
+if(c){publishWatch6();}
+if(els.watchTyped){
+const w=task.watch||{},same=(w.stage===stage);
+const txt=(same&&w.text)?('Капитан вводит слово: '+w.text):'';
+els.watchTyped.hidden=c||!txt;els.watchTyped.textContent=txt;
+const ht=(same&&w.hint)?w.hint:'';
+els.watchHint.hidden=c||!ht;els.watchHint.textContent=ht;
+}
 if(inWord&&c){
 const lvl=Math.max(+task.hintWord||0,localHintWord);
 els.hintWord.hidden=!(lvl>0);
