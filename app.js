@@ -539,8 +539,7 @@ function visible(el){
   return r.width>60&&r.height>20;
 }
 function injectResults(t){
-  // Итог импульса на экране завершения видят только игроки (просьба автора 26.11)
-  if(imCap())return;
+  // Итог импульса на экране завершения видят все — и капитан, и игроки (просьба автора 26.11)
   var host=null;
   for(var i=0;i<DONE_SEL.length;i++){
     var el=document.querySelector(DONE_SEL[i]);
