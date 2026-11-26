@@ -1,0 +1,10 @@
+name = "anomaly-photo"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Бесплатный тариф Cloudflare Workers: 100 000 запросов в сутки.
+# Секрет FAL_KEY задаётся командой: wrangler secret put FAL_KEY
+
+[[kv_namespaces]]
+binding = "RATE"
+id = "31f5cc1a11a24deb84efe98dd1152bac"

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0b1a1f">
+<title>Фото с химерой</title>
+<link rel="stylesheet" href="photo.css?v=002">
+</head>
+<body>
+<div class="app">
+
+  <!-- 1. Предложение и выбор сцены -->
+  <section class="screen is-active" id="s-offer">
+    <h1>Фото с химерой</h1>
+    <p class="sub">Выберите сцену и загрузите своё фото — до груди или по пояс. Получите кадр, где вы стоите рядом с химерой. Первый кадр бесплатно.</p>
+
+    <div class="gallery" id="gallery" aria-label="Сцены с химерой"></div>
+
+    <div class="gal-nav">
+      <button class="gal-arrow" id="gal-prev" type="button" aria-label="Предыдущая сцена">‹</button>
+      <div class="dots" id="dots"></div>
+      <button class="gal-arrow" id="gal-next" type="button" aria-label="Следующая сцена">›</button>
+    </div>
+
+    <div class="scene-name" id="scene-name"></div>
+
+    <button class="btn btn-primary" id="btn-pick">Загрузить фото</button>
+    <button class="btn btn-secondary" id="btn-selfie">Сделать снимок</button>
+    <button class="btn btn-ghost" id="btn-decline">Отказаться</button>
+
+    <p class="footer-note">Фото используется один раз для этого кадра.</p>
+  </section>
+
+  <!-- 2. Превью и согласие -->
+  <section class="screen" id="s-preview">
+    <h1>Проверьте фото</h1>
+    <p class="sub">Нужно фото до груди или по пояс: лицо целиком, без очков, тени и посторонних людей.</p>
+
+    <div class="photo-wrap" id="preview-wrap">
+      <div class="photo-empty" id="preview-empty">
+        <span>🙂</span>
+        <div>Фото ещё нет</div>
+      </div>
+      <img id="preview-img" alt="" hidden>
+    </div>
+
+    <div class="error" id="preview-error"></div>
+
+    <label class="consent">
+      <input type="checkbox" id="consent">
+      <span>Согласен(на): фото уйдёт на обработку один раз, чтобы сделать этот кадр, и не будет храниться на сервере квеста.</span>
+    </label>
+
+    <button class="btn btn-primary" id="btn-generate" disabled>Получить изображение</button>
+    <button class="btn btn-secondary" id="btn-retake">Переснять</button>
+  </section>
+
+  <!-- 3. Ожидание -->
+  <section class="screen" id="s-wait">
+    <div class="spinner"></div>
+    <h1>Собираем кадр</h1>
+    <p id="wait-text" class="sub">Обычно это занимает 20–30 секунд.</p>
+    <div class="progress"><i id="bar"></i></div>
+    <p class="hint">Не закрывайте страницу.</p>
+  </section>
+
+  <!-- 4. Результат -->
+  <section class="screen" id="s-result">
+    <h1>Ваш кадр</h1>
+    <div class="stamp" id="demo-stamp" hidden>Демонстрация — без генерации</div>
+    <div class="photo-wrap">
+      <img id="result-img" alt="Фото с химерой">
+    </div>
+    <button class="btn btn-primary" id="btn-download">Скачать</button>
+    <button class="btn btn-secondary" id="btn-more" disabled>Ещё кадр — скоро</button>
+    <button class="btn btn-ghost" id="btn-done">Готово</button>
+  </section>
+
+  <!-- 5. Бесплатный кадр уже использован -->
+  <section class="screen" id="s-used">
+    <div class="big-ico">🌌</div>
+    <h1>Бесплатный кадр уже сделан</h1>
+    <p class="sub">Дополнительные кадры появятся позже. Спасибо, что были с нами.</p>
+    <button class="btn btn-secondary" id="btn-used-done">Готово</button>
+  </section>
+
+  <!-- 6. Отказ -->
+  <section class="screen" id="s-closed">
+    <div class="big-ico">✦</div>
+    <h1>Готово</h1>
+    <p class="sub">Спасибо, что были с нами. Кадр остался у вас на телефоне.</p>
+    <button class="btn btn-secondary" id="btn-back">Вернуться к итогам</button>
+  </section>
+
+</div>
+
+<input type="file" id="file-camera" accept="image/*" capture="user" hidden>
+<input type="file" id="file-gallery" accept="image/*" hidden>
+
+<script src="photo-scenes.js?v=002"></script>
+<script src="photo.js?v=002"></script>
+</body>
+</html>
