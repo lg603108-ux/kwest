@@ -118,8 +118,9 @@ els.playernote.hidden=!(!cap()&&stage==='done');
 function applyStage(stage,at){
 curStage=stage;clearTimeout(startTimer);clearTimeout(stallTimer);
 if(stage==='swap')startMusic();else stopMusic();
-// Фраза звучит ПОСЛЕ видеоинструкции — когда открывается ввод кода (стадия swap), только у капитана.
-if(stage==='swap'&&cap()&&!phraseDone){phraseDone=true;try{const va=new Audio('assets/volt_task2_captain_code.mp3?v=0378a');va.volume=.9;va.play().catch(function(){});window.__t2phrase=va;}catch(e){}}
+// «Капитан вводит код» звучит сразу, как только пошло видео с шифром кристаллов.
+// На расстановке эта фраза накладывалась на голос из ролика («поменяйте цифры местами»).
+if(stage==='sequence'&&cap()&&!phraseDone){phraseDone=true;try{const va=new Audio('assets/volt_task2_captain_code.mp3?v=0399a');va.volume=.9;va.play().catch(function(){});window.__t2phrase=va;}catch(e){}}
 // При смене этапа убираем аварийную плашку: иначе она оставалась поверх экрана
 // и перекрывала нажатия по цифрам.
 if(els.mediareq)els.mediareq.hidden=true;

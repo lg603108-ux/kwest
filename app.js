@@ -281,9 +281,9 @@ try{
 var scr=String(document.body.dataset.screen||'');
 var isTask=/^task\d+$/.test(scr)||scr==='brief';
 var el=ensure('cap-hint');
-// В третьем и седьмом заданиях подсказка «Следующий шаг у капитана» не нужна
-// (просьба автора 25–26.11)
-if(scr==='task07'||scr==='task03'){el.className='';el.textContent='';return;}
+// Подсказка «Следующий шаг у капитана» убрана совсем (просьба автора 26.11):
+// она перекрывала надписи и видео. Плашки «капитан сменился» и «нет связи» остаются.
+el.className='';el.textContent='';return;
 if(!isTask||isCap()){el.className='';el.textContent='';return;}
 var n=taskNode(scr),st=n?(n.stage||''):'';
 var txt='';
@@ -539,6 +539,8 @@ function visible(el){
   return r.width>60&&r.height>20;
 }
 function injectResults(t){
+  // Итог импульса на экране завершения видят только игроки (просьба автора 26.11)
+  if(imCap())return;
   var host=null;
   for(var i=0;i<DONE_SEL.length;i++){
     var el=document.querySelector(DONE_SEL[i]);
