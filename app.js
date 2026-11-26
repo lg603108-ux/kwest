@@ -570,6 +570,26 @@ function watchHost(host,line){
 function injectResults(t){
   // Итог импульса на экране завершения видят все — и капитан, и игроки (просьба автора 26.11)
   if(!t)t={total:(typeof lastTotal==='number'?lastTotal:0)};
+  // Задание 7: последний экран — дверь лаборатории с кнопкой «Войти в лабораторию».
+  // Кнопка стоит поверх кадра, поэтому рамку ставим так же — над ней по центру.
+  if(phase()==='task07'){
+    var lab=document.getElementById('t7-lab');
+    var f7=document.getElementById('imp-t7');
+    if(lab&&visible(lab)){
+      if(!f7){
+        f7=document.createElement('div');f7.id='imp-t7';f7.className='imp-result-card imp-fixed-t7';
+        f7.innerHTML='<span class="imp-rc-label">ИМПУЛЬС КОМАНДЫ</span><i class="imp-rc-dash">—</i><b class="imp-rc-value">0</b>';
+        document.body.appendChild(f7);
+      }
+      var v7=f7.querySelector('.imp-rc-value');
+      var n7=String((t&&t.total)||0);
+      if(v7&&v7.textContent!==n7)v7.textContent=n7;
+      f7.style.display='flex';
+    }else if(f7){f7.style.display='none';}
+    var h7=document.querySelector('.imp-result-card:not(.imp-fixed-t7)');
+    if(h7)h7.parentElement&&h7.parentElement.removeChild(h7);
+    return;
+  }
   var host=null;
   for(var i=0;i<DONE_SEL.length;i++){
     var el=document.querySelector(DONE_SEL[i]);
@@ -579,9 +599,7 @@ function injectResults(t){
   // В карточке города импульс уже стоит отдельной строкой рядом с общим временем —
   // вторую рамку там не ставим.
   if(host.closest('#t10'))return;
-  // В обороне рамку не ставим: там итоговая карточка со счётом, а рамка уводила
-  // кнопку «Продолжить квест» вниз (замечание автора 26.11).
-  if(host.closest('#result'))return;
+  // Оборона: рамка идёт внутри карточки итогов, перед рядом кнопок — как на других экранах.
   var line=host.querySelector('.imp-result-card');
   if(!line){
     line=document.createElement('div');
@@ -603,8 +621,7 @@ function injectResults(t){
   if(target&&target.parentElement){
     var par=target.parentElement;
     var pcs=getComputedStyle(par);
-    var nb=[].filter.call(par.querySelectorAll('button'),function(b){return visible(b);}).length;
-    if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection)&&nb>1&&par.parentElement){
+    if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection)&&par.parentElement){
       if(line.parentElement!==par.parentElement||line.nextElementSibling!==par)
         par.parentElement.insertBefore(line,par);
     }else{

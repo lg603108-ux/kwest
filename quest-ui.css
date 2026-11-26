@@ -331,3 +331,8 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
   border-radius:10px;padding:6px 12px;box-sizing:border-box}
 #t2 .t2-hint.ok{color:#30e5dc;background:rgba(8,26,26,.86);border:1px solid rgba(48,229,220,.4);
   border-radius:10px;padding:6px 12px;box-sizing:border-box}
+
+/* Задание 7: рамка над кнопкой «Войти в лабораторию» (кнопка лежит поверх кадра) */
+.imp-fixed-t7{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(82px + env(safe-area-inset-bottom));z-index:900;margin:0;display:none}
+@media(max-height:560px){.imp-fixed-t7{bottom:calc(76px + env(safe-area-inset-bottom))}}
