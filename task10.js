@@ -566,10 +566,22 @@ const p=video.play();
 if(!p||!p.then){status('');hideMediaBtn();return;}
 p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();hideSoundReq();},function(){
 if(!active||mediaKey!==key)return;
-// звук не пустили без нажатия: показываем видео без звука и крупную кнопку включения
+// Браузер не пустил звук без нажатия: показываем без звука и включаем его при первом
+// же касании экрана — никаких кнопок «включить звук», как и в заданиях 8 и 9.
 video.muted=true;video.play().catch(function(){});
 status('');
-if(cap())showSoundReq();
+try{video.volume=1;}catch(e){}
+if(!video.__soundTap){
+video.__soundTap=true;
+var onTap=function(){
+document.removeEventListener('pointerdown',onTap,true);
+document.removeEventListener('touchstart',onTap,true);
+if(!video)return;
+try{if(video.muted){video.muted=false;video.play().catch(function(){});}}catch(e){}
+};
+document.addEventListener('pointerdown',onTap,true);
+document.addEventListener('touchstart',onTap,true);
+}
 });
 };
 video.onclick=beginPlay;

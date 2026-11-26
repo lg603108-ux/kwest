@@ -306,16 +306,19 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
   #impulse-plaque .imp-label{font-size:8px}
   #impulse-plaque .imp-value{font-size:15px}
 }
-/* итог импульса на экране завершения задания: рамка с крупным числом,
+/* итог импульса на экране завершения задания: одна строка в рамке,
    последней строкой перед кнопкой перехода к следующему заданию */
-.imp-result-card{display:flex;flex-direction:column;align-items:center;gap:2px;
-  margin:14px 0 0;padding:8px 24px;border:1px solid rgba(48,229,220,.55);border-radius:14px;
-  background:rgba(11,30,34,.88);box-shadow:0 0 18px rgba(48,229,220,.18)}
-.imp-result-card .imp-rc-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9fd8d8}
-.imp-result-card .imp-rc-value{font-size:30px;font-weight:800;line-height:1.1;color:#30e5dc}
+.imp-result-card{display:inline-flex;align-items:baseline;justify-content:center;gap:7px;
+  margin:14px 0 0;padding:8px 20px;border:1px solid rgba(48,229,220,.6);border-radius:12px;
+  background:rgba(11,30,34,.9);box-shadow:0 0 18px rgba(48,229,220,.18);
+  white-space:nowrap;max-width:94vw;box-sizing:border-box}
+.imp-result-card .imp-rc-label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#9fd8d8}
+.imp-result-card .imp-rc-dash{font-style:normal;color:#9fd8d8;font-size:15px}
+.imp-result-card .imp-rc-value{font-size:26px;font-weight:800;line-height:1.1;color:#30e5dc}
 @media(max-height:560px){
-  .imp-result-card{padding:6px 16px;margin-top:10px}
-  .imp-result-card .imp-rc-value{font-size:24px}
+  .imp-result-card{padding:6px 14px;margin-top:10px;gap:6px}
+  .imp-result-card .imp-rc-label{font-size:11px}
+  .imp-result-card .imp-rc-value{font-size:21px}
 }
 /* недоступная кнопка должна быть видна как недоступная: в шифре «Открыть дверь»
    раньше выглядела рабочей, хотя ждала цифры */

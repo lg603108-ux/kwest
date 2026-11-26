@@ -549,7 +549,7 @@ function injectResults(t){
   if(!line){
     line=document.createElement('div');
     line.className='imp-result-card';
-    line.innerHTML='<span class="imp-rc-label">Импульс команды</span><b class="imp-rc-value">0</b>';
+    line.innerHTML='<span class="imp-rc-label">ИМПУЛЬС КОМАНДЫ</span><i class="imp-rc-dash">—</i><b class="imp-rc-value">0</b>';
     // последняя строка на экране: ставим её перед кнопкой перехода к следующему заданию
     // (в обороне кнопки лежат в отдельном ряду .res-actions)
     var btn=host.querySelector(':scope > button, :scope > .res-actions, :scope > [class*="-actions"]');

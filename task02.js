@@ -31,7 +31,7 @@ function goFullscreen(){/* просим общий полноэкранный р
 function mount(container){
 if(root)unmount();
 active=true;
-S={digits:[],hl:null,attempts:0,accepted:false,soundOn:cap(),seqEnded:false};
+S={digits:[],hl:null,attempts:0,accepted:false,soundOn:cap(),seqEnded:false,setWarned:false};
 root=document.createElement('div');root.id='t2';container.appendChild(root);
 root.innerHTML=
 '<video class="t2-video" playsinline preload="auto"></video>'+
@@ -107,7 +107,9 @@ const at=(t&&t.startsAt)||0;
 const digits=(t&&t.digits)?String(t.digits).split(',').filter(function(x){return x!=='';}).map(Number):[];
 const key=stage+':'+at;
 if(key!==lastKey){lastKey=key;S.digits=digits.slice();S.hl=null;S.attempts=0;applyStage(stage,at);}
-else{S.digits=digits.slice();renderCells();}
+// У капитана набранные цифры — свои: обновление комнаты не должно их затирать,
+// иначе правка («убрать лишнюю») терялась между нажатием и записью в комнату.
+else{if(!cap())S.digits=digits.slice();renderCells();}
 els.startBtn.hidden=!(cap()&&stage==='wait');
 els.waitnote.hidden=!(!cap()&&stage==='wait');
 els.continueBtn.hidden=!(cap()&&stage==='done');
@@ -146,14 +148,35 @@ renderCells();}
 else if(stage==='reveal'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.reveal,at,'reveal');}
 else if(stage==='done'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=false;status('');}
 }
-// Порядок цифр выставляем только после того, как собраны все шесть цифр.
-// Иначе «Открыть дверь» остаётся недоступной и непонятно, чего не хватает.
+// Сначала проверяем, ТЕ ЛИ цифры введены, и только потом расставляем порядок.
+function digitsSetOk(){
+if(S.digits.length!==CODE.length)return false;
+const a=S.digits.slice().sort(function(x,y){return x-y;});
+const b=CODE.slice().sort(function(x,y){return x-y;});
+for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;
+return true;
+}
+function digitsWarn(){
+if(els.hint)els.hint.style.display='';
+if(els.buttons)els.buttons.hidden=false;      // чтобы можно было убрать лишнюю цифру
+if(els.check)els.check.disabled=true;
+hint('Эти цифры не подходят: среди них есть лишние или не хватает нужных. Проверьте, какие цифры были в записи, и поправьте.','err');
+if(!S.setWarned){
+S.setWarned=true;
+S.attempts++;
+try{put({attempts:S.attempts});}catch(e){}
+playSfx('sfx_ui_error.mp3',.55);
+}
+}
 function toSwapIfReady(){
 if(S.digits.length<6){
 if(els.hint)els.hint.style.display='';
 hint('Сначала введите все шесть цифр с карточек — потом расставим порядок.','err');
 return false;}
-put({stage:'swap',startsAt:Date.now()});
+if(!digitsSetOk()){digitsWarn();return false;}
+// цифры пишем вместе с переходом: иначе экран расстановки перечитывал из комнаты
+// старое значение и ячейки откатывались
+put({stage:'swap',startsAt:Date.now(),digits:S.digits.join(',')});
 return true;
 }
 function schedulePlay(list,at,stage){
@@ -204,12 +227,24 @@ if(!cap()||S.accepted)return;
 if(curStage!=='sequence'&&curStage!=='swap')return;
 if(S.digits.includes(d))return;
 if(S.digits.length>=6)return;
-S.digits.push(d);renderCells();writeDigits();
-// ролик уже кончился, а не хватало цифр — как только собраны все шесть, идём к порядку
-if(curStage==='sequence'&&S.seqEnded&&S.digits.length===6)toSwapIfReady();
+S.digits.push(d);S.setWarned=false;renderCells();writeDigits();
+// собраны все шесть — проверяем, те ли цифры; к порядку идём, когда ролик уже кончился
+if(curStage==='sequence'&&S.digits.length===6){
+if(digitsSetOk()){if(S.seqEnded)toSwapIfReady();}
+else digitsWarn();
+}
 }
 function onCell(i){
-if(!cap()||S.accepted||curStage!=='swap')return;
+if(!cap()||S.accepted)return;
+// на шаге ввода выделяем цифру, чтобы убрать лишнюю (порядок здесь не важен)
+if(curStage==='sequence'){
+if(S.digits[i]===undefined)return;
+S.hl=(S.hl===i)?null:i;
+renderCells();
+hint(S.hl===null?'Выберите цифру, чтобы убрать лишнюю.':'Нажмите «Убрать выбранную», чтобы убрать эту цифру.');
+return;
+}
+if(curStage!=='swap')return;
 if(S.digits[i]===undefined)return;
 if(S.hl===null){S.hl=i;hint('Ячейка выделена. Теперь нажмите ячейку, с которой хотите поменять её местами.');}
 else if(S.hl===i){S.hl=null;hint(HINT_SWAP);}
@@ -217,8 +252,10 @@ else{const t=S.digits[S.hl];S.digits[S.hl]=S.digits[i];S.digits[i]=t;S.hl=null;h
 renderCells();writeDigits();
 }
 function onRemove(){
-if(!cap()||S.accepted||curStage!=='swap'||S.hl===null)return;
-S.digits.splice(S.hl,1);S.hl=null;hint(HINT_SWAP);renderCells();writeDigits();
+if(!cap()||S.accepted||(curStage!=='swap'&&curStage!=='sequence')||S.hl===null)return;
+S.digits.splice(S.hl,1);S.setWarned=false;S.hl=null;
+hint(curStage==='swap'?HINT_SWAP:'Выберите лишнюю цифру и нажмите «Убрать выбранную».');
+renderCells();writeDigits();
 }
 function writeDigits(){clearTimeout(digTimer);digTimer=setTimeout(function(){put({digits:S.digits.join(',')});},250);}
 function renderCells(){
