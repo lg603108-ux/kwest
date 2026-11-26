@@ -197,3 +197,56 @@ button{font-family:inherit;cursor:pointer;border:0}
 #s-used,#s-closed{align-items:center;justify-content:center;text-align:center;gap:16px}
 .big-ico{font-size:54px;line-height:1;opacity:.8}
 .footer-note{font-size:12px;color:var(--q-text-2);opacity:.6;text-align:center;margin-top:auto}
+
+/* --- горизонтальная ориентация (квест идёт в горизонтали) ------ */
+@media (orientation:landscape) and (max-height:560px){
+  html,body{height:100%;overflow:hidden}
+  .app{max-width:none;height:100dvh;min-height:0;overflow:hidden;padding:6px 12px;gap:4px}
+  .screen{display:none;flex:none;height:100%;overflow:hidden}
+  .screen.is-active{display:grid;align-items:center;gap:4px 14px;
+    grid-template-columns:minmax(0,40%) minmax(0,60%);
+    grid-auto-rows:min-content;
+    align-content:center;height:100%;overflow:hidden}
+
+  h1{grid-column:1/-1;grid-row:1;font-size:clamp(16px,3.8vh,22px);margin:0;text-align:left}
+  .sub{grid-column:2;grid-row:2;font-size:12px;line-height:1.25;text-align:left;margin:0}
+
+  .gallery{grid-column:1;grid-row:3 / span 5;margin:0;padding:0;gap:8px;align-self:center;align-items:center}
+  .scene{flex:0 0 auto;height:calc(100dvh - 58px);width:auto;aspect-ratio:9/16;border-radius:12px;align-self:center}
+  .scene img{object-fit:cover}
+
+  .gal-nav{grid-column:2;grid-row:3;justify-content:flex-start;margin:2px 0 0}
+  .scene-name{grid-column:2;grid-row:4;text-align:left;font-size:11px;min-height:0}
+  #s-offer #btn-pick{grid-column:2;grid-row:5}
+  #s-offer #btn-selfie{grid-column:2;grid-row:6}
+  #s-offer #btn-decline{grid-column:2;grid-row:7}
+  .footer-note{display:none}
+
+  .btn{min-height:40px;font-size:14px}
+  .btn-ghost{min-height:32px;font-size:13px}
+  .gal-arrow{width:32px;height:32px;flex:0 0 32px;font-size:18px}
+
+  /* предпросмотр и результат: фото слева, действия справа */
+  #s-preview,#s-result{
+    flex-direction:column;justify-content:center;align-items:stretch;
+    gap:6px;height:100%;position:relative;overflow:hidden;
+    padding-left:calc((100dvh - 80px) * 0.75 + 26px);
+  }
+  #s-preview.is-active,#s-result.is-active{display:flex}
+  #s-preview .photo-wrap,
+  #s-result .photo-wrap{
+    position:absolute;left:0;top:50%;transform:translateY(-50%);
+    height:calc(100dvh - 80px);width:auto;aspect-ratio:3/4;margin:0;
+  }
+  #s-preview h1,#s-result h1{position:absolute;left:0;top:2px;right:0;font-size:18px}
+  #s-preview .sub{font-size:12px}
+  #s-result .stamp{align-self:flex-start}
+  .consent{font-size:11px;padding:8px 10px;gap:8px}
+  .consent input{width:18px;height:18px;flex:0 0 18px}
+
+  /* ожидание и заглушки — по центру, без сетки */
+  #s-wait,#s-used,#s-closed{flex-direction:column;justify-content:center;height:100%}
+  #s-wait.is-active,#s-used.is-active,#s-closed.is-active{display:flex}
+  #s-wait .spinner{width:54px;height:54px}
+  .big-ico{font-size:38px}
+}
