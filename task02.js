@@ -143,7 +143,7 @@ else if(cap()&&video.ended){put({stage:'sequence',startsAt:Date.now()+2000});}
 else{schedulePlay(MEDIA.intro,at,'intro');}}
 else if(stage==='sequence'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.add('compact');els.buttons.hidden=true;els.hint.style.display='none';els.nextwrap.hidden=true;schedulePlay(MEDIA.sequence,at,'sequence');}
 else if(stage==='swap'){els.start.hidden=true;els.left.hidden=false;els.right.hidden=false;els.bottom.hidden=false;els.bottom.classList.remove('compact');els.nextwrap.hidden=true;video.pause();status('');
-if(cap()){els.buttons.hidden=false;els.hint.style.display='';hint(HINT_SWAP);els.cells.style.pointerEvents='auto';els.left.style.pointerEvents='auto';els.right.style.pointerEvents='auto';}
+if(cap()){els.buttons.hidden=false;els.hint.style.display='';updateDigitsHint();els.cells.style.pointerEvents='auto';els.left.style.pointerEvents='auto';els.right.style.pointerEvents='auto';}
 else{els.buttons.hidden=true;els.hint.style.display='';hint(HINT_PLAYER);els.cells.style.pointerEvents='none';els.left.style.pointerEvents='none';els.right.style.pointerEvents='none';}
 renderCells();}
 else if(stage==='reveal'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.reveal,at,'reveal');}
@@ -157,28 +157,26 @@ const b=CODE.slice().sort(function(x,y){return x-y;});
 for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;
 return true;
 }
-function digitsWarn(){
-if(els.hint)els.hint.style.display='';
-if(els.buttons)els.buttons.hidden=false;      // чтобы можно было убрать лишнюю цифру
-if(els.check)els.check.disabled=true;
-hint('Эти цифры не подходят: среди них есть лишние или не хватает нужных. Проверьте, какие цифры были в записи, и поправьте.','err');
-if(!S.setWarned){
-S.setWarned=true;
-S.attempts++;
-try{put({attempts:S.attempts});}catch(e){}
-playSfx('sfx_ui_error.mp3',.55);
-}
-}
-function toSwapIfReady(){
-if(S.digits.length<6){
-if(els.hint)els.hint.style.display='';
-hint('Сначала введите все шесть цифр с карточек — потом расставим порядок.','err');
-return false;}
-if(!digitsSetOk()){digitsWarn();return false;}
-// цифры пишем вместе с переходом: иначе экран расстановки перечитывал из комнаты
-// старое значение и ячейки откатывались
+// Переход к расстановке. Ролик при этом останавливается и НЕ повторяется:
+// раньше ожидание на шаге показа видео заставляло его запускаться заново по кругу.
+function goSwap(){
 put({stage:'swap',startsAt:Date.now(),digits:S.digits.join(',')});
-return true;
+}
+// Подсказка под ячейками: чего не хватает или что цифры не те.
+function updateDigitsHint(){
+if(!cap())return;
+if(els.hint)els.hint.style.display='';
+renderCells();
+if(S.digits.length<6){
+hint('Введите все шесть цифр с карточек — тогда расставим порядок.');
+return;
+}
+if(!digitsSetOk()){
+hint('Эти цифры не подходят: среди них есть лишние или не хватает нужных. Проверьте, какие цифры были в записи, и поправьте.','err');
+if(!S.setWarned){S.setWarned=true;S.attempts++;try{put({attempts:S.attempts});}catch(e){}}
+return;
+}
+hint(HINT_SWAP);
 }
 function schedulePlay(list,at,stage){
 const delay=at-Date.now();
@@ -188,7 +186,7 @@ else{playList(list,Math.max(0,Date.now()-at),stage);}
 function playList(list,offset,stage){
 let i=0;
 (function tryOne(){
-if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;toSwapIfReady();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
+if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;goSwap();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
 els.mediareq.hidden=true;
 const src=list[i++]+'?v=9';
 // Ролик уже предзагружен на экране ожидания: повторная установка того же src обрывала
@@ -202,7 +200,7 @@ const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;t
 video.onloadedmetadata=function(){settled=true;clearTimeout(to);doSeek();};
 video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
-video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;toSwapIfReady();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
+video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;goSwap();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
 // Если через 6 секунд картинки нет — один раз перезагружаем файл и пробуем снова.
 // Если и это не помогло, показываем кнопку ручного запуска (без пропуска видео).
@@ -228,12 +226,10 @@ if(!cap()||S.accepted)return;
 if(curStage!=='sequence'&&curStage!=='swap')return;
 if(S.digits.includes(d))return;
 if(S.digits.length>=6)return;
-S.digits.push(d);S.setWarned=false;renderCells();writeDigits();
-// собраны все шесть — проверяем, те ли цифры; к порядку идём, когда ролик уже кончился
-if(curStage==='sequence'&&S.digits.length===6){
-if(digitsSetOk()){if(S.seqEnded)toSwapIfReady();}
-else digitsWarn();
-}
+S.digits.push(d);S.setWarned=false;writeDigits();
+if(curStage==='swap')updateDigitsHint();else renderCells();
+// ролик уже кончился, а цифр не хватало — как только набраны все шесть и набор верный, к порядку
+if(curStage==='sequence'&&S.seqEnded&&S.digits.length===6&&digitsSetOk())goSwap();
 }
 function onCell(i){
 if(!cap()||S.accepted)return;
@@ -255,7 +251,8 @@ renderCells();writeDigits();
 function onRemove(){
 if(!cap()||S.accepted||(curStage!=='swap'&&curStage!=='sequence')||S.hl===null)return;
 S.digits.splice(S.hl,1);S.setWarned=false;S.hl=null;
-hint(curStage==='swap'?HINT_SWAP:'Выберите лишнюю цифру и нажмите «Убрать выбранную».');
+if(curStage==='swap')updateDigitsHint();
+else hint('Выберите лишнюю цифру и нажмите «Убрать выбранную».');
 renderCells();writeDigits();
 }
 function writeDigits(){clearTimeout(digTimer);digTimer=setTimeout(function(){put({digits:S.digits.join(',')});},250);}
@@ -263,7 +260,7 @@ function renderCells(){
 if(!els.cells)return;
 els.cells.innerHTML='';
 for(let i=0;i<6;i++){const c=document.createElement('div');c.className='t2-cell'+(S.hl===i?' hl':'');c.dataset.i=i;c.textContent=S.digits[i]!==undefined?S.digits[i]:'';els.cells.appendChild(c);}
-els.check.disabled=!(cap()&&curStage==='swap'&&S.digits.length===6&&!S.accepted);
+els.check.disabled=!(cap()&&curStage==='swap'&&S.digits.length===6&&digitsSetOk()&&!S.accepted);
 els.remove.disabled=(S.hl===null);
 }
 function onCheck(){

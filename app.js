@@ -547,13 +547,29 @@ function balanceCard(line){
     var prev=line.previousElementSibling,next=line.nextElementSibling;
     var above=prev?Math.max(0,Math.round(r.top-prev.getBoundingClientRect().bottom)):0;
     var below=next?Math.max(0,Math.round(next.getBoundingClientRect().top-r.bottom)):0;
-    var target=Math.max(above,below,14);
+    // не больше 16 px добавки: иначе на экранах с «растянутым» содержимым
+    // рамка отодвигала кнопку далеко вниз (так было в конце обороны)
+    var target=Math.min(Math.max(above,below,12),28);
     line.style.marginTop=Math.max(0,target-above)+'px';
     line.style.marginBottom=Math.max(0,target-below)+'px';
   }catch(e){}
 }
+var watchedHosts=[];
+function watchHost(host,line){
+  try{
+    if(host.__impWatched)return;
+    host.__impWatched=true;
+    if(!window.MutationObserver)return;
+    var mo=new MutationObserver(function(){
+      try{if(line&&!host.contains(line))injectResults(null);}catch(e){}
+    });
+    mo.observe(host,{childList:true});
+    watchedHosts.push(mo);
+  }catch(e){}
+}
 function injectResults(t){
   // Итог импульса на экране завершения видят все — и капитан, и игроки (просьба автора 26.11)
+  if(!t)t={total:(typeof lastTotal==='number'?lastTotal:0)};
   var host=null;
   for(var i=0;i<DONE_SEL.length;i++){
     var el=document.querySelector(DONE_SEL[i]);
@@ -563,6 +579,9 @@ function injectResults(t){
   // В карточке города импульс уже стоит отдельной строкой рядом с общим временем —
   // вторую рамку там не ставим.
   if(host.closest('#t10'))return;
+  // В обороне рамку не ставим: там итоговая карточка со счётом, а рамка уводила
+  // кнопку «Продолжить квест» вниз (замечание автора 26.11).
+  if(host.closest('#result'))return;
   var line=host.querySelector('.imp-result-card');
   if(!line){
     line=document.createElement('div');
@@ -597,6 +616,7 @@ function injectResults(t){
   }
   // выравниваем отступы при каждой отрисовке: рамка могла переехать или смениться шрифт
   balanceCard(line);
+  watchHost(host,line);
   var val=line.querySelector('.imp-rc-value');
   var num=String((t&&t.total)||0);
   if(val&&val.textContent!==num)val.textContent=num;

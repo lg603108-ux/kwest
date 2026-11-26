@@ -326,3 +326,8 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
 /* задание 9: QR-код стоит в правом верхнем углу, поэтому зона «касайтесь в такт»
    начинается ниже — чтобы нажатия не попадали в QR */
 #t9 .t9-zone{top:calc(86px + env(safe-area-inset-top))}
+/* ошибка подсказки в шифре — с подложкой, как остальные надписи квеста */
+#t2 .t2-hint.err{color:#ffb0a6;background:rgba(24,10,8,.86);border:1px solid rgba(255,138,128,.45);
+  border-radius:10px;padding:6px 12px;box-sizing:border-box}
+#t2 .t2-hint.ok{color:#30e5dc;background:rgba(8,26,26,.86);border:1px solid rgba(48,229,220,.4);
+  border-radius:10px;padding:6px 12px;box-sizing:border-box}
