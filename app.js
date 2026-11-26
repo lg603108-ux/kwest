@@ -371,8 +371,19 @@ task08:['view','code'],
 task09:['charge'],
 task10:['code','protocol','countdown','city']};
 // экраны завершения заданий: куда дописывается строка «ИМПУЛЬС КОМАНДЫ — N»
-var DONE_SEL=['#result .result-card','#t2 .t2-nextwrap','#t3 .t3-done','#t4 .t4-done',
-'#t5 .t5-done','#t6 .t6-done','#t8 .t8-done','#t9 .t9-done','#t10 .t10-done'];
+// Каждый экран завершения привязан к своей фазе. Иначе карточка обороны (#result)
+// остаётся «видимой» в разметке и перехватывает рамку, пока идёт задание, — и на экране
+// завершения задания импульса не видно (нашёл 26.11).
+var DONE_SEL=[
+{sel:'#t2 .t2-nextwrap',ph:'task02'},
+{sel:'#t3 .t3-done',ph:'task03'},
+{sel:'#t4 .t4-done',ph:'task04'},
+{sel:'#t5 .t5-done',ph:'task05'},
+{sel:'#t6 .t6-done',ph:'task06'},
+{sel:'#t8 .t8-done',ph:'task08'},
+{sel:'#t9 .t9-done',ph:'task09'},
+{sel:'#t10 .t10-done',ph:'task10'},
+{sel:'#result .result-card',ph:'result'}];
 
 function num(v){v=+v||0;return isFinite(v)?v:0;}
 function sum(o){var s=0;if(o&&typeof o==='object'){for(var k in o)s+=num(o[k]);}else s=num(o);return s;}
@@ -596,9 +607,10 @@ function injectResults(t){
     if(h7)h7.parentElement&&h7.parentElement.removeChild(h7);
     return;
   }
-  var host=null;
+  var host=null,phNow=phase();
   for(var i=0;i<DONE_SEL.length;i++){
-    var el=document.querySelector(DONE_SEL[i]);
+    if(DONE_SEL[i].ph!==phNow)continue;
+    var el=document.querySelector(DONE_SEL[i].sel);
     if(el&&visible(el)){host=el;break;}
   }
   if(!host)return;
