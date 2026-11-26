@@ -309,7 +309,7 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
 /* итог импульса на экране завершения задания: одна строка в рамке,
    последней строкой перед кнопкой перехода к следующему заданию */
 .imp-result-card{display:inline-flex;align-items:baseline;justify-content:center;gap:7px;
-  margin:0 auto;padding:8px 20px;border:1px solid rgba(48,229,220,.6);border-radius:12px;
+  margin:14px auto;padding:8px 20px;border:1px solid rgba(48,229,220,.6);border-radius:12px;
   background:rgba(11,30,34,.9);box-shadow:0 0 18px rgba(48,229,220,.18);
   white-space:nowrap;max-width:94vw;box-sizing:border-box}
 .imp-result-card .imp-rc-label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#9fd8d8}

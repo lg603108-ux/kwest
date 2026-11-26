@@ -598,24 +598,27 @@ function injectResults(t){
     if(/продолж|дальше|заверш|квест/i.test(String(btns[bi].textContent||''))){target=btns[bi];break;}
   }
   if(!target&&btns.length)target=btns[btns.length-1];
-  var anchor=target;
-  // Если кнопки стоят в ряд (флекс-строка), рамку ставим перед всем рядом, иначе — перед кнопкой
-  if(anchor&&anchor.parentElement){
-    var pcs=getComputedStyle(anchor.parentElement);
-    if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection))anchor=anchor.parentElement;
-    // если кнопка — первый элемент своей обёртки, рамку ставим перед обёрткой целиком:
-    // иначе сверху не остаётся места и отступы становятся разными
-    if(anchor.parentElement&&anchor.parentElement!==host&&anchor===anchor.parentElement.firstElementChild)
-      anchor=anchor.parentElement;
-  }
-  if(anchor&&anchor.parentElement){
-    var par=anchor.parentElement;
-    if(line.nextElementSibling!==anchor||line.parentElement!==par)par.insertBefore(line,anchor);
+  // Рамка стоит ПО ЦЕНТРУ, прямо над кнопкой перехода, с одинаковым отступом от неё
+  // и от текста выше. Отступы заданы в стилях (14 px), поэтому на всех экранах одинаково.
+  if(target&&target.parentElement){
+    var par=target.parentElement;
+    var pcs=getComputedStyle(par);
+    var nb=[].filter.call(par.querySelectorAll('button'),function(b){return visible(b);}).length;
+    if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection)&&nb>1&&par.parentElement){
+      if(line.parentElement!==par.parentElement||line.nextElementSibling!==par)
+        par.parentElement.insertBefore(line,par);
+    }else{
+      if(line.parentElement!==par||line.nextElementSibling!==target)par.insertBefore(line,target);
+    }
   }else if(line.parentElement!==host||line.nextElementSibling){
     host.appendChild(line);
   }
-  // выравниваем отступы при каждой отрисовке: рамка могла переехать или смениться шрифт
+  // в строке с кнопкой отступы задаёт сама строка; иначе выравниваем замером
+  line.style.marginTop='';line.style.marginBottom='';
+  // одинаковый отступ от текста выше и от кнопки ниже (не больше 28 px добавки)
   balanceCard(line);
+  // и сразу после перерисовки кадра — чтобы рамка не «прыгала» на глазах
+  if(window.requestAnimationFrame)requestAnimationFrame(function(){balanceCard(line);});
   watchHost(host,line);
   var val=line.querySelector('.imp-rc-value');
   var num=String((t&&t.total)||0);
