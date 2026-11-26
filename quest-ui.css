@@ -334,5 +334,8 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
 
 /* Задание 7: рамка над кнопкой «Войти в лабораторию» (кнопка лежит поверх кадра) */
 .imp-fixed-t7{position:fixed;left:50%;transform:translateX(-50%);
-  bottom:calc(82px + env(safe-area-inset-bottom));z-index:900;margin:0;display:none}
-@media(max-height:560px){.imp-fixed-t7{bottom:calc(76px + env(safe-area-inset-bottom))}}
+  top:calc(115px + env(safe-area-inset-top));bottom:auto;z-index:900;margin:0;display:none;
+  height:46px;box-sizing:border-box;align-items:center}
+/* на экране задания 7 кнопка «Войти в лабораторию» стоит под рамкой, а не внизу экрана */
+body.t7-fin .t7-lab-btn{top:calc(175px + env(safe-area-inset-top));bottom:auto}
+/* на маленьких экранах высоты хватает: табличка 64–101, рамка 118–164, кнопка 178–230 */

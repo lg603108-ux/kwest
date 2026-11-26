@@ -585,7 +585,13 @@ function injectResults(t){
       var n7=String((t&&t.total)||0);
       if(v7&&v7.textContent!==n7)v7.textContent=n7;
       f7.style.display='flex';
-    }else if(f7){f7.style.display='none';}
+      // положение задаётся стилями (.imp-fixed-t7 и .t7-lab-btn при классе .t7-fin):
+      // табличка → рамка → кнопка, всё сверху, без прыжков и без замера
+      document.body.classList.add('t7-fin');
+    }else{
+      if(f7)f7.style.display='none';
+      document.body.classList.remove('t7-fin');
+    }
     var h7=document.querySelector('.imp-result-card:not(.imp-fixed-t7)');
     if(h7)h7.parentElement&&h7.parentElement.removeChild(h7);
     return;
