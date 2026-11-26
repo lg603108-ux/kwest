@@ -138,7 +138,7 @@ if(!els.status)return '';
 if(text===undefined)return els.status.textContent||'';
 els.status.textContent=text||'';els.status.hidden=!text;return '';
 }
-function onRoom(room){if(!active||!room)return;roomState=room;task=(room.tasks&&room.tasks.task06)||{stage:'wait'};render();coordinate();}
+function onRoom(room){if(!active||!room)return;roomState=room;var n6=(room.tasks&&room.tasks.task06)||null;task=n6?Object.assign({},n6,{stage:n6.stage||'wait'}):{stage:'wait'};render();coordinate();}
 // --- просмотр: инструкция и танец ---
 function startIntro(){
 if(!cap()||!task||task.stage!=='wait')return;
@@ -285,18 +285,29 @@ setTimeout(function(){if(active)status('');},5000);
 // --- отрисовка ---
 // Показ ввода капитана игрокам. Всё внутри try/catch: если что-то не так,
 // отрисовка экрана продолжается как обычно.
-var watchTimer6=null;
+var watchTimer6=null,watchSig6='';
 function publishWatch6(){
 try{
 if(!cap()||!task||watchTimer6)return;
+// Отправляем только когда игра уже идёт. На первом экране («Запустить инструкцию»)
+// эта отправка создавала запись задания без отметки шага, и кнопка запуска переставала
+// работать: она ждёт отметку «ждём запуска», а та ставится только самой кнопкой.
+var stNow=String(task.stage||'');
+if(stNow!=='dance'&&stNow!=='order'&&stNow!=='word')return;
 watchTimer6=setTimeout(function(){
 watchTimer6=null;
 try{
-var st=task.stage||'';
+var st=String(task.stage||'');
+if(st!=='dance'&&st!=='order'&&st!=='word')return;
 var w=(kbOpen&&els.kbInput)?(els.kbInput.value||''):((els.wordShow&&els.wordShow.value)||'');
 var lw=Math.max(+task.hintWord||0,localHintWord),lo=Math.max(+task.hintOrder||0,localHintOrder);
 var hint=st==='word'?HINT_WORD[Math.min(3,lw)]:(st==='order'?HINT_ORDER[Math.min(3,lo)]:'');
-write({watch:{text:(st==='word'?String(w).slice(0,60):''),hint:String(hint||'').slice(0,170),stage:st,at:Date.now()}});
+var txt=st==='word'?String(w).slice(0,60):'';
+var sig=st+'|'+txt+'|'+String(hint||'');
+if(sig===watchSig6)return;          // то же самое второй раз не пишем
+watchSig6=sig;
+// отметку шага пишем вместе с текстом: запись задания всегда остаётся полноценной
+write({stage:st,watch:{text:txt,hint:String(hint||'').slice(0,170),stage:st,at:Date.now()}});
 }catch(e){}
 },300);
 }catch(e){}

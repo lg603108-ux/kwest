@@ -266,49 +266,44 @@ html body #t8 .t8-video,html body #t8 .t8-replayvid{object-fit:contain!important
 
 
 /* ---------- Импульс команды ---------- */
-/* Постоянная плашка: на экране идущего задания и в бою. На входе, в лобби,
-   на инструкции и на экранах итогов её нет — там она закрывала QR и текст.
-   Справа сверху на всех экранах стоит QR-код команды, поэтому по умолчанию
-   плашка встаёт левее него, а на итогах задания вместо неё — строка «ИМПУЛЬС КОМАНДЫ». */
+/* Плашка видна только пока задание играется и в бою. На первом экране задания
+   («Запустить инструкцию») и на экране завершения её нет: там есть строка итога.
+   Справа сверху на всех экранах стоит QR-код команды, поэтому плашка встаёт левее него.
+   Формат — квадрат: сверху слово «Импульс», под ним число. */
 #impulse-plaque{position:fixed;z-index:60;
   top:calc(6px + env(safe-area-inset-top));right:calc(72px + env(safe-area-inset-right));
-  display:none;align-items:center;gap:7px;padding:5px 11px;border-radius:12px;
-  background:rgba(13,22,26,.86);border:1px solid rgba(190,245,245,.35);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-width:56px;padding:5px 9px;border-radius:12px;
+  background:rgba(13,22,26,.88);border:1px solid rgba(190,245,245,.35);
   box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;
-  font-family:QuestSans,Arial,sans-serif;line-height:1.1}
-#impulse-plaque .imp-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9fd8d8}
-#impulse-plaque .imp-value{min-width:26px;text-align:center;font-size:18px;font-weight:800;color:#30e5dc;letter-spacing:.02em}
-/* надпись о штрафе висит под плашкой и не сдвигает её: ширина не скачет */
+  font-family:QuestSans,Arial,sans-serif;line-height:1.05}
+#impulse-plaque .imp-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#9fd8d8}
+#impulse-plaque .imp-value{font-size:18px;font-weight:800;color:#30e5dc;letter-spacing:.02em}
+/* надпись о штрафе висит под плашкой и не сдвигает её */
 #impulse-plaque .imp-delta{display:none;position:absolute;right:0;top:100%;margin-top:5px;
   white-space:nowrap;padding:2px 7px;border-radius:8px;background:rgba(24,12,8,.94);
   border:1px solid rgba(255,159,107,.5);font-style:normal;font-size:11px;font-weight:700;color:#ff9f6b}
 #impulse-plaque .imp-delta.show{display:inline-block}
-/* Кристальный шифр: QR стоит по центру вверху — плашка рядом с ним */
-body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50% + 34px);top:calc(6px + env(safe-area-inset-top))}
-/* Голос аномалии: сверху по центру своя полоса с номером фрагмента — импульс ниже неё */
-body[data-screen="task05"] #impulse-plaque:not(.in-row){top:calc(72px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
+/* Кристальный шифр: QR стоит по центру вверху — плашка рядом с ним, слева */
+body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50% + 32px)}
 /* В бою и в задании 7 плашка стоит в общем ряду показателей */
 #impulse-plaque.in-row{position:relative;top:auto;right:auto;left:auto;box-shadow:none;
-  background:rgba(15,32,37,.82);padding:4px 10px}
+  background:rgba(15,32,37,.82);padding:4px 8px}
 #t7-hud #impulse-plaque.in-row{margin:0}
 /* В бою плашка того же вида и размера, что «Счёт игрока» */
 .battle-hud #impulse-plaque.hud-panel{display:flex;flex-direction:column;align-items:center;
   padding:6px 12px;border-radius:10px;background:rgba(15,32,37,.95);border:1px solid rgba(190,245,245,.35)}
 .battle-hud #impulse-plaque .imp-label{font-size:15px;line-height:1.15;letter-spacing:0;text-transform:none;color:#fff}
 .battle-hud #impulse-plaque .imp-value{font-size:24px;line-height:1.15;margin-top:2px}
-@media(max-height:550px){
-  .battle-hud #impulse-plaque .imp-label{font-size:12px}
-  .battle-hud #impulse-plaque .imp-value{font-size:20px}
-}
-@media(max-width:740px){
+@media(max-height:550px),(max-width:740px){
   .battle-hud #impulse-plaque .imp-label{font-size:12px}
   .battle-hud #impulse-plaque .imp-value{font-size:20px}
 }
 @media(max-height:560px){
-  #impulse-plaque{padding:3px 8px;gap:5px}
-  #impulse-plaque .imp-label{font-size:9px}
+  #impulse-plaque{padding:3px 7px;min-width:48px}
+  #impulse-plaque .imp-label{font-size:8px}
   #impulse-plaque .imp-value{font-size:15px}
 }
-/* строка итога на экране завершения задания */
-.imp-result-line{margin:10px 0 0;font-size:13px;font-weight:700;letter-spacing:.1em;
+/* строка итога на экране завершения задания — последней строкой перед кнопкой */
+.imp-result-line{margin:12px 0 0;font-size:13px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;color:#30e5dc;text-align:center}

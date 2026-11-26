@@ -356,6 +356,19 @@ var TITLES={task01:'Оборона',task02:'Кристальный шифр',tas
 task05:'Голос аномалии',task06:'Танец Лума',task07:'Прорыв к лаборатории',task08:'Код Ядра',
 task09:'Стабилизатор',task10:'Город'};
 var P_HINT=15,P_ERR=8,P_REPLAY=5,P_VOLT=25;
+// Импульс виден только тогда, когда задание действительно играется.
+// На первом экране («Запустить инструкцию») и на экране завершения плашки нет:
+// там показывать нечего, а строку итога дописываем на экран завершения.
+var SHOW_STAGES={
+task02:['sequence','swap','reveal'],
+task03:['play','reaction'],
+task04:['clip','answer'],
+task05:['play'],
+task06:['dance','order','word'],
+task07:['run'],
+task08:['view','code'],
+task09:['charge'],
+task10:['code','protocol','countdown','city']};
 // экраны завершения заданий: куда дописывается строка «ИМПУЛЬС КОМАНДЫ — N»
 var DONE_SEL=['#result .result-card','#t2 .t2-nextwrap','#t3 .t3-done','#t4 .t4-done',
 '#t5 .t5-done','#t6 .t6-done','#t8 .t8-done','#t9 .t9-done','#t10 .t10-done'];
@@ -476,11 +489,8 @@ function showScreen(ph){
   if(ph==='battle')return true;
   if(!/^task\d\d$/.test(ph)||ph==='task01')return false;
   var n=node(ph),st=n?String(n.stage||''):'';
-  // инструкция, ожидание и экран завершения — плашку не показываем:
-  // на инструкции она закрывала текст, на итогах задания хватает строки «ИМПУЛЬС КОМАНДЫ»
-  if(/intro|wait|done|change/.test(st))return false;
-  if(ph==='task07')return st==='run'||st==='done';
-  return true;
+  var allow=SHOW_STAGES[ph]||[];
+  return allow.indexOf(st)>=0;
 }
 function placeIn(e,ph){
   var host=null;
@@ -537,11 +547,9 @@ function injectResults(t){
   var line=host.querySelector('.imp-result-line');
   if(!line){
     line=document.createElement('p');line.className='imp-result-line';
-    // строка встаёт сразу под заголовком экрана — это итог задания, а не подпись к кнопке
-    var head=host.querySelector('h1,h2');
-    if(head&&head.parentNode===host&&head.nextSibling)host.insertBefore(line,head.nextSibling);
-    else if(head&&head.parentNode===host)host.appendChild(line);
-    else host.appendChild(line);
+    // последняя строка на экране: ставим её перед кнопкой перехода к следующему заданию
+    var btn=host.querySelector(':scope > button');
+    if(btn)host.insertBefore(line,btn);else host.appendChild(line);
   }
   var txt='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||0);
   if(line.textContent!==txt)line.textContent=txt;
