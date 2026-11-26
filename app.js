@@ -581,6 +581,13 @@ function watchHost(host,line){
 function injectResults(t){
   // Итог импульса на экране завершения видят все — и капитан, и игроки (просьба автора 26.11)
   if(!t)t={total:(typeof lastTotal==='number'?lastTotal:0)};
+  // Плашку 7 задания убираем, как только началось другое задание —
+  // иначе она висит посреди экрана до конца квеста (нашёл 26.11).
+  if(phase()!=='task07'){
+    var stale7=document.getElementById('imp-t7');
+    if(stale7&&stale7.style.display!=='none')stale7.style.display='none';
+    if(document.body.classList.contains('t7-fin'))document.body.classList.remove('t7-fin');
+  }
   // Задание 7: последний экран — дверь лаборатории с кнопкой «Войти в лабораторию».
   // Кнопка стоит поверх кадра, поэтому рамку ставим так же — над ней по центру.
   if(phase()==='task07'){
@@ -624,10 +631,27 @@ function injectResults(t){
     line.className='imp-result-card';
     line.innerHTML='<span class="imp-rc-label">ИМПУЛЬС КОМАНДЫ</span><i class="imp-rc-dash">—</i><b class="imp-rc-value">0</b>';
   }
+  // Химеры: плашка стоит рядом с капсулой, двумя строками под процентами заряда,
+  // и ничего не сдвигает — кнопка «Продолжить квест» остаётся на месте.
+  if(phNow==='task04'){
+    var charge=host.querySelector('.t4-charge')||host;
+    line.className='imp-result-card imp-stack';
+    line.style.marginTop='';line.style.marginBottom='';
+    if(line.parentElement!==charge)charge.appendChild(line);
+    var v4=line.querySelector('.imp-rc-value');
+    var n4=String((t&&t.total)||0);
+    if(v4&&v4.textContent!==n4)v4.textContent=n4;
+    return;
+  }
+  line.className='imp-result-card';
   // Место рамки — прямо перед кнопкой перехода. Кнопка может лежать внутри обёртки,
   // поэтому ищем её по всему экрану и поднимаемся до прямого ребёнка экрана.
+  // небольшие кнопки («Да»/«Нет» в 8 задании) тоже считаем кнопками:
+  // раньше порог отсекал их, и рамка падала в самый низ экрана
   var btns=[].filter.call(host.querySelectorAll('button'),function(b){
-    return !b.closest('.imp-result-card')&&visible(b);
+    if(b.closest('.imp-result-card'))return false;
+    var r=b.getBoundingClientRect();
+    return r.width>4&&r.height>4;
   });
   var target=null;
   for(var bi=0;bi<btns.length;bi++){

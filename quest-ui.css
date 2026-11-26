@@ -308,17 +308,27 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
 }
 /* итог импульса на экране завершения задания: одна строка в рамке,
    последней строкой перед кнопкой перехода к следующему заданию */
-.imp-result-card{display:inline-flex;align-items:baseline;justify-content:center;gap:7px;
-  margin:14px auto;padding:8px 20px;border:1px solid rgba(48,229,220,.6);border-radius:12px;
+.imp-result-card{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:46px;                       /* одна высота на всех экранах */
+  margin:14px auto;padding:0 20px;border:1px solid rgba(48,229,220,.6);border-radius:12px;
   background:rgba(11,30,34,.9);box-shadow:0 0 18px rgba(48,229,220,.18);
   white-space:nowrap;max-width:94vw;box-sizing:border-box}
-.imp-result-card .imp-rc-label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#9fd8d8}
-.imp-result-card .imp-rc-dash{font-style:normal;color:#9fd8d8;font-size:15px}
+.imp-result-card .imp-rc-label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#9fd8d8;line-height:1.1}
+.imp-result-card .imp-rc-dash{font-style:normal;color:#9fd8d8;font-size:15px;line-height:1.1}
 .imp-result-card .imp-rc-value{font-size:26px;font-weight:800;line-height:1.1;color:#30e5dc}
+/* химеры: компактная плашка в две строки — подпись, под ней число */
+.imp-result-card.imp-stack{display:inline-flex;flex-direction:column;align-items:flex-start;
+  justify-content:center;gap:1px;height:auto;min-height:0;margin:6px 0 0;padding:5px 12px;border-radius:10px}
+.imp-result-card.imp-stack .imp-rc-label{font-size:10px;letter-spacing:.12em}
+.imp-result-card.imp-stack .imp-rc-dash{display:none}
+.imp-result-card.imp-stack .imp-rc-value{font-size:20px}
 @media(max-height:560px){
-  .imp-result-card{padding:6px 14px;margin-top:10px;gap:6px}
+  .imp-result-card{height:40px;padding:0 14px;gap:6px;margin-top:10px}
   .imp-result-card .imp-rc-label{font-size:11px}
   .imp-result-card .imp-rc-value{font-size:21px}
+  .imp-result-card.imp-stack{height:auto;padding:4px 10px}
+  .imp-result-card.imp-stack .imp-rc-label{font-size:9px}
+  .imp-result-card.imp-stack .imp-rc-value{font-size:17px}
 }
 /* недоступная кнопка должна быть видна как недоступная: в шифре «Открыть дверь»
    раньше выглядела рабочей, хотя ждала цифры */
