@@ -247,7 +247,8 @@ root=document.createElement('div');root.id='t10';root.innerHTML=
 '<p class="t10-row"><span>ОБЩЕЕ ВРЕМЯ</span><b id="t10-time">—</b></p>'+
 '<p class="t10-row"><span>ОБОРОНА</span><b id="t10-def">0</b></p>'+
 '<p class="t10-row"><span>ИМПУЛЬС КОМАНДЫ</span><b id="t10-impulse">—</b></p></div>'+
-'<button id="t10-finish" class="t10-primary" type="button">Завершить</button>'+
+'<button id="t10-photo" class="t10-primary" type="button">Сделать фото с химерой</button>'+
+'<button id="t10-finish" class="t10-secondary" type="button">Завершить</button>'+
 '<p class="t10-note" id="t10-donewait" hidden>ЖДЁМ КАПИТАНА</p></section>'+
 '<div class="t10-status" id="t10-status" role="status" hidden></div>'+
 '<button class="t10-primary t10-mediabtn" id="t10-media" type="button" hidden></button>'+
@@ -269,6 +270,7 @@ countnum:root.querySelector('#t10-countnum'),done:root.querySelector('#t10-done'
 names:root.querySelector('#t10-names'),time:root.querySelector('#t10-time'),def:root.querySelector('#t10-def'),
 impulse:root.querySelector('#t10-impulse'),
 finish:root.querySelector('#t10-finish'),donewait:root.querySelector('#t10-donewait'),
+photo:root.querySelector('#t10-photo'),
 status:root.querySelector('#t10-status'),media:root.querySelector('#t10-media')};
 try{arcs=T10Arcs({host:els.waves,button:els.shieldbtn,state:els.shield});}catch(e){arcs=null;}
 els.start.addEventListener('click',startIntro);
@@ -279,6 +281,7 @@ els.cells.addEventListener('click',onCellClick);
 els.btns.addEventListener('click',onProtoClick);
 els.pcheck.addEventListener('click',protoCheck);
 els.finish.addEventListener('click',finishLocal);
+if(els.photo)els.photo.addEventListener('click',openPhotoScreen);
 // щит: держим пальцем, отпускание/фон/потеря касания снимают защиту
 els.shieldbtn.addEventListener('pointerdown',shieldDown);
 els.shieldbtn.addEventListener('pointerup',shieldUp);
@@ -644,7 +647,7 @@ cardKey=key;
 const d=cardData();
 els.names.innerHTML=d.names.length?d.names.map(function(n){return '<span>'+esc(n)+'</span>';}).join(''):'<span>—</span>';
 if(els.time)els.time.textContent=fmtTime(d.time);
-if(els.def)els.def.textContent=String(d.def);
+if(els.def)els.def.textContent=String(d.defense);
 if(els.impulse)els.impulse.textContent=String(imp);
 }
 function render(){
@@ -762,6 +765,15 @@ localDone=true;
 if(els.done)els.done.hidden=true;
 if(els.finish)els.finish.hidden=true;
 status('Спасибо, команда! Вы спасли город.');
+}
+// «Сделать фото с химерой»: отдельная страница открывается поверх квеста,
+// состояние комнаты и финала не теряется; закрытие — сообщением из рамки.
+function openPhotoScreen(){
+var ov=document.getElementById('photo-overlay');
+var fr=document.getElementById('photo-frame');
+if(!ov||!fr){toastMsg('Экран фото не найден');return;}
+fr.src='photo.html?from=final&v=1';
+ov.style.display='block';
 }
 return{mount:mount,unmount:unmount,BUILD:BUILD};
 })();

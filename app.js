@@ -538,6 +538,20 @@ function visible(el){
   var r=el.getBoundingClientRect();
   return r.width>60&&r.height>20;
 }
+// Рамка должна стоять на одинаковом расстоянии от текста сверху и от кнопки снизу.
+// Меряем фактические просветы и добавляем отступ туда, где его меньше.
+function balanceCard(line){
+  try{
+    line.style.marginTop='0px';line.style.marginBottom='0px';
+    var r=line.getBoundingClientRect();
+    var prev=line.previousElementSibling,next=line.nextElementSibling;
+    var above=prev?Math.max(0,Math.round(r.top-prev.getBoundingClientRect().bottom)):0;
+    var below=next?Math.max(0,Math.round(next.getBoundingClientRect().top-r.bottom)):0;
+    var target=Math.max(above,below,14);
+    line.style.marginTop=Math.max(0,target-above)+'px';
+    line.style.marginBottom=Math.max(0,target-below)+'px';
+  }catch(e){}
+}
 function injectResults(t){
   // Итог импульса на экране завершения видят все — и капитан, и игроки (просьба автора 26.11)
   var host=null;
@@ -546,16 +560,43 @@ function injectResults(t){
     if(el&&visible(el)){host=el;break;}
   }
   if(!host)return;
+  // В карточке города импульс уже стоит отдельной строкой рядом с общим временем —
+  // вторую рамку там не ставим.
+  if(host.closest('#t10'))return;
   var line=host.querySelector('.imp-result-card');
   if(!line){
     line=document.createElement('div');
     line.className='imp-result-card';
     line.innerHTML='<span class="imp-rc-label">ИМПУЛЬС КОМАНДЫ</span><i class="imp-rc-dash">—</i><b class="imp-rc-value">0</b>';
-    // последняя строка на экране: ставим её перед кнопкой перехода к следующему заданию
-    // (в обороне кнопки лежат в отдельном ряду .res-actions)
-    var btn=host.querySelector(':scope > button, :scope > .res-actions, :scope > [class*="-actions"]');
-    if(btn)host.insertBefore(line,btn);else host.appendChild(line);
   }
+  // Место рамки — прямо перед кнопкой перехода. Кнопка может лежать внутри обёртки,
+  // поэтому ищем её по всему экрану и поднимаемся до прямого ребёнка экрана.
+  var btns=[].filter.call(host.querySelectorAll('button'),function(b){
+    return !b.closest('.imp-result-card')&&visible(b);
+  });
+  var target=null;
+  for(var bi=0;bi<btns.length;bi++){
+    if(/продолж|дальше|заверш|квест/i.test(String(btns[bi].textContent||''))){target=btns[bi];break;}
+  }
+  if(!target&&btns.length)target=btns[btns.length-1];
+  var anchor=target;
+  // Если кнопки стоят в ряд (флекс-строка), рамку ставим перед всем рядом, иначе — перед кнопкой
+  if(anchor&&anchor.parentElement){
+    var pcs=getComputedStyle(anchor.parentElement);
+    if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection))anchor=anchor.parentElement;
+    // если кнопка — первый элемент своей обёртки, рамку ставим перед обёрткой целиком:
+    // иначе сверху не остаётся места и отступы становятся разными
+    if(anchor.parentElement&&anchor.parentElement!==host&&anchor===anchor.parentElement.firstElementChild)
+      anchor=anchor.parentElement;
+  }
+  if(anchor&&anchor.parentElement){
+    var par=anchor.parentElement;
+    if(line.nextElementSibling!==anchor||line.parentElement!==par)par.insertBefore(line,anchor);
+  }else if(line.parentElement!==host||line.nextElementSibling){
+    host.appendChild(line);
+  }
+  // выравниваем отступы при каждой отрисовке: рамка могла переехать или смениться шрифт
+  balanceCard(line);
   var val=line.querySelector('.imp-rc-value');
   var num=String((t&&t.total)||0);
   if(val&&val.textContent!==num)val.textContent=num;
