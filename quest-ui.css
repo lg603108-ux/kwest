@@ -349,3 +349,15 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
 /* на экране задания 7 кнопка «Войти в лабораторию» стоит под рамкой, а не внизу экрана */
 body.t7-fin .t7-lab-btn{top:calc(175px + env(safe-area-inset-top));bottom:auto}
 /* на маленьких экранах высоты хватает: табличка 64–101, рамка 118–164, кнопка 178–230 */
+
+/* рамка импульса и кнопка перехода — одним столбиком: одинаковая высота,
+   ровный отступ 14 px и никаких наездов друг на друга */
+.imp-btn-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.imp-btn-wrap > .imp-result-card{margin:0!important;height:46px}
+.imp-btn-wrap > button{margin:0!important;height:46px!important;min-height:0!important;padding-top:0;padding-bottom:0;
+  display:inline-flex;align-items:center;justify-content:center}
+@media(max-height:560px){
+  .imp-btn-wrap{gap:12px}
+  .imp-btn-wrap > .imp-result-card{height:40px}
+  .imp-btn-wrap > button{height:40px!important}
+}

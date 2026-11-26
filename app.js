@@ -671,10 +671,18 @@ function injectResults(t){
     var par=target.parentElement;
     var pcs=getComputedStyle(par);
     if(/flex/.test(pcs.display)&&/row/.test(pcs.flexDirection)&&par.parentElement){
+      // ряд кнопок (например «Да»/«Нет») — рамку ставим перед всем рядом
       if(line.parentElement!==par.parentElement||line.nextElementSibling!==par)
         par.parentElement.insertBefore(line,par);
     }else{
-      if(line.parentElement!==par||line.nextElementSibling!==target)par.insertBefore(line,target);
+      // рамку и кнопку кладём в общий столбик: они не могут наехать друг на друга,
+      // отступ 14 px между ними и высота у обоих одинаковая (см. .imp-btn-wrap)
+      var wrap=null;
+      for(var wi=0;wi<par.children.length;wi++){if(par.children[wi].classList&&par.children[wi].classList.contains('imp-btn-wrap')){wrap=par.children[wi];break;}}
+      if(!wrap){wrap=document.createElement('div');wrap.className='imp-btn-wrap';par.insertBefore(wrap,target);}
+      if(wrap.parentElement!==par)par.insertBefore(wrap,target);
+      if(line.parentElement!==wrap)wrap.appendChild(line);
+      if(target.parentElement!==wrap)wrap.appendChild(target);
     }
   }else if(line.parentElement!==host||line.nextElementSibling){
     host.appendChild(line);
@@ -689,7 +697,7 @@ function injectResults(t){
   var val=line.querySelector('.imp-rc-value');
   var num=String((t&&t.total)||0);
   if(val&&val.textContent!==num)val.textContent=num;
-  if(target)stickAbove(line,target);
+  // выравнивание задаёт .imp-btn-wrap — отдельная подгонка не нужна
 }
 
 // Кнопка перехода бывает приклеена к низу экрана (position:absolute) — тогда рамка
