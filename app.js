@@ -644,6 +644,13 @@ function injectResults(t){
     return;
   }
   line.className='imp-result-card';
+  // «приклеенное» положение сбрасываем только при переходе на другой экран,
+  // иначе рамка каждый тик отклеивается и приклеивается заново (дрожит)
+  if(line._host!==host){
+    line._host=host;
+    line.style.position='';line.style.left='';line.style.top='';line.style.bottom='';
+    line.style.transform='';line.style.zIndex='';
+  }
   // Место рамки — прямо перед кнопкой перехода. Кнопка может лежать внутри обёртки,
   // поэтому ищем её по всему экрану и поднимаемся до прямого ребёнка экрана.
   // небольшие кнопки («Да»/«Нет» в 8 задании) тоже считаем кнопками:
@@ -682,6 +689,38 @@ function injectResults(t){
   var val=line.querySelector('.imp-rc-value');
   var num=String((t&&t.total)||0);
   if(val&&val.textContent!==num)val.textContent=num;
+  if(target)stickAbove(line,target);
+}
+
+// Кнопка перехода бывает приклеена к низу экрана (position:absolute) — тогда рамка
+// в обычном потоке оказывается под ней и они слипаются. В этом случае вешаем рамку
+// прямо над кнопкой: тот же центр, отступ 14 px и та же высота, что у кнопки.
+function stickAbove(line,btn){
+  var run=function(){
+    try{
+      var br=btn.getBoundingClientRect();
+      if(!br.width||!br.height)return;
+      var cs=getComputedStyle(btn);
+      var pinned=(cs.position==='fixed'||cs.position==='absolute');
+      if(!pinned)return;                 // обычную кнопку не трогаем: рамка стоит в потоке
+      var pr=line.getBoundingClientRect();
+      var overlap=!(pr.right<br.left||pr.left>br.right||pr.bottom<br.top-2||pr.top>br.bottom-2);
+      if(!overlap)return;
+      // Кнопка приклеена к низу экрана и наезжает на рамку. Поднимаем кнопку
+      // прямо под рамку: тот же центр, отступ 14 px и одна высота с плашкой.
+      line.style.marginBottom='0';
+      line.style.height=Math.round(br.height)+'px';
+      var lr=line.getBoundingClientRect();
+      btn.style.position='fixed';
+      btn.style.left='50%';
+      btn.style.transform='translateX(-50%)';
+      btn.style.bottom='auto';
+      btn.style.top=Math.round(lr.bottom+14)+'px';
+      btn.style.zIndex='8640';
+    }catch(e){}
+  };
+  run();
+  if(window.requestAnimationFrame)requestAnimationFrame(run);
 }
 
 function tick(){

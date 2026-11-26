@@ -30,7 +30,11 @@
     btn.setAttribute('aria-label', scene.name || `Сцена ${i + 1}`);
     btn.innerHTML = `<img src="${scene.src}" alt="" loading="lazy">
       <span class="tick">✓</span>`;
-    btn.addEventListener('click', () => pickScene(scene, btn));
+    btn.addEventListener('click', () => {
+      // повторное нажатие по выбранной сцене — посмотреть её крупно
+      if (state.scene && state.scene.id === scene.id) openLightbox(scene.src);
+      else pickScene(scene, btn);
+    });
     gallery.appendChild(btn);
   });
 
@@ -38,6 +42,30 @@
     state.scene = scene;
     [...gallery.children].forEach(el => el.classList.toggle('is-picked', el === btn));
     sceneName.textContent = scene.name || '';
+  }
+
+  /* ---------- просмотр сцены крупно ---------- */
+  const lightbox = $('lightbox');
+  const lightboxImg = $('lightbox-img');
+
+  function openLightbox(src) {
+    if (!lightbox) return;
+    lightboxImg.src = src;
+    lightbox.hidden = false;
+  }
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    lightboxImg.src = '';
+  }
+  if (lightbox) {
+    lightbox.addEventListener('click', closeLightbox);
+    $('lightbox-close').addEventListener('click', closeLightbox);
+    lightboxImg.addEventListener('click', (e) => {
+      e.stopPropagation();
+      lightboxImg.classList.toggle('is-zoomed');
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
   }
 
   // первая сцена выбрана сразу

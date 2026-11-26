@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#0b1a1f">
 <title>Фото с химерой</title>
-<link rel="stylesheet" href="photo.css?v=008">
+<link rel="stylesheet" href="photo.css?v=011">
 </head>
 <body>
 <div class="app">
@@ -98,7 +98,14 @@
 <input type="file" id="file-camera" accept="image/*" capture="user" hidden>
 <input type="file" id="file-gallery" accept="image/*" hidden>
 
-<script src="photo-scenes.js?v=002"></script>
-<script src="photo.js?v=002"></script>
+<!-- просмотр сцены крупно -->
+<div id="lightbox" hidden>
+  <button id="lightbox-close" type="button" aria-label="Закрыть">×</button>
+  <img id="lightbox-img" alt="">
+  <p id="lightbox-hint">Нажмите на фото, чтобы увеличить · × закрыть</p>
+</div>
+
+<script src="photo-scenes.js?v=003"></script>
+<script src="photo.js?v=004"></script>
 </body>
 </html>

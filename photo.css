@@ -198,21 +198,45 @@ button{font-family:inherit;cursor:pointer;border:0}
 .big-ico{font-size:54px;line-height:1;opacity:.8}
 .footer-note{font-size:12px;color:var(--q-text-2);opacity:.6;text-align:center;margin-top:auto}
 
+/* --- просмотр сцены крупно ------------------------------------- */
+#lightbox{
+  position:fixed;inset:0;z-index:50;background:rgba(4,12,15,.96);
+  display:flex;align-items:center;justify-content:center;padding:12px;
+  overflow:auto;
+}
+#lightbox[hidden]{display:none!important}
+#lightbox img{
+  max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;
+  transition:transform .18s ease;cursor:zoom-in;
+}
+#lightbox img.is-zoomed{
+  max-width:none;max-height:none;height:190vh;width:auto;cursor:zoom-out;
+}
+#lightbox-close{
+  position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;
+  background:rgba(32,56,62,.92);border:1px solid var(--q-border);color:#fff;font-size:24px;line-height:1;
+  display:grid;place-items:center;padding:0 0 2px;
+}
+#lightbox-hint{
+  position:absolute;bottom:10px;left:0;right:0;text-align:center;
+  font-size:12px;color:var(--q-text-2);opacity:.7;margin:0;pointer-events:none;
+}
+
 /* --- горизонтальная ориентация (квест идёт в горизонтали) ------ */
 @media (orientation:landscape) and (max-height:560px){
   html,body{height:100%;overflow:hidden}
   .app{max-width:none;height:100dvh;min-height:0;overflow:hidden;padding:6px 12px;gap:4px}
   .screen{display:none;flex:none;height:100%;overflow:hidden}
   .screen.is-active{display:grid;align-items:center;gap:4px 14px;
-    grid-template-columns:minmax(0,40%) minmax(0,60%);
+    grid-template-columns:minmax(0,66%) minmax(0,34%);
     grid-auto-rows:min-content;
     align-content:center;height:100%;overflow:hidden}
 
-  h1{grid-column:1/-1;grid-row:1;font-size:clamp(16px,3.8vh,22px);margin:0;text-align:left}
-  .sub{grid-column:2;grid-row:2;font-size:12px;line-height:1.25;text-align:left;margin:0}
+  h1{grid-column:1/-1;grid-row:1;font-size:clamp(15px,3.4vh,20px);margin:0;text-align:left}
+  .sub{grid-column:2;grid-row:2;font-size:11px;line-height:1.2;text-align:left;margin:0}
 
-  .gallery{grid-column:1;grid-row:3 / span 5;margin:0;padding:0;gap:8px;align-self:center;align-items:center}
-  .scene{flex:0 0 auto;height:calc(100dvh - 58px);width:auto;aspect-ratio:9/16;border-radius:12px;align-self:center}
+  .gallery{grid-column:1;grid-row:2 / span 6;margin:0;padding:0;gap:8px;align-self:center;align-items:center}
+  .scene{flex:0 0 auto;height:calc(100dvh - 30px);width:auto;aspect-ratio:9/16;border-radius:12px;align-self:center}
   .scene img{object-fit:cover}
 
   .gal-nav{grid-column:2;grid-row:3;justify-content:flex-start;margin:2px 0 0}
@@ -222,21 +246,21 @@ button{font-family:inherit;cursor:pointer;border:0}
   #s-offer #btn-decline{grid-column:2;grid-row:7}
   .footer-note{display:none}
 
-  .btn{min-height:40px;font-size:14px}
-  .btn-ghost{min-height:32px;font-size:13px}
-  .gal-arrow{width:32px;height:32px;flex:0 0 32px;font-size:18px}
+  .btn{min-height:38px;font-size:13px;padding:0 10px}
+  .btn-ghost{min-height:30px;font-size:12px}
+  .gal-arrow{width:30px;height:30px;flex:0 0 30px;font-size:16px}
 
   /* предпросмотр и результат: фото слева, действия справа */
   #s-preview,#s-result{
     flex-direction:column;justify-content:center;align-items:stretch;
     gap:6px;height:100%;position:relative;overflow:hidden;
-    padding-left:calc((100dvh - 80px) * 0.75 + 26px);
+    padding-left:calc(66% + 14px);
   }
   #s-preview.is-active,#s-result.is-active{display:flex}
   #s-preview .photo-wrap,
   #s-result .photo-wrap{
     position:absolute;left:0;top:50%;transform:translateY(-50%);
-    height:calc(100dvh - 80px);width:auto;aspect-ratio:3/4;margin:0;
+    height:calc(100dvh - 44px);width:auto;aspect-ratio:3/4;margin:0;
   }
   #s-preview h1,#s-result h1{position:absolute;left:0;top:2px;right:0;font-size:18px}
   #s-preview .sub{font-size:12px}
