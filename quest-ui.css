@@ -186,7 +186,9 @@ body{font-family:QuestSans;color:var(--q-text)}
 /* ---------- Подсказка «чей ход» и служебные плашки ---------- */
 #cap-hint{
   position:fixed;left:50%;transform:translateX(-50%);
-  top:max(8px,env(safe-area-inset-top));z-index:880;display:none;
+  /* вверху по центру стоит QR-код команды и плашки — подсказку опускаем ниже,
+     иначе две надписи накладывались друг на друга */
+  top:calc(62px + env(safe-area-inset-top));z-index:880;display:none;
   padding:5px 14px;border-radius:10px;font-family:QuestSans;font-size:13px;
   letter-spacing:.03em;color:var(--q-text-2);background:rgba(9,20,24,.82);
   border:1px solid rgba(190,245,245,.28);pointer-events:none;text-align:center;max-width:92vw}
@@ -304,6 +306,20 @@ body[data-screen="task02"] #impulse-plaque:not(.in-row){right:auto;left:calc(50%
   #impulse-plaque .imp-label{font-size:8px}
   #impulse-plaque .imp-value{font-size:15px}
 }
-/* строка итога на экране завершения задания — последней строкой перед кнопкой */
-.imp-result-line{margin:12px 0 0;font-size:13px;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;color:#30e5dc;text-align:center}
+/* итог импульса на экране завершения задания: рамка с крупным числом,
+   последней строкой перед кнопкой перехода к следующему заданию */
+.imp-result-card{display:flex;flex-direction:column;align-items:center;gap:2px;
+  margin:14px 0 0;padding:8px 24px;border:1px solid rgba(48,229,220,.55);border-radius:14px;
+  background:rgba(11,30,34,.88);box-shadow:0 0 18px rgba(48,229,220,.18)}
+.imp-result-card .imp-rc-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9fd8d8}
+.imp-result-card .imp-rc-value{font-size:30px;font-weight:800;line-height:1.1;color:#30e5dc}
+@media(max-height:560px){
+  .imp-result-card{padding:6px 16px;margin-top:10px}
+  .imp-result-card .imp-rc-value{font-size:24px}
+}
+/* недоступная кнопка должна быть видна как недоступная: в шифре «Открыть дверь»
+   раньше выглядела рабочей, хотя ждала цифры */
+#t2 .t2-btn:disabled{opacity:.45;filter:saturate(.4);cursor:default}
+/* задание 9: QR-код стоит в правом верхнем углу, поэтому зона «касайтесь в такт»
+   начинается ниже — чтобы нажатия не попадали в QR */
+#t9 .t9-zone{top:calc(86px + env(safe-area-inset-top))}

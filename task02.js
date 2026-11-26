@@ -31,7 +31,7 @@ function goFullscreen(){/* просим общий полноэкранный р
 function mount(container){
 if(root)unmount();
 active=true;
-S={digits:[],hl:null,attempts:0,accepted:false,soundOn:cap()};
+S={digits:[],hl:null,attempts:0,accepted:false,soundOn:cap(),seqEnded:false};
 root=document.createElement('div');root.id='t2';container.appendChild(root);
 root.innerHTML=
 '<video class="t2-video" playsinline preload="auto"></video>'+
@@ -146,6 +146,16 @@ renderCells();}
 else if(stage==='reveal'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=true;schedulePlay(MEDIA.reveal,at,'reveal');}
 else if(stage==='done'){els.start.hidden=true;els.left.hidden=true;els.right.hidden=true;els.bottom.hidden=true;els.nextwrap.hidden=false;status('');}
 }
+// Порядок цифр выставляем только после того, как собраны все шесть цифр.
+// Иначе «Открыть дверь» остаётся недоступной и непонятно, чего не хватает.
+function toSwapIfReady(){
+if(S.digits.length<6){
+if(els.hint)els.hint.style.display='';
+hint('Сначала введите все шесть цифр с карточек — потом расставим порядок.','err');
+return false;}
+put({stage:'swap',startsAt:Date.now()});
+return true;
+}
 function schedulePlay(list,at,stage){
 const delay=at-Date.now();
 if(delay>250){status('Видео начнётся одновременно у всех…');startTimer=setTimeout(function(){status('');playList(list,0,stage);},delay);}
@@ -154,7 +164,7 @@ else{playList(list,Math.max(0,Date.now()-at),stage);}
 function playList(list,offset,stage){
 let i=0;
 (function tryOne(){
-if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
+if(i>=list.length){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;toSwapIfReady();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}return;}
 els.mediareq.hidden=true;
 const src=list[i++]+'?v=9';
 // Ролик уже предзагружен на экране ожидания: повторная установка того же src обрывала
@@ -168,7 +178,7 @@ const to=setTimeout(function(){if(!settled&&video.readyState===0){settled=true;t
 video.onloadedmetadata=function(){settled=true;clearTimeout(to);doSeek();};
 video.oncanplay=function(){settled=true;clearTimeout(to);doSeek();};
 video.onerror=function(){if(!settled){settled=true;clearTimeout(to);tryOne();}};
-video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence')put({stage:'swap',startsAt:Date.now()});else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
+video.onended=function(){if(cap()){if(stage==='intro')put({stage:'sequence',startsAt:Date.now()+2000});else if(stage==='sequence'){S.seqEnded=true;toSwapIfReady();}else if(stage==='reveal')put({stage:'done',startsAt:Date.now()});}};
 video.play().catch(function(){video.muted=true;S.soundOn=false;els.sound.textContent='×';video.play().catch(function(){els.mediareq.hidden=false;});});
 // Если через 6 секунд картинки нет — один раз перезагружаем файл и пробуем снова.
 // Если и это не помогло, показываем кнопку ручного запуска (без пропуска видео).
@@ -195,6 +205,8 @@ if(curStage!=='sequence'&&curStage!=='swap')return;
 if(S.digits.includes(d))return;
 if(S.digits.length>=6)return;
 S.digits.push(d);renderCells();writeDigits();
+// ролик уже кончился, а не хватало цифр — как только собраны все шесть, идём к порядку
+if(curStage==='sequence'&&S.seqEnded&&S.digits.length===6)toSwapIfReady();
 }
 function onCell(i){
 if(!cap()||S.accepted||curStage!=='swap')return;

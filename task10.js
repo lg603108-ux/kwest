@@ -518,6 +518,24 @@ try{video.pause();}catch(e){}
 hideMediaBtn();
 }
 function hideMediaBtn(){if(els.media){els.media.hidden=true;els.media.onclick=null;}}
+// Браузер не пускает видео со звуком без нажатия (так бывает на телефонах): тогда видео
+// стартует без звука, и поверх него показывается крупная кнопка — по нажатию звук включается.
+function showSoundReq(){
+if(!active||!root||!video)return;
+var el=document.getElementById('t10-soundreq');
+if(!el){
+el=document.createElement('button');el.id='t10-soundreq';el.type='button';
+el.textContent='🔊 Нажмите, чтобы включить звук';
+root.appendChild(el);
+}
+el.hidden=false;
+el.onclick=function(ev){
+if(ev&&ev.stopPropagation)ev.stopPropagation();
+el.hidden=true;
+try{video.muted=false;video.volume=1;video.play().catch(function(){});}catch(e){}
+};
+}
+function hideSoundReq(){var el=document.getElementById('t10-soundreq');if(el)el.hidden=true;}
 function showMediaBtn(text,fn){if(!els.media)return;els.media.hidden=false;els.media.textContent=text;
 els.media.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();hideMediaBtn();if(!active)return;fn();};}
 function scheduleMedia(src,at,key,onEnd){
@@ -537,6 +555,7 @@ if(cap())showMediaBtn('Продолжить →',function(){endedLocal=true;onEn
 video.onended=function(){
 if(!active||mediaKey!==key)return;
 endedLocal=true;
+hideSoundReq();
 if(cap())onEnd();
 render();
 };
@@ -545,11 +564,12 @@ const beginPlay=function(){
 if(!active||mediaKey!==key||!video)return;
 const p=video.play();
 if(!p||!p.then){status('');hideMediaBtn();return;}
-p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();},function(){
+p.then(function(){if(!active||mediaKey!==key)return;status('');hideMediaBtn();hideSoundReq();},function(){
 if(!active||mediaKey!==key)return;
+// звук не пустили без нажатия: показываем видео без звука и крупную кнопку включения
 video.muted=true;video.play().catch(function(){});
 status('');
-if(cap())showMediaBtn('🔊 Нажмите, чтобы включить звук',function(){if(video)video.muted=false;});
+if(cap())showSoundReq();
 });
 };
 video.onclick=beginPlay;

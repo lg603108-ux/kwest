@@ -281,8 +281,9 @@ try{
 var scr=String(document.body.dataset.screen||'');
 var isTask=/^task\d+$/.test(scr)||scr==='brief';
 var el=ensure('cap-hint');
-// В седьмом задании подсказка «Следующий шаг у капитана» не нужна (просьба автора 25.11)
-if(scr==='task07'){el.className='';el.textContent='';return;}
+// В третьем и седьмом заданиях подсказка «Следующий шаг у капитана» не нужна
+// (просьба автора 25–26.11)
+if(scr==='task07'||scr==='task03'){el.className='';el.textContent='';return;}
 if(!isTask||isCap()){el.className='';el.textContent='';return;}
 var n=taskNode(scr),st=n?(n.stage||''):'';
 var txt='';
@@ -544,15 +545,19 @@ function injectResults(t){
     if(el&&visible(el)){host=el;break;}
   }
   if(!host)return;
-  var line=host.querySelector('.imp-result-line');
+  var line=host.querySelector('.imp-result-card');
   if(!line){
-    line=document.createElement('p');line.className='imp-result-line';
+    line=document.createElement('div');
+    line.className='imp-result-card';
+    line.innerHTML='<span class="imp-rc-label">Импульс команды</span><b class="imp-rc-value">0</b>';
     // последняя строка на экране: ставим её перед кнопкой перехода к следующему заданию
-    var btn=host.querySelector(':scope > button');
+    // (в обороне кнопки лежат в отдельном ряду .res-actions)
+    var btn=host.querySelector(':scope > button, :scope > .res-actions, :scope > [class*="-actions"]');
     if(btn)host.insertBefore(line,btn);else host.appendChild(line);
   }
-  var txt='ИМПУЛЬС КОМАНДЫ — '+((t&&t.total)||0);
-  if(line.textContent!==txt)line.textContent=txt;
+  var val=line.querySelector('.imp-rc-value');
+  var num=String((t&&t.total)||0);
+  if(val&&val.textContent!==num)val.textContent=num;
 }
 
 function tick(){
