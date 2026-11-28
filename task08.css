@@ -75,3 +75,10 @@
 #t8 .t8-hint{font-size:11.5px;padding:5px 10px}
 #t8 .t8-err{font-size:12px;padding:5px 10px}
 }
+
+/* 28.11: сигнал неправильного ответа на вопрос про протокол Лума —
+   «Да» подсвечивается красным, под кнопками появляется пояснение */
+#t8 .t8-wrong{border-color:#ff8a80!important;color:#ffd9d4!important;background:rgba(46,12,10,.9)!important}
+#t8 .t8-quiznote{margin:10px 0 0;padding:8px 12px;border-radius:10px;
+  background:rgba(46,12,10,.9);border:1px solid rgba(255,138,128,.5);color:#ffb0a6;
+  font-size:14px;line-height:1.35;text-align:center}

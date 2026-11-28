@@ -92,9 +92,25 @@ els.watchagain.addEventListener('click',openReplay);
 els.replayclose.addEventListener('click',closeReplay);
 els.cont.addEventListener('click',continueTo9);
 // На вопрос о том, верно ли Лум нажал кнопки, отвечает только капитан.
-function answerProtocol(){if(!cap())return;if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;}
-if(els.quizYes)els.quizYes.addEventListener('click',answerProtocol);
-if(els.quizNo)els.quizNo.addEventListener('click',answerProtocol);
+// «Да» — неверный ответ: даём сигнал ошибки и оставляем вопрос, чтобы поправить.
+// «Нет» — верно, открываем протокол.
+function answerProtocol(ok){
+if(!cap())return;
+if(!ok){
+  playSfx('sfx_ui_error.mp3',.5);
+  if(els.quizYes)els.quizYes.classList.add('t8-wrong');
+  var note=root.querySelector('#t8-quiznote');
+  if(!note&&els.quiz){note=document.createElement('p');note.id='t8-quiznote';note.className='t8-note t8-quiznote';els.quiz.appendChild(note);}
+  if(note)note.textContent='Неверно. Посмотрите протокол на плакате и ответьте «Нет».';
+  return;
+}
+if(els.quizYes)els.quizYes.classList.remove('t8-wrong');
+var old=root.querySelector('#t8-quiznote');if(old)old.textContent='';
+playSfx('sfx_ui_click.mp3',.4);
+if(els.quiz)els.quiz.hidden=true;if(els.protocol)els.protocol.hidden=false;
+}
+if(els.quizYes)els.quizYes.addEventListener('click',function(){answerProtocol(false);});
+if(els.quizNo)els.quizNo.addEventListener('click',function(){answerProtocol(true);});
 els.show.addEventListener('click',startView);
 els.toggle.addEventListener('click',togglePlay);
 els.restart.addEventListener('click',restartView);

@@ -1,12 +1,10 @@
 // task10.js — задание 10 «Закрытие портала».
 // Правила задания: ТЗ, раздел 12. Капитан сам вводит 3971 (подстановки из задания 8 нет),
 // затем нажимает три установки в порядке с плаката: Стабилизатор → Купол → Ядро.
-// Остальные держат жёлтый щит СРАЗУ после инструкции, одновременно с вводом кода капитаном:
-// отпустил палец, ушёл в фон или потерял касание — давление растёт (решение автора 27.11.2026).
+// Остальные держат жёлтый щит: отпустил палец, ушёл в фон или потерял касание — давление растёт.
 // Давление ничего не блокирует и поражением не заканчивает.
 // После третьего верного шага общий отсчёт 3–2–1, финальный город и итоговая карточка.
-// Звук разделён ТОЛЬКО в этом задании (решение автора 27.11.2026): капитану — «введите код»,
-// игрокам — «удерживайте щит». Остальные звуки задания по-прежнему только у капитана (19.11.2026).
+// Звуки задания звучат только на телефоне капитана (решение автора 19.11.2026).
 // Кнопки «Скрыть клавиатуру» нет (решение автора 19.11.2026).
 // Стадии: wait → intro → code → protocol → countdown → city → done.
 /* ===== разряды аномалии: canvas, рисуются кодом ===== */
@@ -152,7 +150,7 @@ window.T10Arcs=T10Arcs;
 })();
 /* ===== конец разрядов ===== */
 window.Task10=(function(){
-const BUILD='0365a';
+const BUILD='0364a';
 let arcs=null;                                              // живые разряды аномалии (T10Arcs)
 const CODE='3971';
 const SRC_INTRO='assets/v10_intro.mp4?v=0353a';            // сжатый файл автора
@@ -200,46 +198,6 @@ const p=music.play();if(p&&p.catch)p.catch(function(){});}catch(e){music=null;}
 }
 function stopMusic(){if(!music)return;try{music.pause();music.currentTime=0;}catch(e){}music=null;}
 function stopVoice(){if(!voice)return;try{voice.pause();voice.currentTime=0;}catch(e){}voice=null;}
-// Голос игроков — отдельный канал и в этом задании единственный (правка автора 27.11.2026):
-// капитану звучит «введите код», игрокам — «удерживайте щит». Канал отдельный, чтобы фраза
-// игрока не глушила и не обрывала более важный звук и чтобы капитану она не досталась.
-// Телефон игрока после видео может не пустить звук без касания — тогда фраза ждёт первого касания.
-let pvAudio=null,pvTap=null;
-function startPv(file,vol){
-try{
-const a=new Audio('assets/'+file);a.volume=vol;a.preload='auto';pvAudio=a;
-const p=a.play();
-if(p&&p.then)p.then(function(){},function(){if(pvAudio===a)armPvTap(file,vol);});
-}catch(e){pvAudio=null;armPvTap(file,vol);}
-}
-function playPlayerVoice(file,vol){
-if(!active||cap())return;
-stopPlayerVoice();
-startPv(file,(vol==null)?0.9:vol);
-}
-function armPvTap(file,vol){
-if(pvTap)return;
-const run=function(){
-offPvTap();
-if(!active||cap())return;
-startPv(file,vol);
-};
-const off=function(){
-document.removeEventListener('pointerdown',run,true);
-document.removeEventListener('touchstart',run,true);
-pvTap=null;
-};
-pvTap=off;
-document.addEventListener('pointerdown',run,true);
-document.addEventListener('touchstart',run,true);
-}
-function offPvTap(){if(pvTap){const off=pvTap;pvTap=null;off();}}
-function stopPlayerVoice(){
-offPvTap();
-if(!pvAudio)return;
-try{pvAudio.pause();pvAudio.currentTime=0;}catch(e){}
-pvAudio=null;
-}
 function status(text){
 if(!els.status)return '';
 if(text===undefined)return els.status.textContent||'';
@@ -345,7 +303,7 @@ tickTimer=setInterval(tick,400);
 function unmount(){
 if(arcs){try{arcs.destroy();}catch(e){}arcs=null;}
 if(active)releaseShield();
-stopVoice();stopMusic();stopPlayerVoice();
+stopVoice();stopMusic();
 active=false;
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(holdHb){clearInterval(holdHb);holdHb=null;}
@@ -476,8 +434,8 @@ write({stage:'done',completed:true,completedAt:Date.now(),revision:(+task.revisi
 function shieldDown(e){
 if(!active||cap()||!task)return;
 const st=task.stage||'wait';
-// Щит держат сразу после инструкции — одновременно с вводом кода капитаном (правка автора 27.11.2026).
-if(st!=='code'&&st!=='protocol'&&st!=='countdown')return;
+// щит считается только после принятого кода: до этого игроки ждут капитана
+if(st!=='protocol'&&st!=='countdown')return;
 if(e){try{els.shieldbtn.setPointerCapture(e.pointerId);}catch(_){}}
 if(holding)return;
 holding=true;
@@ -707,12 +665,13 @@ if(els.codebox)els.codebox.hidden=!(c&&st==='code');
 if(els.proto)els.proto.hidden=!(c&&st==='protocol');
 const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
 if(els.shield)els.shield.hidden=!shieldOn;
-if(els.shieldbtn)els.shieldbtn.disabled=false;
+const codePhase=(st==='code');
+if(els.shieldbtn)els.shieldbtn.disabled=codePhase;
 if(els.shieldup){
-// Плашки «КАПИТАН ВВОДИТ КОД» больше нет: щит нужен сразу после инструкции (правка 27.11.2026).
-els.shieldup.textContent='УДЕРЖИВАЙ ЩИТ';
-els.shieldup.hidden=holding;   // плашка видна в начале и когда щит отпущен
+els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕРЖИВАЙ ЩИТ';
+els.shieldup.hidden=(!codePhase&&holding);   // плашка видна в начале и когда щит отпущен
 }
+if(codePhase&&els.shield)els.shield.classList.remove('t10-on');
 if(els.count)els.count.hidden=true;   // экран с крупной цифрой «0» убран по требованию автора
 // при верном протоколе волна отступает, затем светлое затухание и финальный город
 if(els.shield)els.shield.classList.toggle('t10-hush',st==='countdown'||st==='city');
@@ -788,12 +747,10 @@ els.countnum.textContent=left>0?String(Math.min(3,left)):'0';
 if(st==='done')fillCard();
 // протокол собирается тремя нажатиями заново; вне этой стадии черновик пуст
 if(st!=='protocol')protoDraft=[];
-// Голос по стадиям: капитану — «введите код» (как раньше), игрокам — «удерживайте щит».
-// Разделение звука сделано только в этом задании (решение автора 27.11.2026).
+// голос Вольта по стадиям (только капитан): сначала «введите код», после кода — «удерживайте щит»
 if(st!==stageKey){
 if(c&&st==='code')playSfx(SFX_KOD,1);
-if(!c&&st==='code')playPlayerVoice(SFX_HOLD,.9);
-if(st!=='code')offPvTap();     // отложенная фраза игрокам больше не нужна
+if(c&&st==='protocol')playSfx(SFX_HOLD,1);
 if(st==='countdown')stopMusic();
 stageKey=st;
 }
