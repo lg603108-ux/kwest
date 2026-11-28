@@ -82,3 +82,10 @@
 #t8 .t8-quiznote{margin:10px 0 0;padding:8px 12px;border-radius:10px;
   background:rgba(46,12,10,.9);border:1px solid rgba(255,138,128,.5);color:#ffb0a6;
   font-size:14px;line-height:1.35;text-align:center}
+
+/* 28.11: кнопка «Пересмотреть видео» появляется сразу после неверного ответа */
+#t8 .t8-quizreplay{margin:10px 0 0;align-self:center}
+/* 28.11: плашка импульса на экране завершения — отдельной строкой по центру,
+   чтобы не слипалась с кнопкой «Продолжить квест» */
+#t8 .t8-screen.t8-done .imp-result-card{display:flex;width:max-content;margin:14px auto 0}
+#t8 .t8-screen.t8-done .imp-result-card + button{margin-top:12px}

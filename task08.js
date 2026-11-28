@@ -102,7 +102,13 @@ if(!ok){
   var note=root.querySelector('#t8-quiznote');
   if(!note&&els.quiz){note=document.createElement('p');note.id='t8-quiznote';note.className='t8-note t8-quiznote';els.quiz.appendChild(note);}
   if(note)note.textContent='Неверно. Посмотрите протокол на плакате и ответьте «Нет».';
-  return;
+    // сразу после неверного ответа даём возможность пересмотреть запись
+    var rb=root.querySelector('#t8-quiz-replay');
+    if(!rb&&els.quiz){rb=document.createElement('button');rb.id='t8-quiz-replay';rb.type='button';
+      rb.className='t8-secondary t8-quizreplay';rb.textContent='↺ Пересмотреть видео';
+      rb.addEventListener('click',openReplay);els.quiz.appendChild(rb);}
+    if(rb)rb.hidden=false;
+    return;
 }
 if(els.quizYes)els.quizYes.classList.remove('t8-wrong');
 var old=root.querySelector('#t8-quiznote');if(old)old.textContent='';

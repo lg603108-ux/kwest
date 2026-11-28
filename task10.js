@@ -198,6 +198,45 @@ const p=music.play();if(p&&p.catch)p.catch(function(){});}catch(e){music=null;}
 }
 function stopMusic(){if(!music)return;try{music.pause();music.currentTime=0;}catch(e){}music=null;}
 function stopVoice(){if(!voice)return;try{voice.pause();voice.currentTime=0;}catch(e){}voice=null;}
+// Голос игроков — отдельный канал (правка автора 27.11.2026): капитану звучит «введите код»,
+// игрокам «удерживайте щит». Отдельный канал, чтобы фраза игрока не глушила звук и не досталась капитану.
+// Телефон игрока после видео может не пустить звук без касания — тогда фраза ждёт первого касания.
+let pvAudio=null,pvTap=null;
+function startPv(file,vol){
+try{
+const a=new Audio('assets/'+file);a.volume=vol;a.preload='auto';pvAudio=a;
+const p=a.play();
+if(p&&p.then)p.then(function(){},function(){if(pvAudio===a)armPvTap(file,vol);});
+}catch(e){pvAudio=null;armPvTap(file,vol);}
+}
+function playPlayerVoice(file,vol){
+if(!active||cap())return;
+stopPlayerVoice();
+startPv(file,(vol==null)?0.9:vol);
+}
+function armPvTap(file,vol){
+if(pvTap)return;
+const run=function(){
+offPvTap();
+if(!active||cap())return;
+startPv(file,vol);
+};
+const off=function(){
+document.removeEventListener('pointerdown',run,true);
+document.removeEventListener('touchstart',run,true);
+pvTap=null;
+};
+pvTap=off;
+document.addEventListener('pointerdown',run,true);
+document.addEventListener('touchstart',run,true);
+}
+function offPvTap(){if(pvTap){const off=pvTap;pvTap=null;off();}}
+function stopPlayerVoice(){
+offPvTap();
+if(!pvAudio)return;
+try{pvAudio.pause();pvAudio.currentTime=0;}catch(e){}
+pvAudio=null;
+}
 function status(text){
 if(!els.status)return '';
 if(text===undefined)return els.status.textContent||'';
@@ -303,7 +342,7 @@ tickTimer=setInterval(tick,400);
 function unmount(){
 if(arcs){try{arcs.destroy();}catch(e){}arcs=null;}
 if(active)releaseShield();
-stopVoice();stopMusic();
+stopVoice();stopMusic();stopPlayerVoice();
 active=false;
 if(startTimer){clearTimeout(startTimer);startTimer=null;}
 if(holdHb){clearInterval(holdHb);holdHb=null;}
@@ -435,7 +474,8 @@ function shieldDown(e){
 if(!active||cap()||!task)return;
 const st=task.stage||'wait';
 // щит считается только после принятого кода: до этого игроки ждут капитана
-if(st!=='protocol'&&st!=='countdown')return;
+// Щит держат сразу после инструкции — одновременно с вводом кода капитаном (правка автора 27.11.2026).
+if(st!=='code'&&st!=='protocol'&&st!=='countdown')return;
 if(e){try{els.shieldbtn.setPointerCapture(e.pointerId);}catch(_){}}
 if(holding)return;
 holding=true;
@@ -665,13 +705,12 @@ if(els.codebox)els.codebox.hidden=!(c&&st==='code');
 if(els.proto)els.proto.hidden=!(c&&st==='protocol');
 const shieldOn=!c&&(st==='code'||st==='protocol'||st==='countdown');
 if(els.shield)els.shield.hidden=!shieldOn;
-const codePhase=(st==='code');
-if(els.shieldbtn)els.shieldbtn.disabled=codePhase;
+if(els.shieldbtn)els.shieldbtn.disabled=false;
 if(els.shieldup){
-els.shieldup.textContent=codePhase?'КАПИТАН ВВОДИТ КОД':'УДЕРЖИВАЙ ЩИТ';
-els.shieldup.hidden=(!codePhase&&holding);   // плашка видна в начале и когда щит отпущен
+// Плашки «КАПИТАН ВВОДИТ КОД» нет: щит нужен сразу после инструкции (правка 27.11.2026).
+els.shieldup.textContent='УДЕРЖИВАЙ ЩИТ';
+els.shieldup.hidden=holding;   // плашка видна в начале и когда щит отпущен
 }
-if(codePhase&&els.shield)els.shield.classList.remove('t10-on');
 if(els.count)els.count.hidden=true;   // экран с крупной цифрой «0» убран по требованию автора
 // при верном протоколе волна отступает, затем светлое затухание и финальный город
 if(els.shield)els.shield.classList.toggle('t10-hush',st==='countdown'||st==='city');
@@ -747,10 +786,12 @@ els.countnum.textContent=left>0?String(Math.min(3,left)):'0';
 if(st==='done')fillCard();
 // протокол собирается тремя нажатиями заново; вне этой стадии черновик пуст
 if(st!=='protocol')protoDraft=[];
-// голос Вольта по стадиям (только капитан): сначала «введите код», после кода — «удерживайте щит»
+// Голос по стадиям: капитану — «введите код» (как раньше), игрокам — «удерживайте щит».
+// Разделение звука сделано только в этом задании (решение автора 27.11.2026).
 if(st!==stageKey){
 if(c&&st==='code')playSfx(SFX_KOD,1);
-if(c&&st==='protocol')playSfx(SFX_HOLD,1);
+if(!c&&st==='code')playPlayerVoice(SFX_HOLD,.9);
+if(st!=='code')offPvTap();     // отложенная фраза игрокам больше не нужна
 if(st==='countdown')stopMusic();
 stageKey=st;
 }
